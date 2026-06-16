@@ -1,0 +1,33 @@
+{
+  "$schema": "../node_modules/@tauri-apps/cli/config.schema.json",
+  "identifier": "cloud.oneoh.onebox",
+  "productName": "OneBox",
+  "build": {
+    "beforeBundleCommand": "scripts/prebundle.sh"
+  },
+  "bundle": {
+    "targets": [
+      "app",
+      "dmg"
+    ],
+    "icon": [
+      "icons/32x32.png",
+      "icons/128x128.png",
+      "icons/128x128@2x.png",
+      "icons/icon.icns",
+      "icons/icon.ico",
+      "icons/macos.png"
+    ],
+    "macOS": {
+      "frameworks": [],
+      "minimumSystemVersion": "10.15",
+      "exceptionDomain": "",
+      "signingIdentity": "Developer ID Application: OneOh Cloud LLC (GN2W3N34TM)",
+      "entitlements": "packages/macos/entitlements.plist",
+      "infoPlist": "Info.privileged-helper.plist",
+      "files": {
+        "Library/LaunchServices/cloud.oneoh.onebox.helper": "target/helper/cloud.oneoh.onebox.helper"
+      }
+    }
+  }
+}

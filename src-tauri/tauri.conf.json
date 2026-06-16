@@ -1,0 +1,66 @@
+{
+  "productName": "OneBox",
+  "version": "1.4.31",
+  "identifier": "cloud.oneoh.onebox",
+  "build": {
+    "beforeDevCommand": "deno task dev",
+    "devUrl": "http://localhost:1420",
+    "beforeBuildCommand": "deno task build",
+    "frontendDist": "../dist"
+  },
+  "app": {
+    "windows": [
+      {
+        "devtools": true,
+        "maximizable": false,
+        "decorations": true,
+        "resizable": false,
+        "title": "OneBox",
+        "width": 371,
+        "height": 600
+      }
+    ],
+    "security": {
+      "csp": null
+    }
+  },
+  "bundle": {
+    "createUpdaterArtifacts": true,
+    "active": true,
+    "targets": "all",
+    "resources": [
+      "resources/*.db"
+    ],
+    "externalBin": [
+      "binaries/sing-box"
+    ],
+    "icon": [
+      "icons/32x32.png",
+      "icons/128x128.png",
+      "icons/128x128@2x.png",
+      "icons/icon.icns",
+      "icons/icon.ico"
+    ]
+  },
+  "plugins": {
+    "deep-link": {
+      "desktop": {
+        "schemes": [
+          "oneoh-networktools"
+        ]
+      }
+    },
+    "updater": {
+      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDNERkM4MTE4RENFRUU4NDgKUldSSTZPN2NHSUg4UGFBOHU1UlFlMXE0eXh4b3hRaW1lb0FlYms1OWhxWnhJRURGN2FxcUZneEoK",
+      "endpoints": [
+        "https://onebox-updater.oneoh.cloud/latest",
+        "https://github.com/OneOhCloud/OneBox/releases/latest/download/latest.json"
+      ]
+    },
+    "sql": {
+      "preload": [
+        "sqlite:data.db"
+      ]
+    }
+  }
+}
