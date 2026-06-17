@@ -3,6 +3,11 @@ import { getDirectDNS, getProxyPort, getStoreValue, getUseDHCP } from "../../sin
 import { TUN_INTERFACE_NAME, TUN_STACK_STORE_KEY } from "../../types/definition";
 import { writeConfigFile } from "../helper";
 
+/** Parse a JSON string of VLESS options, falling back to empty object. */
+function parseVlessOpts(raw: string): Record<string, string> {
+    try { return JSON.parse(raw); } catch { return {}; }
+}
+
 
 
 type Item = {
@@ -208,6 +213,55 @@ export async function mergeManualServersConfig(newConfig: any): Promise<void> {
                     if ((server as any).username) outbound.username = (server as any).username;
                     if (server.password) outbound.password = server.password;
                     break;
+                case "vless": {
+                    outbound.type = "vless";
+                    const vuuid = (server as any).vless_uuid || "";
+                    const vopts = parseVlessOpts((server as any).vless_opts || "{}");
+                    outbound.uuid = vuuid;
+                    outbound.flow = vopts.flow || "";
+                    outbound.packet_encoding = vopts.packetEncoding || "";
+
+                    // TLS / Reality
+                    const tls: any = {};
+                    const security = vopts.security || "none";
+                    if (security === "tls" || security === "xtls") {
+                        tls.enabled = true;
+                        if (vopts.sni) tls.server_name = vopts.sni;
+                        if (vopts.alpn) tls.alpn = vopts.alpn.split(",");
+                        if (vopts.fingerprint) {
+                            tls.utls = { enabled: true, fingerprint: vopts.fingerprint };
+                        }
+                    } else if (security === "reality") {
+                        tls.enabled = true;
+                        tls.server_name = vopts.sni || "";
+                        tls.reality = {
+                            enabled: true,
+                            public_key: vopts.publicKey || "",
+                            short_id: vopts.shortId || "",
+                        };
+                        if (vopts.fingerprint) {
+                            tls.utls = { enabled: true, fingerprint: vopts.fingerprint };
+                        }
+                    }
+                    if (tls.enabled) outbound.tls = tls;
+
+                    // Transport
+                    const transport: any = {};
+                    const tp = vopts.type || "tcp";
+                    transport.type = tp;
+                    if (tp === "ws") {
+                        if (vopts.path) transport.path = vopts.path;
+                        if (vopts.host) transport.headers = { Host: vopts.host };
+                    } else if (tp === "grpc") {
+                        if (vopts.serviceName) transport.service_name = vopts.serviceName;
+                    } else if (tp === "httpupgrade") {
+                        if (vopts.path) transport.path = vopts.path;
+                        if (vopts.host) transport.host = vopts.host;
+                    }
+                    if (tp !== "tcp") outbound.transport = transport;
+
+                    break;
+                }
                 default: // ss
                     outbound.type = "shadowsocks";
                     outbound.method = server.encryption_method;

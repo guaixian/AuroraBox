@@ -92,9 +92,11 @@ export type ProxyServer = {
     updated_at: number
     proxy_type: string
     username: string
+    vless_uuid: string
+    vless_opts: string
 }
 
-export type ProxyType = 'ss' | 'socks5' | 'http';
+export type ProxyType = 'ss' | 'socks5' | 'http' | 'vless';
 
 // 获取订阅列表的 SWR 键
 export const GET_SUBSCRIPTIONS_LIST_SWR_KEY = 'get-subscriptions-list'

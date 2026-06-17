@@ -42,6 +42,8 @@ export function ImportShareLinksModal({ visible, onClose, onImported }: ImportSh
           plugin_opts: s.pluginOpts,
           proxy_type: s.proxyType || "ss",
           username: s.username || "",
+          vless_uuid: s.vlessUUID || "",
+          vless_opts: s.vlessOpts ? JSON.stringify(s.vlessOpts) : "",
         }));
       await batchInsertProxyServers(selected);
       onImported();

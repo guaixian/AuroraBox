@@ -357,9 +357,9 @@ export async function insertProxyServer(server: Omit<ProxyServer, "id" | "identi
     const identifier = uuidHexNoDash();
     const now = Math.floor(Date.now() / 1000);
     await db.execute(
-        `INSERT INTO proxy_servers (identifier, name, server_address, server_port, password, encryption_method, plugin, plugin_opts, proxy_type, username, created_at, updated_at)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-        [identifier, server.name, server.server_address, server.server_port, server.password, server.encryption_method, server.plugin || '', server.plugin_opts || '', (server as any).proxy_type || 'ss', (server as any).username || '', now, now]
+        `INSERT INTO proxy_servers (identifier, name, server_address, server_port, password, encryption_method, plugin, plugin_opts, proxy_type, username, vless_uuid, vless_opts, created_at, updated_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        [identifier, server.name, server.server_address, server.server_port, server.password, server.encryption_method, server.plugin || '', server.plugin_opts || '', (server as any).proxy_type || 'ss', (server as any).username || '', (server as any).vless_uuid || '', (server as any).vless_opts || '', now, now]
     );
     return identifier;
 }
@@ -369,7 +369,7 @@ export async function updateProxyServer(identifier: string, server: Partial<Omit
     const now = Math.floor(Date.now() / 1000);
     const sets: string[] = [];
     const params: any[] = [];
-    const fields: (keyof typeof server)[] = ["name", "server_address", "server_port", "password", "encryption_method", "plugin", "plugin_opts", "proxy_type", "username"];
+    const fields: (keyof typeof server)[] = ["name", "server_address", "server_port", "password", "encryption_method", "plugin", "plugin_opts", "proxy_type", "username", "vless_uuid", "vless_opts"];
     for (const f of fields) {
         const v = server[f];
         if (v !== undefined) {
@@ -407,9 +407,9 @@ export async function batchInsertProxyServers(servers: Omit<ProxyServer, "id" | 
         for (const server of servers) {
             const identifier = uuidHexNoDash();
             await db.execute(
-                `INSERT INTO proxy_servers (identifier, name, server_address, server_port, password, encryption_method, plugin, plugin_opts, proxy_type, username, created_at, updated_at)
-                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-                [identifier, server.name, server.server_address, server.server_port, server.password, server.encryption_method, server.plugin || '', server.plugin_opts || '', (server as any).proxy_type || 'ss', (server as any).username || '', now, now]
+                `INSERT INTO proxy_servers (identifier, name, server_address, server_port, password, encryption_method, plugin, plugin_opts, proxy_type, username, vless_uuid, vless_opts, created_at, updated_at)
+                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+                [identifier, server.name, server.server_address, server.server_port, server.password, server.encryption_method, server.plugin || '', server.plugin_opts || '', (server as any).proxy_type || 'ss', (server as any).username || '', (server as any).vless_uuid || '', (server as any).vless_opts || '', now, now]
             );
             identifiers.push(identifier);
         }

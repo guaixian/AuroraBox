@@ -6,11 +6,24 @@ import { IOSTextField } from "../common/ios-text-field";
 import { EncryptionSelect } from "./encryption-select";
 import type { ProxyServer, ProxyType } from "../../types/definition";
 
+function parseVlessOpts(raw: string): Record<string, string> {
+  try { return JSON.parse(raw); } catch { return {}; }
+}
+
+function buildVlessOpts(o: Record<string, string>): string {
+  return JSON.stringify(o);
+}
+
 const PROXY_TYPES: { value: ProxyType; label: string }[] = [
   { value: "ss", label: "Shadowsocks" },
   { value: "socks5", label: "SOCKS5" },
   { value: "http", label: "HTTP" },
+  { value: "vless", label: "VLESS" },
 ];
+
+const VLESS_SECURITIES = ["none", "tls", "reality"];
+const VLESS_TRANSPORTS = ["tcp", "ws", "grpc", "httpupgrade"];
+const VLESS_FLOWS = ["", "xtls-rprx-vision"];
 
 interface AddServerModalProps {
   visible: boolean;
@@ -30,6 +43,17 @@ export function AddServerModal({ visible, editServer, onClose, onSaved }: AddSer
   const [method, setMethod] = useState("aes-256-gcm");
   const [plugin, setPlugin] = useState("");
   const [pluginOpts, setPluginOpts] = useState("");
+  // VLESS fields
+  const [vlessUUID, setVlessUUID] = useState("");
+  const [vlessSecurity, setVlessSecurity] = useState("none");
+  const [vlessFlow, setVlessFlow] = useState("");
+  const [vlessTransport, setVlessTransport] = useState("tcp");
+  const [vlessPath, setVlessPath] = useState("");
+  const [vlessHost, setVlessHost] = useState("");
+  const [vlessSNI, setVlessSNI] = useState("");
+  const [vlessFingerprint, setVlessFingerprint] = useState("");
+  const [vlessRealityPK, setVlessRealityPK] = useState("");
+  const [vlessRealitySID, setVlessRealitySID] = useState("");
   const [error, setError] = useState("");
   const [saving, setSaving] = useState(false);
 
@@ -44,6 +68,18 @@ export function AddServerModal({ visible, editServer, onClose, onSaved }: AddSer
       setMethod(editServer.encryption_method || "aes-256-gcm");
       setPlugin(editServer.plugin || "");
       setPluginOpts(editServer.plugin_opts || "");
+      // VLESS fields
+      setVlessUUID(editServer.vless_uuid || "");
+      const eOpts = parseVlessOpts(editServer.vless_opts || "{}");
+      setVlessSecurity(eOpts.security || "none");
+      setVlessFlow(eOpts.flow || "");
+      setVlessTransport(eOpts.type || "tcp");
+      setVlessPath(eOpts.path || "");
+      setVlessHost(eOpts.host || "");
+      setVlessSNI(eOpts.sni || "");
+      setVlessFingerprint(eOpts.fingerprint || "");
+      setVlessRealityPK(eOpts.publicKey || "");
+      setVlessRealitySID(eOpts.shortId || "");
     } else {
       setName("");
       setProxyType("ss");
@@ -54,6 +90,10 @@ export function AddServerModal({ visible, editServer, onClose, onSaved }: AddSer
       setMethod("aes-256-gcm");
       setPlugin("");
       setPluginOpts("");
+      setVlessUUID("");
+      setVlessSecurity("none"); setVlessFlow(""); setVlessTransport("tcp");
+      setVlessPath(""); setVlessHost(""); setVlessSNI("");
+      setVlessFingerprint(""); setVlessRealityPK(""); setVlessRealitySID("");
     }
     setError("");
   }, [editServer, visible]);
@@ -61,6 +101,7 @@ export function AddServerModal({ visible, editServer, onClose, onSaved }: AddSer
   if (!visible) return null;
 
   const isSS = proxyType === "ss";
+  const isVLESS = proxyType === "vless";
 
   const handleSave = async () => {
     setError("");
@@ -71,9 +112,22 @@ export function AddServerModal({ visible, editServer, onClose, onSaved }: AddSer
       setError(t("invalid_port") || "Invalid port (1-65535)"); return;
     }
     if (isSS && !password.trim()) { setError(t("password_cannot_empty") || "Password cannot be empty"); return; }
+    if (isVLESS && !vlessUUID.trim()) { setError("VLESS UUID cannot be empty"); return; }
 
     setSaving(true);
     try {
+      const vlessOptsJson = isVLESS ? buildVlessOpts({
+        security: vlessSecurity,
+        flow: vlessFlow,
+        type: vlessTransport,
+        ...(vlessPath ? { path: vlessPath } : {}),
+        ...(vlessHost ? { host: vlessHost } : {}),
+        ...(vlessSNI ? { sni: vlessSNI } : {}),
+        ...(vlessFingerprint ? { fingerprint: vlessFingerprint } : {}),
+        ...(vlessRealityPK ? { publicKey: vlessRealityPK } : {}),
+        ...(vlessRealitySID ? { shortId: vlessRealitySID } : {}),
+      }) : "";
+
       const data: any = {
         name: name.trim(),
         server_address: server.trim(),
@@ -84,6 +138,8 @@ export function AddServerModal({ visible, editServer, onClose, onSaved }: AddSer
         plugin_opts: isSS ? pluginOpts.trim() : "",
         proxy_type: proxyType,
         username: username.trim(),
+        vless_uuid: isVLESS ? vlessUUID.trim() : "",
+        vless_opts: isVLESS ? vlessOptsJson : "",
       };
       if (isEdit && editServer) {
         await updateProxyServer(editServer.identifier, data);
@@ -147,6 +203,63 @@ export function AddServerModal({ visible, editServer, onClose, onSaved }: AddSer
             <IOSTextField placeholder={t("password")} value={password} onChange={(v) => setPassword(v)} />
 
             {/* SS-specific fields */}
+            {/* VLESS-specific fields */}
+            {isVLESS && (
+              <>
+                <IOSTextField placeholder="UUID" value={vlessUUID} onChange={(v) => setVlessUUID(v)} />
+                <div className="aurorabox-form-field">
+                  <label className="aurorabox-form-label">Security</label>
+                  <div className="flex gap-1">
+                    {VLESS_SECURITIES.map((s) => (
+                      <button key={s} onClick={() => setVlessSecurity(s)}
+                        className={`flex-1 py-1.5 text-xs rounded-lg font-medium ${
+                          vlessSecurity === s ? "bg-[var(--aurorabox-blue)] text-white" : "bg-[var(--aurorabox-fill)] text-[var(--aurorabox-label-secondary)]"
+                        }`}>{s}</button>
+                    ))}
+                  </div>
+                </div>
+                {vlessSecurity !== "none" && (
+                  <IOSTextField placeholder="SNI (server name)" value={vlessSNI} onChange={(v) => setVlessSNI(v)} />
+                )}
+                {vlessSecurity === "reality" && (
+                  <>
+                    <IOSTextField placeholder="Public Key" value={vlessRealityPK} onChange={(v) => setVlessRealityPK(v)} />
+                    <IOSTextField placeholder="Short ID" value={vlessRealitySID} onChange={(v) => setVlessRealitySID(v)} />
+                  </>
+                )}
+                <div className="flex gap-2 items-center">
+                  <span className="text-xs text-[var(--aurorabox-label-secondary)]">Flow:</span>
+                  <select value={vlessFlow} onChange={(e) => setVlessFlow(e.target.value)}
+                    className="aurorabox-select flex-1 text-xs">
+                    {VLESS_FLOWS.map((f) => <option key={f} value={f}>{f || "none"}</option>)}
+                  </select>
+                </div>
+                <div className="flex gap-2 items-center">
+                  <span className="text-xs text-[var(--aurorabox-label-secondary)]">Transport:</span>
+                  <select value={vlessTransport} onChange={(e) => setVlessTransport(e.target.value)}
+                    className="aurorabox-select flex-1 text-xs">
+                    {VLESS_TRANSPORTS.map((t) => <option key={t} value={t}>{t}</option>)}
+                  </select>
+                </div>
+                {vlessTransport === "ws" && (
+                  <>
+                    <IOSTextField placeholder="Path (e.g. /ws)" value={vlessPath} onChange={(v) => setVlessPath(v)} />
+                    <IOSTextField placeholder="Host (header)" value={vlessHost} onChange={(v) => setVlessHost(v)} />
+                  </>
+                )}
+                {vlessTransport === "grpc" && (
+                  <IOSTextField placeholder="Service Name" value={vlessPath} onChange={(v) => setVlessPath(v)} />
+                )}
+                {vlessTransport === "httpupgrade" && (
+                  <>
+                    <IOSTextField placeholder="Path" value={vlessPath} onChange={(v) => setVlessPath(v)} />
+                    <IOSTextField placeholder="Host" value={vlessHost} onChange={(v) => setVlessHost(v)} />
+                  </>
+                )}
+                <IOSTextField placeholder="Fingerprint (e.g. chrome)" value={vlessFingerprint} onChange={(v) => setVlessFingerprint(v)} />
+              </>
+            )}
+
             {isSS && (
               <>
                 <EncryptionSelect value={method} onChange={setMethod} />

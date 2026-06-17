@@ -14,7 +14,7 @@
  *   http://[username:password@]server:port[#name]
  */
 
-export type ProxyType = "ss" | "socks5" | "http";
+export type ProxyType = "ss" | "socks5" | "http" | "vless";
 
 export interface ParsedProxyServer {
   name: string;
@@ -26,6 +26,9 @@ export interface ParsedProxyServer {
   pluginOpts: string;
   proxyType: ProxyType;
   username: string;
+  /** VLESS-specific fields — serialized from URI query params */
+  vlessUUID?: string;
+  vlessOpts?: Record<string, unknown>;
 }
 
 // Backward-compatible alias
@@ -235,10 +238,84 @@ function parseSimpleProxyLink(raw: string, proxyType: ProxyType): ParsedProxySer
   };
 }
 
+// ── vless:// parser ──────────────────────────────────────────────────
+
+/**
+ * Parse a VLESS share link.
+ * Format: vless://uuid@server:port?param=value&...#name
+ *
+ * Common params: type, security, encryption, flow, sni, alpn, fingerprint,
+ * publicKey, shortId, spiderX, path, host, serviceName, mode, headerType
+ */
+export function parseVlessLink(link: string): ParsedProxyServer | null {
+  const trimmed = link.trim();
+  if (!trimmed.startsWith("vless://")) return null;
+
+  // vless://uuid@server:port?params#name
+  const rest = trimmed.slice(8);
+  const atIdx = rest.lastIndexOf("@");
+  if (atIdx === -1) return null;
+
+  const uuid = rest.slice(0, atIdx);
+  // UUID must be non-empty
+  if (!uuid.trim()) return null;
+
+  const hostFull = rest.slice(atIdx + 1);
+  let name = "";
+  let queryStr = "";
+  let addrPart = hostFull;
+
+  const hashIdx = addrPart.indexOf("#");
+  if (hashIdx >= 0) {
+    try { name = decodeURIComponent(addrPart.slice(hashIdx + 1)); } catch { name = addrPart.slice(hashIdx + 1); }
+    addrPart = addrPart.slice(0, hashIdx);
+  }
+
+  const qIdx = addrPart.indexOf("?");
+  if (qIdx >= 0) {
+    queryStr = addrPart.slice(qIdx + 1);
+    addrPart = addrPart.slice(0, qIdx);
+  }
+
+  const host = parseHostPart(addrPart);
+  if (!host) return null;
+
+  // Parse query params
+  const opts: Record<string, string> = {};
+  if (queryStr) {
+    const params = queryStr.split("&");
+    for (const p of params) {
+      const eq = p.indexOf("=");
+      if (eq >= 0) {
+        try {
+          opts[p.slice(0, eq)] = decodeURIComponent(p.slice(eq + 1));
+        } catch {
+          opts[p.slice(0, eq)] = p.slice(eq + 1);
+        }
+      }
+    }
+  }
+
+  return {
+    name: name || `${host.server}:${host.port}`,
+    server: host.server,
+    port: host.port,
+    password: "",
+    method: "",
+    plugin: "",
+    pluginOpts: "",
+    proxyType: "vless",
+    username: "",
+    vlessUUID: uuid,
+    vlessOpts: opts,
+  };
+}
+
 // ── Auto-detect and batch parse ──────────────────────────────────────
 
 export function parseProxyLink(link: string): ParsedProxyServer | null {
   const trimmed = link.trim();
+  if (trimmed.startsWith("vless://")) return parseVlessLink(trimmed);
   if (trimmed.startsWith("ss://")) return parseSSLink(trimmed);
   if (trimmed.startsWith("socks5://")) return parseSocks5Link(trimmed);
   if (trimmed.startsWith("http://") && !trimmed.startsWith("https://")) return parseHttpLink(trimmed);

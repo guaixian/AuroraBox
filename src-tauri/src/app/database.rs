@@ -49,6 +49,11 @@ ALTER TABLE proxy_servers ADD COLUMN proxy_type TEXT NOT NULL DEFAULT 'ss';
 ALTER TABLE proxy_servers ADD COLUMN username TEXT DEFAULT '';
 "#;
 
+const SQL_4: &str = r#"
+ALTER TABLE proxy_servers ADD COLUMN vless_uuid TEXT DEFAULT '';
+ALTER TABLE proxy_servers ADD COLUMN vless_opts TEXT DEFAULT '';
+"#;
+
 pub fn get_migrations() -> Vec<Migration> {
     vec![
         Migration {
@@ -67,6 +72,12 @@ pub fn get_migrations() -> Vec<Migration> {
             version: 3,
             description: "add_proxy_type_and_username_to_proxy_servers",
             sql: SQL_3,
+            kind: MigrationKind::Up,
+        },
+        Migration {
+            version: 4,
+            description: "add_vless_columns_to_proxy_servers",
+            sql: SQL_4,
             kind: MigrationKind::Up,
         },
     ]
