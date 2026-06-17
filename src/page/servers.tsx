@@ -26,19 +26,30 @@ function ServersPage() {
 
   const refresh = () => mutate();
 
-  // ── Paste-to-import (v2rayN-style) ───────────────────────────────
+  // ── v2rayN-style paste-to-import ──────────────────────────────────
   useEffect(() => {
-    const handler = (e: ClipboardEvent) => {
+    const handler = async (e: ClipboardEvent) => {
+      if (document.activeElement?.tagName === "INPUT" || document.activeElement?.tagName === "TEXTAREA") return;
       const text = e.clipboardData?.getData("text")?.trim();
       if (!text) return;
-      // Auto-detect proxy link in clipboard on Ctrl+V when no input focused
-      if (document.activeElement?.tagName === "INPUT" || document.activeElement?.tagName === "TEXTAREA") return;
-      const link = text.split("\n")[0].trim();
-      if (link.startsWith("ss://") || link.startsWith("vless://") || link.startsWith("trojan://")
-        || link.startsWith("hysteria2://") || link.startsWith("hy2://") || link.startsWith("socks5://")
-        || link.startsWith("http://") || link.startsWith("socks://")) {
-        setImportVisible(true);
-      }
+      const { parseProxyLink } = await import("../utils/shadowsocks-parser");
+      const { batchInsertProxyServers } = await import("../action/db");
+      const links = text.split("\n").map(l => l.trim()).filter(Boolean);
+      const parsed = links.map(l => parseProxyLink(l)).filter(Boolean);
+      const valid = parsed.filter((s): s is NonNullable<typeof s> => s != null);
+      if (valid.length === 0) return;
+      e.preventDefault();
+      try {
+        await batchInsertProxyServers(valid.map(s => ({
+          name: s.name, server_address: s.server, server_port: s.port,
+          password: s.password, encryption_method: s.method,
+          plugin: s.plugin, plugin_opts: s.pluginOpts,
+          proxy_type: s.proxyType || "ss", username: s.username || "",
+          vless_uuid: (s as any).vlessUUID || "", vless_opts: s.vlessOpts ? JSON.stringify(s.vlessOpts) : "",
+        })));
+        toast.success(`已导入 ${valid.length} 个服务器`);
+        refresh();
+      } catch (err: any) { toast.error(String(err)); }
     };
     document.addEventListener("paste", handler);
     return () => document.removeEventListener("paste", handler);
@@ -47,6 +58,40 @@ function ServersPage() {
   const handleSetActive = async (id: string) => { try { await setActiveProxyServer(id); refresh(); } catch (e) { toast.error(String(e)); } };
   const handleEdit = (s: ProxyServer) => { setEditServer(s); setAddVisible(true); };
   const handleAdd = () => { setEditServer(null); setAddVisible(true); };
+
+  // ── v2rayN-style: rebuild share link from DB row ──────────────────
+  const buildShareLink = (s: ProxyServer): string => {
+    const ptype = s.proxy_type || "ss";
+    const host = `${s.server_address}:${s.server_port}`;
+    switch (ptype) {
+      case "ss": {
+        const userinfo = btoa(`${s.encryption_method}:${s.password}`);
+        return `ss://${userinfo}@${host}#${encodeURIComponent(s.name)}`;
+      }
+      case "trojan":
+        return `trojan://${encodeURIComponent(s.password)}@${host}?security=tls#${encodeURIComponent(s.name)}`;
+      case "vless": {
+        const uid = (s as any).vless_uuid || "";
+        return `vless://${uid}@${host}?security=tls#${encodeURIComponent(s.name)}`;
+      }
+      case "hysteria2":
+        return `hysteria2://${s.password}@${host}?sni=${s.server_address}&insecure=1#${encodeURIComponent(s.name)}`;
+      case "socks5":
+        return `socks5://${s.username ? s.username + ":" + s.password : ""}@${host}#${encodeURIComponent(s.name)}`;
+      case "http":
+        return `http://${s.username ? s.username + ":" + s.password : ""}@${host}#${encodeURIComponent(s.name)}`;
+      default: return "";
+    }
+  };
+
+  const handleExportLinks = async () => {
+    if (!servers?.length) return;
+    const links = servers.map(s => buildShareLink(s)).filter(Boolean).join("\n");
+    try {
+      await navigator.clipboard.writeText(links);
+      toast.success(`已导出 ${servers.length} 个分享链接到剪贴板`);
+    } catch { toast.error("复制失败"); }
+  };
 
   // ── Build outbound JSON ───────────────────────────────────────────
   const buildOutboundJSON = (s: ProxyServer): string => {
@@ -150,6 +195,10 @@ function ServersPage() {
           </button>
           <button onClick={() => setImportVisible(true)} className="flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg bg-[var(--aurorabox-fill)] text-[var(--aurorabox-label)] hover:brightness-95">
             {t("batch_import")}
+          </button>
+          <button onClick={handleExportLinks} disabled={!servers?.length}
+            className="flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg bg-[var(--aurorabox-fill)] text-[var(--aurorabox-label)] hover:brightness-95 disabled:opacity-50">
+            {t("export_links")}
           </button>
           <button onClick={testLatencyAll} disabled={testingLatency.size > 0 || !servers?.length}
             className="flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg bg-[var(--aurorabox-fill)] text-[var(--aurorabox-label)] hover:brightness-95 disabled:opacity-50">

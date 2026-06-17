@@ -294,6 +294,7 @@
     "test_latency": "Test Latency",
     "test_speed": "Test Speed",
     "test_all": "Test All",
+    "export_links": "Export Links",
     "testing": "Testing...",
     "speed_test_complete": "Speed test complete",
     "zzzzzeof": "Zzzzzeof",
