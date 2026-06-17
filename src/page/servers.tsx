@@ -1,6 +1,6 @@
 import { useState } from "react";
 import useSWR from "swr";
-import { CloudPlus, LightningCharge, Pencil, Server, Speedometer2, Trash3 } from "react-bootstrap-icons";
+import { CloudPlus, Pencil, Server, Speedometer2, Trash3 } from "react-bootstrap-icons";
 import { deleteProxyServer, getProxyServers, setActiveProxyServer } from "../action/db";
 import { GET_PROXY_SERVERS_SWR_KEY } from "../types/definition";
 import type { ProxyServer } from "../types/definition";
@@ -10,7 +10,7 @@ import { ImportShareLinksModal } from "../components/servers/import-share-links-
 import { toast } from "sonner";
 import { invoke } from "@tauri-apps/api/core";
 
-type LatencyMap = Record<string, { ms: number | null; error?: string }>;
+type LatencyMap = Record<string, { ms: number | null; tcpMs?: number; error?: string }>;
 type SpeedMap = Record<string, { kbps: number | null; error?: string }>;
 
 function ServersPage() {
@@ -56,61 +56,53 @@ function ServersPage() {
     return JSON.stringify(base);
   };
 
-  // ── Generic test runner ───────────────────────────────────────────
-  const runTests = async (targets: ProxyServer[], mode: "latency" | "speed") => {
+  // ── v2rayN-style 3-layer combined test ────────────────────────────
+  const runTests = async (targets: ProxyServer[]) => {
     const outbounds = targets.map(s => buildOutboundJSON(s));
-    const isLatency = mode === "latency";
-    const setTesting = isLatency ? setTestingLatency : setTestingSpeed;
-    const setMap = isLatency ? setLatencyMap : setSpeedMap;
-
-    // Mark these servers as testing
     const keys = targets.map(s => `${s.server_address}:${s.server_port}`);
-    setTesting(prev => { const n = new Set(prev); keys.forEach(k => n.add(k)); return n; });
+    setTestingLatency(prev => { const n = new Set(prev); keys.forEach(k => n.add(k)); return n; });
+    setTestingSpeed(prev => { const n = new Set(prev); keys.forEach(k => n.add(k)); return n; });
 
     try {
       const results = await invoke<{
         server: string; port: number;
-        latency_ms: number | null; speed_kbps: number | null; error: string | null;
-      }[]>("run_singbox_tests", { outbounds, speedMb: isLatency ? 10 : 200 });
+        tcp_ms: number | null; real_ms: number | null; speed_kbps: number | null; error: string | null;
+      }[]>("run_singbox_tests", { outbounds });
 
-      setMap((prev: any) => {
-        const next = { ...prev };
-        for (const r of results) {
-          const key = `${r.server}:${r.port}`;
-          if (isLatency) {
-            next[key] = { ms: r.latency_ms, error: r.error ?? undefined };
-          } else {
-            next[key] = { kbps: r.speed_kbps ? Math.round(r.speed_kbps) : null, error: r.error ?? undefined };
-          }
-        }
-        return next;
-      });
+      const lMap: LatencyMap = {};
+      const sMap: SpeedMap = {};
+      for (const r of results) {
+        const key = `${r.server}:${r.port}`;
+        lMap[key] = { ms: r.real_ms, tcpMs: r.tcp_ms ?? undefined, error: r.error ?? undefined };
+        sMap[key] = { kbps: r.speed_kbps ? Math.round(r.speed_kbps) : null, error: r.speed_kbps == null ? (r.error ?? undefined) : undefined };
+      }
+      setLatencyMap(lMap);
+      setSpeedMap(sMap);
     } catch (e) { toast.error(String(e)); } finally {
-      setTesting(prev => { const n = new Set(prev); keys.forEach(k => n.delete(k)); return n; });
+      setTestingLatency(prev => { const n = new Set(prev); keys.forEach(k => n.delete(k)); return n; });
+      setTestingSpeed(prev => { const n = new Set(prev); keys.forEach(k => n.delete(k)); return n; });
     }
   };
 
-  const testLatencyAll = () => servers?.length && runTests(servers, "latency");
-  const testSpeedAll = () => servers?.length && runTests(servers, "speed");
-  const testLatencyOne = (s: ProxyServer) => runTests([s], "latency");
-  const testSpeedOne = (s: ProxyServer) => runTests([s], "speed");
+  const testAll = () => servers?.length && runTests(servers);
+  const testOne = (s: ProxyServer) => runTests([s]);
 
-  const isTesting = (s: ProxyServer, mode: "latency" | "speed") => {
-    const set = mode === "latency" ? testingLatency : testingSpeed;
-    return set.has(`${s.server_address}:${s.server_port}`);
+  const isTesting = (s: ProxyServer) => {
+    const k = `${s.server_address}:${s.server_port}`;
+    return testingLatency.has(k) || testingSpeed.has(k);
   };
 
   // ── Display helpers ───────────────────────────────────────────────
-  const latencyColor = (ms: number | null | undefined) => {
+  const delayColor = (ms: number | null | undefined) => {
     if (ms == null) return "var(--aurorabox-label-tertiary)";
-    if (ms < 150) return "var(--aurorabox-green)";
-    if (ms < 350) return "var(--aurorabox-orange)";
+    if (ms < 200) return "var(--aurorabox-green)";
+    if (ms < 500) return "var(--aurorabox-orange)";
     return "var(--aurorabox-red)";
   };
-  const latencyText = (ms: number | null | undefined, error?: string) => {
-    if (error) return error === "timeout" ? "超时" : error.length > 12 ? error.slice(0, 12) : error;
-    if (ms == null) return "—";
-    return `${ms}ms`;
+  const speedText = (kbps: number | null | undefined) => {
+    if (kbps == null) return "—";
+    if (kbps >= 1024) return `${(kbps / 1024).toFixed(1)} MB/s`;
+    return `${kbps} KB/s`;
   };
 
   return (
@@ -126,15 +118,10 @@ function ServersPage() {
           <button onClick={() => setImportVisible(true)} className="flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg bg-[var(--aurorabox-fill)] text-[var(--aurorabox-label)] hover:brightness-95">
             {t("batch_import")}
           </button>
-          <button onClick={testLatencyAll} disabled={testingLatency.size > 0 || !servers?.length}
+          <button onClick={testAll} disabled={(testingLatency.size > 0 || testingSpeed.size > 0) || !servers?.length}
             className="flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg bg-[var(--aurorabox-fill)] text-[var(--aurorabox-label)] hover:brightness-95 disabled:opacity-50">
-            <LightningCharge size={16} className={testingLatency.size > 0 ? "animate-pulse" : ""} />
-            {testingLatency.size > 0 ? t("testing") : t("test_latency")}
-          </button>
-          <button onClick={testSpeedAll} disabled={testingSpeed.size > 0 || !servers?.length}
-            className="flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg bg-[var(--aurorabox-fill)] text-[var(--aurorabox-label)] hover:brightness-95 disabled:opacity-50">
-            <Speedometer2 size={16} className={testingSpeed.size > 0 ? "animate-pulse" : ""} />
-            {testingSpeed.size > 0 ? t("testing") : t("test_speed")}
+            <Speedometer2 size={16} className={(testingLatency.size > 0 || testingSpeed.size > 0) ? "animate-pulse" : ""} />
+            {(testingLatency.size > 0 || testingSpeed.size > 0) ? t("testing") : t("test_all")}
           </button>
         </div>
 
@@ -150,8 +137,7 @@ function ServersPage() {
             const lkey = `${s.server_address}:${s.server_port}`;
             const latency = latencyMap[lkey];
             const speed = speedMap[lkey];
-            const lTesting = isTesting(s, "latency");
-            const sTesting = isTesting(s, "speed");
+            const testing = isTesting(s);
             return (
               <div key={s.identifier} className="border-b border-[var(--aurorabox-separator)] last:border-b-0">
                 <button onClick={() => setExpandedId(expandedId === s.identifier ? null : s.identifier)}
@@ -164,20 +150,18 @@ function ServersPage() {
                     </div>
                   </div>
                   <div className="flex items-center gap-1.5 flex-shrink-0">
-                    {lTesting && <span className="text-xs text-[var(--aurorabox-blue)]">⏳</span>}
-                    {latency && !lTesting && (
-                      <span className="text-xs font-mono font-medium px-2 py-0.5 rounded" style={{ color: latencyColor(latency.ms), background: "var(--aurorabox-fill)" }}>
-                        {latencyText(latency.ms, latency.error)}
-                      </span>
+                    {testing && <span className="text-xs text-[var(--aurorabox-blue)] animate-pulse">⏳</span>}
+                    {latency && !testing && latency.tcpMs != null && (
+                      <span className="text-[10px] font-mono px-1.5 py-0.5 rounded" style={{ color: "var(--aurorabox-label-tertiary)", background: "var(--aurorabox-fill)" }}>TCP {latency.tcpMs}ms</span>
                     )}
-                    {sTesting && <span className="text-xs text-[var(--aurorabox-blue)]">⏳</span>}
-                    {speed && !sTesting && speed.kbps != null && (
-                      <span className="text-xs font-mono font-medium px-2 py-0.5 rounded" style={{ color: "var(--aurorabox-blue)", background: "var(--aurorabox-fill)" }}>
-                        {speed.kbps >= 1024 ? `${(speed.kbps / 1024).toFixed(1)} MB/s` : `${speed.kbps} KB/s`}
-                      </span>
+                    {latency && !testing && latency.ms != null && (
+                      <span className="text-xs font-mono font-medium px-2 py-0.5 rounded" style={{ color: delayColor(latency.ms), background: "var(--aurorabox-fill)" }}>{latency.ms}ms</span>
                     )}
-                    {speed && !sTesting && speed.error && (
-                      <span className="text-xs font-mono px-2 py-0.5 rounded" style={{ color: "var(--aurorabox-label-tertiary)", background: "var(--aurorabox-fill)" }}>{speed.error.length > 12 ? speed.error.slice(0, 12) : speed.error}</span>
+                    {latency && !testing && latency.ms == null && latency.error && (
+                      <span className="text-[10px] font-mono px-1 py-0.5 rounded" style={{ color: "var(--aurorabox-red)", background: "var(--aurorabox-fill)" }}>FAIL</span>
+                    )}
+                    {speed && !testing && speed.kbps != null && (
+                      <span className="text-xs font-mono font-medium px-2 py-0.5 rounded" style={{ color: "var(--aurorabox-blue)", background: "var(--aurorabox-fill)" }}>{speedText(speed.kbps)}</span>
                     )}
                   </div>
                   {s.plugin && <span className="text-[11px] px-1.5 py-0.5 rounded bg-[var(--aurorabox-fill)] text-[var(--aurorabox-label-secondary)] flex-shrink-0">plugin</span>}
@@ -187,13 +171,9 @@ function ServersPage() {
                   <div className="flex gap-1 px-4 pb-3 flex-wrap">
                     {!s.is_active && <button onClick={() => handleSetActive(s.identifier)} className="flex items-center gap-1 px-3 py-1.5 text-xs rounded-md bg-[var(--aurorabox-green)]/10 text-[var(--aurorabox-green)] hover:brightness-95">{t("set_active")}</button>}
                     {s.is_active && <span className="flex items-center gap-1 px-3 py-1.5 text-xs rounded-md bg-[var(--aurorabox-green)]/10 text-[var(--aurorabox-green)]">{t("active")}</span>}
-                    <button onClick={() => testLatencyOne(s)} disabled={lTesting}
+                    <button onClick={() => testOne(s)} disabled={isTesting(s)}
                       className="flex items-center gap-1 px-3 py-1.5 text-xs rounded-md bg-[var(--aurorabox-fill)] text-[var(--aurorabox-label)] hover:brightness-95 disabled:opacity-50">
-                      <LightningCharge size={12} /> {lTesting ? "..." : t("test_latency")}
-                    </button>
-                    <button onClick={() => testSpeedOne(s)} disabled={sTesting}
-                      className="flex items-center gap-1 px-3 py-1.5 text-xs rounded-md bg-[var(--aurorabox-fill)] text-[var(--aurorabox-label)] hover:brightness-95 disabled:opacity-50">
-                      <Speedometer2 size={12} /> {sTesting ? "..." : t("test_speed")}
+                      <Speedometer2 size={12} /> {isTesting(s) ? "..." : t("test_all")}
                     </button>
                     <button onClick={() => handleEdit(s)} className="flex items-center gap-1 px-3 py-1.5 text-xs rounded-md bg-[var(--aurorabox-fill)] text-[var(--aurorabox-label)] hover:brightness-95"><Pencil size={12} /> {t("edit")}</button>
                     <button onClick={() => handleDelete(s.identifier)} className="flex items-center gap-1 px-3 py-1.5 text-xs rounded-md bg-[var(--aurorabox-red)]/10 text-[var(--aurorabox-red)] hover:brightness-95"><Trash3 size={12} /> {t("delete")}</button>

@@ -1,11 +1,16 @@
-//! Proxy server testing via dedicated sing-box instances.
+//! v2rayN-style proxy testing: TCP connect → real HTTP through proxy → speed test.
 //!
-//! Each test spins up a temporary sing-box process on a unique port,
-//! routes a probe through it, measures latency / throughput, then
-//! tears the process down.
+//! Three-layer model:
+//!   1. TCP layer  — raw socket connect to server:port (tcping)
+//!   2. HTTP layer — GET http://cp.cloudflare.com/ through the proxy chain
+//!   3. Speed layer — download real data through proxy, measure KB/s
+//!
+//! Each server gets a temporary sing-box instance on a dedicated port so
+//! tests are isolated and don't interfere with the main engine.
 
-use std::process::Command;
-use std::time::Duration;
+use std::io::{Read, Write};
+use std::net::{TcpStream, ToSocketAddrs};
+use std::time::{Duration, Instant};
 
 use serde::Serialize;
 use tauri::AppHandle;
@@ -14,23 +19,133 @@ use tokio::time::sleep;
 
 use crate::core::mixed_proxy_port;
 
-/// Performance test result for one proxy server.
 #[derive(Serialize, Clone)]
 pub struct ProxyTestResult {
     pub server: String,
     pub port: u16,
-    pub latency_ms: Option<u64>,
-    /// KB/s download speed.
+    /// TCP handshake latency (milliseconds)
+    pub tcp_ms: Option<u64>,
+    /// Real HTTP latency through the proxy chain (milliseconds)
+    pub real_ms: Option<u64>,
+    /// Download speed in KB/s
     pub speed_kbps: Option<f64>,
     pub error: Option<String>,
 }
 
-/// Run latency AND/OR speed tests against a list of sing-box outbound
-/// JSON definitions. Each outbound gets a dedicated sing-box instance.
-///
-/// - `test_latency`: measure HTTP round-trip time through the proxy
-/// - `test_speed`: download a file and measure throughput (KB/s)
-/// - `speed_mb`: size of the download file in MB (default 100)
+// ── Rust-native HTTP through proxy (zero external deps) ────────────
+
+/// Send an HTTP GET request through an HTTP proxy, read the response
+/// body, and return (elapsed_ms, bytes_read, status_code).
+fn http_get_via_proxy(
+    proxy_host: &str,
+    proxy_port: u16,
+    url: &str,
+    timeout: Duration,
+) -> Result<(u64, usize, u16), String> {
+    let start = Instant::now();
+    let mut sock = TcpStream::connect_timeout(
+        &format!("{}:{}", proxy_host, proxy_port)
+            .to_socket_addrs()
+            .map_err(|e| format!("resolve: {}", e))?
+            .next()
+            .ok_or("no addr")?,
+        timeout,
+    )
+    .map_err(|e| format!("connect: {}", e))?;
+    sock.set_read_timeout(Some(timeout))
+        .map_err(|e| format!("set timeout: {}", e))?;
+
+    // Parse URL to extract host and path
+    let (host, path) = {
+        let s = url
+            .strip_prefix("http://")
+            .or_else(|| url.strip_prefix("https://"))
+            .unwrap_or(url);
+        let slash = s.find('/').unwrap_or(s.len());
+        let host_part = &s[..slash];
+        let first_colon = host_part.find(':');
+        let clean_host = if let Some(c) = first_colon {
+            &host_part[..c]
+        } else {
+            host_part
+        };
+        let path_part = if slash < s.len() { &s[slash..] } else { "/" };
+        (clean_host.to_string(), path_part.to_string())
+    };
+
+    // Simple HTTP proxy request (absolute URL for http:// targets)
+    let absolute_url = format!("http://{}{}", host, path);
+    let req = format!(
+        "GET {} HTTP/1.0\r\nHost: {}\r\nUser-Agent: AuroraBox/1.0\r\nConnection: close\r\n\r\n",
+        absolute_url, host
+    );
+
+    sock.write_all(req.as_bytes())
+        .map_err(|e| format!("write: {}", e))?;
+
+    let mut buf = vec![0u8; 65536];
+    let mut total = 0usize;
+    let mut status = 0u16;
+    let mut headers_done = false;
+    let mut header_buf = Vec::new();
+
+    loop {
+        let n = sock.read(&mut buf).map_err(|e| format!("read: {}", e))?;
+        if n == 0 {
+            break;
+        }
+        if !headers_done {
+            header_buf.extend_from_slice(&buf[..n]);
+            if let Some(body_start) = find_header_end(&header_buf) {
+                // Parse status code
+                let hdr = String::from_utf8_lossy(&header_buf[..body_start]);
+                if let Some(code) = hdr.lines().next().and_then(|l| {
+                    let parts: Vec<&str> = l.split_whitespace().collect();
+                    if parts.len() >= 2 { parts[1].parse().ok() } else { None }
+                }) {
+                    status = code;
+                }
+                total = header_buf.len() - body_start;
+                headers_done = true;
+            }
+        } else {
+            total += n;
+        }
+        if total > 100 * 1024 * 1024 {
+            break;
+        } // cap at 100MB
+    }
+
+    let elapsed = start.elapsed().as_millis() as u64;
+    Ok((elapsed, total, status))
+}
+
+fn find_header_end(data: &[u8]) -> Option<usize> {
+    for i in 0..data.len().saturating_sub(3) {
+        if &data[i..i + 4] == b"\r\n\r\n" {
+            return Some(i + 4);
+        }
+    }
+    None
+}
+
+// ── TCP ping (layer 1) ─────────────────────────────────────────────
+
+fn tcp_ping(host: &str, port: u16) -> Option<u64> {
+    let start = Instant::now();
+    let addr = format!("{}:{}", host, port).to_socket_addrs().ok()?.next()?;
+    TcpStream::connect_timeout(&addr, Duration::from_secs(5))
+        .ok()
+        .map(|_| start.elapsed().as_millis() as u64)
+}
+
+// ── Main test command ───────────────────────────────────────────────
+
+const LATENCY_URL: &str = "http://cp.cloudflare.com/";
+const SPEED_URL: &str = "http://speed.cloudflare.com/__down?bytes=52428800"; // 50MB
+const SPEED_TIMEOUT: u64 = 45;
+const LATENCY_TIMEOUT: u64 = 10;
+
 #[tauri::command]
 pub async fn run_singbox_tests(
     app: AppHandle,
@@ -39,41 +154,54 @@ pub async fn run_singbox_tests(
 ) -> Result<Vec<ProxyTestResult>, String> {
     let mut results = Vec::new();
     let base_port = mixed_proxy_port(&app);
-    let mb = speed_mb.unwrap_or(100).max(10).min(1024);
+    let mb = speed_mb.unwrap_or(50).max(10).min(500);
 
     for (i, outbound_json) in outbounds.into_iter().enumerate() {
-        let test_port: u16 = base_port + 1 + (i as u16 % 50);
+        let test_port: u16 = base_port + 10 + (i as u16 % 40);
 
-        let parsed: serde_json::Value = serde_json::from_str(&outbound_json)
-            .map_err(|e| format!("invalid outbound JSON: {}", e))?;
-        let server = parsed.get("server").and_then(|s| s.as_str()).unwrap_or("unknown");
-        let svr_port: u16 = parsed.get("server_port").and_then(|p| p.as_u64()).unwrap_or(0) as u16;
+        let parsed: serde_json::Value =
+            serde_json::from_str(&outbound_json).map_err(|e| format!("json: {}", e))?;
+        let server = parsed["server"].as_str().unwrap_or("unknown");
+        let svr_port = parsed["server_port"].as_u64().unwrap_or(0) as u16;
+        let tag = parsed["tag"].as_str().unwrap_or("test-node");
 
-        // ── Generate minimal test config ────────────────────────────
+        // ── Layer 1: TCP ping (direct, no proxy) ────────────────────
+        let tcp_ms = tcp_ping(server, svr_port);
+
+        // ── Generate test config with proper DNS + routing ──────────
         let test_config = serde_json::json!({
             "log": { "disabled": true },
+            "dns": {
+                "servers": [
+                    { "tag": "dns-direct", "address": "resolver", "detour": "direct" }
+                ]
+            },
             "inbounds": [{
                 "tag": "test-mixed",
                 "type": "mixed",
                 "listen": "127.0.0.1",
-                "listen_port": test_port
+                "listen_port": test_port,
+                "set_system_proxy": false
             }],
             "outbounds": [
                 { "tag": "direct", "type": "direct" },
-                parsed.clone(),
+                parsed.clone()
             ],
             "route": {
-                "rules": [],
-                "final": parsed.get("tag").cloned().unwrap_or(serde_json::Value::String("direct".into())),
-                "auto_detect_interface": true
+                "rules": [
+                    { "protocol": "dns", "outbound": "direct" }
+                ],
+                "final": tag,
+                "auto_detect_interface": true,
+                "default_domain_resolver": "dns-direct"
             }
         });
 
         let config_path = format!("/tmp/aurorabox-test-{}.json", test_port);
         std::fs::write(&config_path, test_config.to_string())
-            .map_err(|e| format!("write config: {}", e))?;
+            .map_err(|e| format!("write cfg: {}", e))?;
 
-        // ── Start sing-box ─────────────────────────────────────────
+        // ── Start temp sing-box ────────────────────────────────────
         let cmd = app
             .shell()
             .sidecar("sing-box")
@@ -83,11 +211,10 @@ pub async fn run_singbox_tests(
         let (_rx, child) = cmd.spawn().map_err(|e| format!("spawn: {}", e))?;
         let pid = child.pid();
 
-        // Wait for port ready
         let mut ready = false;
-        for _ in 0..40 {
+        for _ in 0..60 {
             sleep(Duration::from_millis(250)).await;
-            if std::net::TcpStream::connect(format!("127.0.0.1:{}", test_port)).is_ok() {
+            if TcpStream::connect(format!("127.0.0.1:{}", test_port)).is_ok() {
                 ready = true;
                 break;
             }
@@ -95,63 +222,102 @@ pub async fn run_singbox_tests(
 
         if !ready {
             cleanup(pid, &config_path);
-            results.push(ProxyTestResult { server: server.into(), port: svr_port, latency_ms: None, speed_kbps: None, error: Some("sing-box start timeout".into()) });
+            results.push(ProxyTestResult {
+                server: server.into(),
+                port: svr_port,
+                tcp_ms,
+                real_ms: None,
+                speed_kbps: None,
+                error: Some("sing-box start timeout".into()),
+            });
             continue;
         }
 
-        let proxy_addr = format!("http://127.0.0.1:{}", test_port);
+        // Give sing-box a moment to fully initialise
+        sleep(Duration::from_millis(500)).await;
 
-        // ── Latency test ────────────────────────────────────────────
-        let latency_ms = {
-            let start = std::time::Instant::now();
-            let out = Command::new("curl")
-                .args(["-x", &proxy_addr, "-s", "-o", "/dev/null", "-w", "%{time_total}",
-                       "--connect-timeout", "5", "--max-time", "8",
-                       "http://www.gstatic.com/generate_204"])
-                .output();
-            match out {
-                Ok(o) if o.status.success() => {
-                    let secs: f64 = String::from_utf8_lossy(&o.stdout).trim().parse().unwrap_or(0.0);
-                    if secs > 0.0 { Some((secs * 1000.0) as u64) } else { None }
-                }
-                _ => None,
+        // ── Layer 2: Real HTTP latency through proxy chain ──────────
+        let real_ms = match http_get_via_proxy(
+            "127.0.0.1",
+            test_port,
+            LATENCY_URL,
+            Duration::from_secs(LATENCY_TIMEOUT),
+        ) {
+            Ok((ms, _, code)) if code >= 200 && code < 400 => Some(ms),
+            Ok((_, _, code)) => {
+                log::warn!("[test] {} latency: HTTP {}", tag, code);
+                None
+            }
+            Err(e) => {
+                log::warn!("[test] {} latency failed: {}", tag, e);
+                None
             }
         };
 
-        // ── Speed test: download large file ────────────────────────
+        // ── Layer 3: Speed test (real download through proxy) ───────
         let speed_kbps = {
-            let url = format!("https://speed.cloudflare.com/__down?bytes={}", mb * 1024 * 1024);
-            let start = std::time::Instant::now();
-            let out = Command::new("curl")
-                .args(["-x", &proxy_addr, "-s", "-o", "/dev/null", "-w", "%{size_download}",
-                       "--connect-timeout", "5", "--max-time", "60",
-                       &url])
-                .output();
-            let elapsed = start.elapsed().as_secs_f64().max(0.5);
-            match out {
-                Ok(o) if o.status.success() => {
-                    let bytes: f64 = String::from_utf8_lossy(&o.stdout).trim().parse().unwrap_or(0.0);
-                    if bytes > 0.0 { Some(bytes / 1024.0 / elapsed) } else { None }
+            let url = if mb > 50 {
+                format!(
+                    "http://speed.cloudflare.com/__down?bytes={}",
+                    mb * 1024 * 1024
+                )
+            } else {
+                format!(
+                    "http://speed.cloudflare.com/__down?bytes={}",
+                    mb * 1024 * 1024
+                )
+            };
+            match http_get_via_proxy(
+                "127.0.0.1",
+                test_port,
+                &url,
+                Duration::from_secs(SPEED_TIMEOUT),
+            ) {
+                Ok((elapsed_ms, bytes, code)) if code >= 200 && code < 400 && bytes > 0 => {
+                    let secs = (elapsed_ms as f64) / 1000.0;
+                    Some((bytes as f64) / 1024.0 / secs.max(0.5))
                 }
-                _ => None,
+                Ok((_, _, code)) => {
+                    log::warn!("[test] {} speed: HTTP {} ({} bytes)", tag, code, 0);
+                    None
+                }
+                Err(e) => {
+                    log::warn!("[test] {} speed failed: {}", tag, e);
+                    None
+                }
             }
         };
 
         cleanup(pid, &config_path);
 
+        let error = if real_ms.is_none() && speed_kbps.is_none() {
+            Some("proxy chain unreachable".into())
+        } else {
+            None
+        };
+
         results.push(ProxyTestResult {
-            server: server.into(), port: svr_port,
-            latency_ms, speed_kbps,
-            error: if latency_ms.is_none() && speed_kbps.is_none() { Some("unreachable".into()) } else { None },
+            server: server.into(),
+            port: svr_port,
+            tcp_ms,
+            real_ms,
+            speed_kbps,
+            error,
         });
 
-        sleep(Duration::from_millis(300)).await;
+        sleep(Duration::from_millis(200)).await;
     }
 
     Ok(results)
 }
 
 fn cleanup(pid: u32, config_path: &str) {
-    unsafe { libc::kill(pid as i32, libc::SIGKILL); }
+    unsafe {
+        libc::kill(pid as i32, libc::SIGTERM);
+    }
+    std::thread::sleep(Duration::from_millis(200));
+    unsafe {
+        libc::kill(pid as i32, libc::SIGKILL);
+    }
     let _ = std::fs::remove_file(config_path);
 }
