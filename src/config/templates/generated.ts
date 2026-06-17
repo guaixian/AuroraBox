@@ -4,7 +4,7 @@
 // Source:  https://github.com/OneOhCloud/conf-template/tree/stable/conf/1.13.8/zh-cn
 // Branch:  stable
 // Commit:  94c5447eb5f80b70c26e9d0969213c7b620566f3
-// Built:   2026-06-17T05:55:12.029Z
+// Built:   2026-06-17T06:32:08.032Z
 // sing-box: v1.13.13
 
 import type { configType } from '../common';
@@ -15,7 +15,7 @@ export const BUILD_TIME_TEMPLATE_SOURCE = {
     commit: '94c5447eb5f80b70c26e9d0969213c7b620566f3',
     versionPath: '1.13.8',
     singBoxVersion: 'v1.13.13',
-    generatedAt: '2026-06-17T05:55:12.032Z',
+    generatedAt: '2026-06-17T06:32:08.033Z',
 } as const;
 
 export const MIXED_TEMPLATE = {
