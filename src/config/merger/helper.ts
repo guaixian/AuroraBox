@@ -229,6 +229,13 @@ export async function mergeManualServersConfig(newConfig: any): Promise<void> {
             `[mergeManualServers] merged ${servers.length} manual server(s)` +
             (activeTag ? `, active=${activeTag}` : "")
         );
+
+        // Write the final config — necessary when called without a preceding
+        // updateVPNServerConfigFromDB (i.e. manual-servers-only mode).
+        await writeConfigFile(
+            "config.json",
+            new TextEncoder().encode(JSON.stringify(newConfig))
+        );
     } catch (e) {
         console.warn("[mergeManualServers] skipped — error:", e);
     }
