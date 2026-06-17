@@ -9,7 +9,6 @@ import { AddServerModal } from "../components/servers/add-server-modal";
 import { ImportShareLinksModal } from "../components/servers/import-share-links-modal";
 import { toast } from "sonner";
 import { invoke } from "@tauri-apps/api/core";
-import { listen } from "@tauri-apps/api/event";
 
 type LatencyMap = Record<string, { ms: number | null; tcpMs?: number; error?: string }>;
 type SpeedMap = Record<string, { kbps: number | null; error?: string }>;
@@ -27,27 +26,22 @@ function ServersPage() {
 
   const refresh = () => mutate();
 
-  // ── Real-time test event listener ────────────────────────────────
+  // ── Paste-to-import (v2rayN-style) ───────────────────────────────
   useEffect(() => {
-    const unlisten = listen<{
-      server: string; port: number;
-      tcp_ms: number | null; real_ms: number | null;
-      speed_kbps: number | null; error: string | null;
-    }>("proxy-test-result", (event) => {
-      const r = event.payload;
-      const key = `${r.server}:${r.port}`;
-      setLatencyMap(prev => ({
-        ...prev,
-        [key]: { ms: r.real_ms, tcpMs: r.tcp_ms ?? undefined, error: r.error ?? undefined }
-      }));
-      setSpeedMap(prev => ({
-        ...prev,
-        [key]: { kbps: r.speed_kbps ? Math.round(r.speed_kbps) : null, error: r.speed_kbps == null ? (r.error ?? undefined) : undefined }
-      }));
-      setTestingLatency(prev => { const n = new Set(prev); n.delete(key); return n; });
-      setTestingSpeed(prev => { const n = new Set(prev); n.delete(key); return n; });
-    });
-    return () => { unlisten.then(fn => fn()); };
+    const handler = (e: ClipboardEvent) => {
+      const text = e.clipboardData?.getData("text")?.trim();
+      if (!text) return;
+      // Auto-detect proxy link in clipboard on Ctrl+V when no input focused
+      if (document.activeElement?.tagName === "INPUT" || document.activeElement?.tagName === "TEXTAREA") return;
+      const link = text.split("\n")[0].trim();
+      if (link.startsWith("ss://") || link.startsWith("vless://") || link.startsWith("trojan://")
+        || link.startsWith("hysteria2://") || link.startsWith("hy2://") || link.startsWith("socks5://")
+        || link.startsWith("http://") || link.startsWith("socks://")) {
+        setImportVisible(true);
+      }
+    };
+    document.addEventListener("paste", handler);
+    return () => document.removeEventListener("paste", handler);
   }, []);
   const handleDelete = async (id: string) => { try { await deleteProxyServer(id); refresh(); } catch (e) { toast.error(String(e)); } };
   const handleSetActive = async (id: string) => { try { await setActiveProxyServer(id); refresh(); } catch (e) { toast.error(String(e)); } };
