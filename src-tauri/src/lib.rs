@@ -73,6 +73,7 @@ pub fn run() {
             engine::engine_ensure_installed,
             commands::prestart::prestart_check,
             commands::prestart::kill_orphans,
+            commands::proxy_test::test_tcp_latency,
         ])
         .setup(app::setup::app_setup)
         .on_menu_event(app::events::on_menu_event)
