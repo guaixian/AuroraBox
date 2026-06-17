@@ -16,9 +16,10 @@ function buildVlessOpts(o: Record<string, string>): string {
 
 const PROXY_TYPES: { value: ProxyType; label: string }[] = [
   { value: "ss", label: "Shadowsocks" },
+  { value: "trojan", label: "Trojan" },
+  { value: "vless", label: "VLESS" },
   { value: "socks5", label: "SOCKS5" },
   { value: "http", label: "HTTP" },
-  { value: "vless", label: "VLESS" },
 ];
 
 const VLESS_SECURITIES = ["none", "tls", "reality"];
@@ -102,6 +103,8 @@ export function AddServerModal({ visible, editServer, onClose, onSaved }: AddSer
 
   const isSS = proxyType === "ss";
   const isVLESS = proxyType === "vless";
+  const isTrojan = proxyType === "trojan";
+  const isAdvanced = isVLESS || isTrojan;
 
   const handleSave = async () => {
     setError("");
@@ -111,12 +114,12 @@ export function AddServerModal({ visible, editServer, onClose, onSaved }: AddSer
     if (!port || isNaN(portNum) || portNum < 1 || portNum > 65535) {
       setError(t("invalid_port") || "Invalid port (1-65535)"); return;
     }
-    if (isSS && !password.trim()) { setError(t("password_cannot_empty") || "Password cannot be empty"); return; }
+    if ((isSS || isTrojan) && !password.trim()) { setError(t("password_cannot_empty") || "Password cannot be empty"); return; }
     if (isVLESS && !vlessUUID.trim()) { setError("VLESS UUID cannot be empty"); return; }
 
     setSaving(true);
     try {
-      const vlessOptsJson = isVLESS ? buildVlessOpts({
+      const vlessOptsJson = isAdvanced ? buildVlessOpts({
         security: vlessSecurity,
         flow: vlessFlow,
         type: vlessTransport,
@@ -139,7 +142,7 @@ export function AddServerModal({ visible, editServer, onClose, onSaved }: AddSer
         proxy_type: proxyType,
         username: username.trim(),
         vless_uuid: isVLESS ? vlessUUID.trim() : "",
-        vless_opts: isVLESS ? vlessOptsJson : "",
+        vless_opts: isAdvanced ? vlessOptsJson : "",
       };
       if (isEdit && editServer) {
         await updateProxyServer(editServer.identifier, data);
@@ -203,10 +206,10 @@ export function AddServerModal({ visible, editServer, onClose, onSaved }: AddSer
             <IOSTextField placeholder={t("password")} value={password} onChange={(v) => setPassword(v)} />
 
             {/* SS-specific fields */}
-            {/* VLESS-specific fields */}
-            {isVLESS && (
+            {/* VLESS / Trojan advanced fields */}
+            {isAdvanced && (
               <>
-                <IOSTextField placeholder="UUID" value={vlessUUID} onChange={(v) => setVlessUUID(v)} />
+                {isVLESS && <IOSTextField placeholder="UUID" value={vlessUUID} onChange={(v) => setVlessUUID(v)} />}
                 <div className="aurorabox-form-field">
                   <label className="aurorabox-form-label">Security</label>
                   <div className="flex gap-1">

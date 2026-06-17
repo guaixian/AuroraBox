@@ -14,7 +14,7 @@
  *   http://[username:password@]server:port[#name]
  */
 
-export type ProxyType = "ss" | "socks5" | "http" | "vless";
+export type ProxyType = "ss" | "socks5" | "http" | "vless" | "trojan";
 
 export interface ParsedProxyServer {
   name: string;
@@ -250,27 +250,51 @@ function parseSimpleProxyLink(raw: string, proxyType: ProxyType): ParsedProxySer
 export function parseVlessLink(link: string): ParsedProxyServer | null {
   const trimmed = link.trim();
   if (!trimmed.startsWith("vless://")) return null;
-
-  // vless://uuid@server:port?params#name
   const rest = trimmed.slice(8);
   const atIdx = rest.lastIndexOf("@");
   if (atIdx === -1) return null;
-
   const uuid = rest.slice(0, atIdx);
-  // UUID must be non-empty
   if (!uuid.trim()) return null;
+  return parseVlessStyleHost(rest.slice(atIdx + 1), uuid, "vless");
+}
 
-  const hostFull = rest.slice(atIdx + 1);
+// ── trojan:// parser ─────────────────────────────────────────────────
+
+/**
+ * Parse a Trojan share link.
+ * Format: trojan://password@server:port?param=value&...#name
+ *
+ * Common params: security (tls/xtls), sni, alpn, fingerprint,
+ * type (tcp/ws/grpc), path, host, serviceName, flow
+ */
+export function parseTrojanLink(link: string): ParsedProxyServer | null {
+  const trimmed = link.trim();
+  if (!trimmed.startsWith("trojan://")) return null;
+
+  const rest = trimmed.slice(9);
+  const atIdx = rest.lastIndexOf("@");
+  if (atIdx === -1) return null;
+
+  const password = rest.slice(0, atIdx);
+  if (!password.trim()) return null;
+
+  // Same host+query+fragment parsing as VLESS
+  return parseVlessStyleHost(rest.slice(atIdx + 1), password, "trojan");
+}
+
+/** Shared host parsing for vless:// and trojan:// URI patterns */
+function parseVlessStyleHost(
+  hostFull: string, credential: string, proxyType: ProxyType
+): ParsedProxyServer | null {
   let name = "";
-  let queryStr = "";
   let addrPart = hostFull;
-
   const hashIdx = addrPart.indexOf("#");
   if (hashIdx >= 0) {
     try { name = decodeURIComponent(addrPart.slice(hashIdx + 1)); } catch { name = addrPart.slice(hashIdx + 1); }
     addrPart = addrPart.slice(0, hashIdx);
   }
 
+  let queryStr = "";
   const qIdx = addrPart.indexOf("?");
   if (qIdx >= 0) {
     queryStr = addrPart.slice(qIdx + 1);
@@ -280,33 +304,25 @@ export function parseVlessLink(link: string): ParsedProxyServer | null {
   const host = parseHostPart(addrPart);
   if (!host) return null;
 
-  // Parse query params
   const opts: Record<string, string> = {};
   if (queryStr) {
-    const params = queryStr.split("&");
-    for (const p of params) {
+    for (const p of queryStr.split("&")) {
       const eq = p.indexOf("=");
       if (eq >= 0) {
-        try {
-          opts[p.slice(0, eq)] = decodeURIComponent(p.slice(eq + 1));
-        } catch {
-          opts[p.slice(0, eq)] = p.slice(eq + 1);
-        }
+        try { opts[p.slice(0, eq)] = decodeURIComponent(p.slice(eq + 1)); } catch { opts[p.slice(0, eq)] = p.slice(eq + 1); }
       }
     }
   }
 
   return {
     name: name || `${host.server}:${host.port}`,
-    server: host.server,
-    port: host.port,
-    password: "",
+    server: host.server, port: host.port,
+    password: proxyType === "trojan" ? credential : "",
     method: "",
-    plugin: "",
-    pluginOpts: "",
-    proxyType: "vless",
+    plugin: "", pluginOpts: "",
+    proxyType,
     username: "",
-    vlessUUID: uuid,
+    vlessUUID: proxyType === "vless" ? credential : undefined,
     vlessOpts: opts,
   };
 }
@@ -315,6 +331,7 @@ export function parseVlessLink(link: string): ParsedProxyServer | null {
 
 export function parseProxyLink(link: string): ParsedProxyServer | null {
   const trimmed = link.trim();
+  if (trimmed.startsWith("trojan://")) return parseTrojanLink(trimmed);
   if (trimmed.startsWith("vless://")) return parseVlessLink(trimmed);
   if (trimmed.startsWith("ss://")) return parseSSLink(trimmed);
   if (trimmed.startsWith("socks5://")) return parseSocks5Link(trimmed);

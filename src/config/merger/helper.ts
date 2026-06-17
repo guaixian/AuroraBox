@@ -213,13 +213,18 @@ export async function mergeManualServersConfig(newConfig: any): Promise<void> {
                     if ((server as any).username) outbound.username = (server as any).username;
                     if (server.password) outbound.password = server.password;
                     break;
+                case "trojan":
                 case "vless": {
-                    outbound.type = "vless";
+                    outbound.type = ptype;
                     const vuuid = (server as any).vless_uuid || "";
                     const vopts = parseVlessOpts((server as any).vless_opts || "{}");
-                    outbound.uuid = vuuid;
+                    if (ptype === "vless") {
+                        outbound.uuid = vuuid;
+                    } else {
+                        outbound.password = server.password;
+                    }
                     outbound.flow = vopts.flow || "";
-                    outbound.packet_encoding = vopts.packetEncoding || "";
+                    if (ptype === "vless") outbound.packet_encoding = vopts.packetEncoding || "";
 
                     // TLS / Reality
                     const tls: any = {};
