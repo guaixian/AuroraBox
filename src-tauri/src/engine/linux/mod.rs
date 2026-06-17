@@ -4,9 +4,37 @@ use tauri::AppHandle;
 use tauri_plugin_shell::process::Command as TauriCommand;
 use tauri_plugin_shell::ShellExt;
 
+use crate::core::mixed_proxy_port;
 use crate::engine::helper::extract_tun_gateway_from_config;
 use crate::engine::sysproxy::{clear_system_proxy, set_system_proxy};
 use crate::engine::EngineManager;
+
+/// Set HTTP_PROXY / HTTPS_PROXY / ALL_PROXY env vars so the sidecar
+/// (sing-box) and any child processes see the proxy. This is needed on
+/// Linux desktops where gsettings may not be available (XFCE, Sway, i3).
+fn set_proxy_env(host: &str, port: u16) {
+    let url = format!("http://{}:{}", host, port);
+    std::env::set_var("HTTP_PROXY", &url);
+    std::env::set_var("http_proxy", &url);
+    std::env::set_var("HTTPS_PROXY", &url);
+    std::env::set_var("https_proxy", &url);
+    std::env::set_var("ALL_PROXY", &url);
+    std::env::set_var("all_proxy", &url);
+    // Don't proxy localhost
+    std::env::set_var("NO_PROXY", "localhost,127.0.0.1,::1");
+    std::env::set_var("no_proxy", "localhost,127.0.0.1,::1");
+}
+
+fn clear_proxy_env() {
+    std::env::remove_var("HTTP_PROXY");
+    std::env::remove_var("http_proxy");
+    std::env::remove_var("HTTPS_PROXY");
+    std::env::remove_var("https_proxy");
+    std::env::remove_var("ALL_PROXY");
+    std::env::remove_var("all_proxy");
+    std::env::remove_var("NO_PROXY");
+    std::env::remove_var("no_proxy");
+}
 
 /// Private state for the interface-scoped DNS override.
 ///
@@ -278,6 +306,9 @@ impl EngineManager for LinuxEngine {
                 }
                 if should_set_system_proxy {
                     set_system_proxy(app).await.map_err(|e| e.to_string())?;
+                    let port = mixed_proxy_port(app);
+                    set_proxy_env("127.0.0.1", port);
+                    log::info!("[proxy] set env vars: http://127.0.0.1:{}", port);
                 }
             }
             crate::engine::ProxyMode::TunProxy => {
@@ -330,6 +361,7 @@ impl EngineManager for LinuxEngine {
                     mgr.is_stopping = false;
                 }
                 let _ = clear_system_proxy(app).await;
+                clear_proxy_env();
             }
         }
         Ok(())
@@ -348,6 +380,7 @@ impl EngineManager for LinuxEngine {
             crate::engine::ProxyMode::SystemProxy | crate::engine::ProxyMode::ManualProxy => {
                 if matches!(mode.as_ref(), crate::engine::ProxyMode::SystemProxy) {
                     let _ = clear_system_proxy(app).await;
+                clear_proxy_env();
                 }
                 if let Some(child) = child {
                     use libc::{kill, SIGTERM};

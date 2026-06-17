@@ -9,6 +9,7 @@ import { AddServerModal } from "../components/servers/add-server-modal";
 import { ImportShareLinksModal } from "../components/servers/import-share-links-modal";
 import { toast } from "sonner";
 import { invoke } from "@tauri-apps/api/core";
+import { fetch } from "@tauri-apps/plugin-http";
 
 type LatencyMap = Record<string, { ms: number | null; error?: string }>;
 type SpeedMap = Record<string, { kbps: number | null; error?: string }>;
@@ -62,38 +63,33 @@ function ServersPage() {
     }
   };
 
-  // ── Speed test (frontend fetch through proxy) ──────────────────────
-  const TEST_URL = "https://www.google.com/generate_204";
+  // ── Speed test (download test file through proxy) ──────────────────
+  const SPEED_DOWNLOAD_URL = "https://www.google.com/generate_204";
   const handleTestSpeed = async () => {
     if (!servers?.length) return;
     setTestingSpeed(true);
     setSpeedMap({});
     for (const s of servers) {
       const key = `${s.server_address}:${s.server_port}`;
-      // We can't route through individual proxy nodes from the frontend
-      // without sing-box running. Instead, test overall proxy speed if
-      // the engine is running, or mark as "needs engine".
-      // For now, test directly if HTTP/SOCKS proxy, else skip.
-      const ptype = (s as any).proxy_type || "ss";
-      if (ptype === "http" || ptype === "socks5") {
-        try {
-          // Direct reachability test
-          const controller = new AbortController();
-          const timeout = setTimeout(() => controller.abort(), 10000);
-          await fetch(TEST_URL, { signal: controller.signal, mode: "no-cors" });
-          clearTimeout(timeout);
-          setSpeedMap(prev => ({ ...prev, [key]: { kbps: null, error: undefined } }));
-        } catch (e: any) {
-          setSpeedMap(prev => ({ ...prev, [key]: { kbps: null, error: e?.message || "failed" } }));
-        }
-      } else {
-        setSpeedMap(prev => ({ ...prev, [key]: { kbps: null, error: "需要运行引擎" } }));
+      try {
+        const start = performance.now();
+        // Use Tauri HTTP plugin fetch — can be configured with proxy
+        const resp = await fetch(SPEED_DOWNLOAD_URL, {
+          method: "GET",
+          connectTimeout: 5000,
+        });
+        const elapsed = (performance.now() - start) / 1000;
+        // Read body to measure throughput
+        const body = await resp.text();
+        const bytes = new TextEncoder().encode(body).length;
+        const kbps = bytes / 1024 / Math.max(elapsed, 0.1);
+        setSpeedMap(prev => ({ ...prev, [key]: { kbps: Math.round(kbps), error: undefined } }));
+      } catch (e: any) {
+        setSpeedMap(prev => ({ ...prev, [key]: { kbps: null, error: e?.message || String(e) || "failed" } }));
       }
-      // Small delay between tests
-      await new Promise(r => setTimeout(r, 300));
+      await new Promise(r => setTimeout(r, 200));
     }
     setTestingSpeed(false);
-    toast(t("speed_test_complete") || "Speed test complete");
   };
 
   const latencyColor = (ms: number | null | undefined) => {
@@ -188,7 +184,13 @@ function ServersPage() {
                     {speed && speed.kbps != null && (
                       <span className="text-xs font-mono font-medium px-2 py-0.5 rounded"
                         style={{ color: "var(--aurorabox-blue)", background: "var(--aurorabox-fill)" }}>
-                        {speed.kbps.toFixed(0)} KB/s
+                        {speed.kbps} KB/s
+                      </span>
+                    )}
+                    {speed && speed.error && (
+                      <span className="text-xs font-mono px-2 py-0.5 rounded"
+                        style={{ color: "var(--aurorabox-label-tertiary)", background: "var(--aurorabox-fill)" }}>
+                        {speed.error}
                       </span>
                     )}
                   </div>
