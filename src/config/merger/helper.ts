@@ -426,61 +426,65 @@ export async function mergeProxyGroupsConfig(newConfig: any): Promise<void> {
         const groups = await getProxyGroups();
         if (!groups?.length) return;
 
-        const outbounds = newConfig.outbounds;
-        const exitGatewayIdx = outbounds.findIndex((g: any) => g.tag === "ExitGateway");
-        if (exitGatewayIdx === -1) return;
+        const outbounds: any[] = newConfig.outbounds;
+        const gwIdx = outbounds.findIndex((g: any) => g.tag === "ExitGateway");
+        if (gwIdx === -1) return;
 
         for (const group of groups) {
             const servers = await getServersByGroup(group.identifier);
             if (!servers.length) continue;
 
+            // Find existing outbound tags for these servers (already added
+            // by mergeManualServersConfig). Match by server:port + type pattern.
+            const tags: string[] = [];
+            for (const s of servers) {
+                // Find the real outbound by matching server:port
+                const existing = outbounds.find((o: any) =>
+                    o.server === s.server_address && o.server_port === s.server_port);
+                if (existing) {
+                    tags.push(existing.tag);
+                }
+            }
+
+            if (!tags.length) continue;
+
             const prefix = `gp-${group.identifier.slice(0, 6)}`;
 
             if (group.group_type === "chain") {
-                // Chain: create individual outbounds linked via detour
+                // Chain: create linked outbounds referencing existing ones
+                // Build chain from last to first, each with detour to next
                 let prevTag = "";
-                for (let i = servers.length - 1; i >= 0; i--) {
-                    const s = servers[i];
-                    const tag = `${prefix}-${i}`;
-                    const outbound: any = buildGroupServerOutbound(s, tag);
-                    if (prevTag) outbound.detour = prevTag;
-                    outbounds.push(outbound);
-                    prevTag = tag;
+                const chainTags: string[] = [];
+                for (let i = tags.length - 1; i >= 0; i--) {
+                    const chainTag = `${prefix}-c${i}`;
+                    const existing = outbounds.find((o: any) => o.tag === tags[i]);
+                    if (!existing) continue;
+                    // Clone existing outbound config and add detour
+                    const o: any = { ...existing, tag: chainTag };
+                    if (prevTag) o.detour = prevTag;
+                    outbounds.push(o);
+                    chainTags.unshift(chainTag);
+                    prevTag = chainTag;
                 }
-                // First server in the chain enters ExitGateway
-                const entryTag = `${prefix}-0`;
-                outbounds[exitGatewayIdx].outbounds.push(entryTag);
-                if (group.is_active) {
-                    const idx = outbounds[exitGatewayIdx].outbounds.indexOf(entryTag);
-                    if (idx > 0) { outbounds[exitGatewayIdx].outbounds.splice(idx, 1); outbounds[exitGatewayIdx].outbounds.unshift(entryTag); }
+                if (chainTags.length > 0) {
+                    outbounds[gwIdx].outbounds.push(chainTags[0]);
+                    if (group.is_active) {
+                        const idx = outbounds[gwIdx].outbounds.indexOf(chainTags[0]);
+                        if (idx > 0) { outbounds[gwIdx].outbounds.splice(idx, 1); outbounds[gwIdx].outbounds.unshift(chainTags[0]); }
+                    }
                 }
             } else {
-                // fixed/auto/random → selector or urltest
-                const tags = servers.map((s, i) => {
-                    const tag = `${prefix}-${i}`;
-                    outbounds.push(buildGroupServerOutbound(s, tag));
-                    return tag;
-                });
-
+                // fixed/auto/random: wrap in selector or urltest using existing tags
                 if (group.group_type === "auto") {
-                    // urltest: auto-pick lowest latency
                     const autoTag = `${prefix}-auto`;
-                    outbounds.push({
-                        tag: autoTag, type: "urltest",
-                        url: "https://www.google.com/generate_204",
-                        interval: "5m", outbounds: tags,
-                    });
-                    outbounds[exitGatewayIdx].outbounds.push(autoTag);
-                    if (group.is_active) outbounds[exitGatewayIdx].outbounds.unshift(autoTag);
+                    outbounds.push({ tag: autoTag, type: "urltest", url: "https://www.google.com/generate_204", interval: "5m", outbounds: [...tags] });
+                    outbounds[gwIdx].outbounds.push(autoTag);
+                    if (group.is_active) outbounds[gwIdx].outbounds.unshift(autoTag);
                 } else {
-                    // fixed/random: selector
                     const selTag = `${prefix}-sel`;
-                    outbounds.push({
-                        tag: selTag, type: "selector",
-                        outbounds: tags, default: tags[0],
-                    });
-                    outbounds[exitGatewayIdx].outbounds.push(selTag);
-                    if (group.is_active) outbounds[exitGatewayIdx].outbounds.unshift(selTag);
+                    outbounds.push({ tag: selTag, type: "selector", outbounds: [...tags], default: tags[0] });
+                    outbounds[gwIdx].outbounds.push(selTag);
+                    if (group.is_active) outbounds[gwIdx].outbounds.unshift(selTag);
                 }
             }
         }
@@ -489,18 +493,4 @@ export async function mergeProxyGroupsConfig(newConfig: any): Promise<void> {
     } catch (e) {
         console.warn("[mergeProxyGroups] skipped — error:", e);
     }
-}
-
-function buildGroupServerOutbound(s: any, tag: string): any {
-    const ptype = s.proxy_type || "ss";
-    const base: any = { tag, server: s.server_address, server_port: s.server_port, domain_resolver: "system" };
-    switch (ptype) {
-        case "hysteria2": base.type = "hysteria2"; base.password = s.password; break;
-        case "vless": base.type = "vless"; base.uuid = s.vless_uuid || ""; break;
-        case "trojan": base.type = "trojan"; base.password = s.password; break;
-        case "socks5": base.type = "socks"; base.version = "5"; break;
-        case "http": base.type = "http"; break;
-        default: base.type = "shadowsocks"; base.method = s.encryption_method; base.password = s.password; break;
-    }
-    return base;
 }
