@@ -147,20 +147,19 @@ pub async fn run_singbox_tests(
         };
         let real_error = if real_ms.is_none() { Some("curl timeout".to_string()) } else { None };
 
-        // ── Layer 3: Speed test via curl (accurate, fast) ───────────
-        // curl provides accurate download throughput measurement.
+        // ── Layer 3: Speed test: timed download (v2rayN-style) ─────
+        // Downloads a large file for a fixed duration (e.g. 10s), then
+        // measures average throughput. Does NOT download the whole file.
         let speed_kbps = {
             let proxy = format!("http://127.0.0.1:{}", test_port);
-            let start = Instant::now();
             let out = Command::new("curl")
                 .args([
                     "-x", &proxy,
                     "-s", "-o", "/dev/null", "-w", "%{speed_download}",
-                    "--connect-timeout", "5", "--max-time", "30",
-                    "http://cachefly.cachefly.net/10mb.test",
+                    "--connect-timeout", "5", "--max-time", "10",
+                    "http://cachefly.cachefly.net/100mb.test",
                 ])
                 .output();
-            let elapsed = start.elapsed().as_secs_f64().max(0.5);
             match out {
                 Ok(o) if o.status.success() => {
                     let bps: f64 = String::from_utf8_lossy(&o.stdout).trim().parse().unwrap_or(0.0);
