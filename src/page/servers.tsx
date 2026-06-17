@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import useSWR from "swr";
 import { CloudPlus, Clipboard, Pencil, Server, Speedometer2, Trash3 } from "react-bootstrap-icons";
-import { addGroupMember, deleteProxyGroup, deleteProxyServer, getGroupMembers, getProxyGroups, getProxyServers, insertProxyGroup, removeGroupMember, setActiveProxyGroup } from "../action/db";
+import { addGroupMember, deleteProxyGroup, deleteProxyServer, getGroupMembers, getProxyGroups, getProxyServers, insertProxyGroup, removeGroupMember } from "../action/db";
 import { GET_PROXY_GROUPS_SWR_KEY, GET_PROXY_SERVERS_SWR_KEY } from "../types/definition";
 import type { ProxyGroup, ProxyServer } from "../types/definition";
 import { t } from "../utils/helper";
@@ -111,9 +111,7 @@ function ServersPage() {
     try { await insertProxyGroup(groupName.trim(), groupType); mutateGroups(); setGroupName(""); setShowGroupForm(false); } catch (e: any) { toast.error(String(e)); }
   };
   const handleDeleteGroup = async (id: string) => { try { await deleteProxyGroup(id); mutateGroups(); } catch (e: any) { toast.error(String(e)); } };
-  const handleToggleGroup = async (g: ProxyGroup) => {
-    try { await setActiveProxyGroup(g.is_active ? null : g.identifier); mutateGroups(); } catch (e: any) { toast.error(String(e)); }
-  };
+  // Group activation is handled on the home page
   const handleLoadMembers = async (g: ProxyGroup) => {
     if (expandedGroupId === g.identifier) { setExpandedGroupId(null); return; }
     try {
@@ -373,7 +371,7 @@ function ServersPage() {
                 <span className="font-medium text-sm text-[var(--aurorabox-label)]">{g.name}</span>
                 <span className="text-[10px] px-1.5 py-0.5 rounded bg-[var(--aurorabox-blue)]/10 text-[var(--aurorabox-blue)]">{GROUP_TYPE_LABELS[g.group_type] || g.group_type}</span>
                 <div className="flex-1" />
-                <button onClick={(e) => { e.stopPropagation(); handleToggleGroup(g); }} className="text-[10px] px-2 py-1 rounded bg-[var(--aurorabox-fill)]">{g.is_active ? "取消" : "激活"}</button>
+                {g.is_active && <span className="text-[10px] px-2 py-0.5 rounded bg-[var(--aurorabox-green)]/10 text-[var(--aurorabox-green)]">活跃</span>}
                 <button onClick={(e) => { e.stopPropagation(); handleDeleteGroup(g.identifier); }} className="text-[10px] px-2 py-1 rounded bg-[var(--aurorabox-red)]/10 text-[var(--aurorabox-red)]">删除</button>
               </div>
               {expandedGroupId === g.identifier && (
