@@ -14,7 +14,7 @@
  *   http://[username:password@]server:port[#name]
  */
 
-export type ProxyType = "ss" | "socks5" | "http" | "vless" | "trojan";
+export type ProxyType = "ss" | "socks5" | "http" | "vless" | "trojan" | "hysteria2";
 
 export interface ParsedProxyServer {
   name: string;
@@ -263,23 +263,51 @@ export function parseVlessLink(link: string): ParsedProxyServer | null {
 /**
  * Parse a Trojan share link.
  * Format: trojan://password@server:port?param=value&...#name
- *
- * Common params: security (tls/xtls), sni, alpn, fingerprint,
- * type (tcp/ws/grpc), path, host, serviceName, flow
  */
 export function parseTrojanLink(link: string): ParsedProxyServer | null {
   const trimmed = link.trim();
   if (!trimmed.startsWith("trojan://")) return null;
-
   const rest = trimmed.slice(9);
   const atIdx = rest.lastIndexOf("@");
   if (atIdx === -1) return null;
-
   const password = rest.slice(0, atIdx);
   if (!password.trim()) return null;
-
-  // Same host+query+fragment parsing as VLESS
   return parseVlessStyleHost(rest.slice(atIdx + 1), password, "trojan");
+}
+
+// ── hysteria2:// parser ──────────────────────────────────────────────
+
+/**
+ * Parse a Hysteria2 share link.
+ * Format: hysteria2://password@server:port?param=value&...#name
+ *         hysteria2://username:password@server:port?...#name
+ *
+ * Common params: sni, insecure (0/1), obfs, obfs-password,
+ * alpn, fingerprint, pinSHA256, upmbps, downmbps
+ */
+export function parseHysteria2Link(link: string): ParsedProxyServer | null {
+  const trimmed = link.trim();
+  if (!trimmed.startsWith("hysteria2://") && !trimmed.startsWith("hy2://")) return null;
+
+  const schemeLen = trimmed.startsWith("hysteria2://") ? 13 : 6;
+  const rest = trimmed.slice(schemeLen);
+  const atIdx = rest.lastIndexOf("@");
+  if (atIdx === -1) return null;
+
+  let username = "";
+  let password = rest.slice(0, atIdx);
+  const colonIdx = password.indexOf(":");
+  if (colonIdx >= 0) {
+    username = decodeURIComponent(password.slice(0, colonIdx));
+    password = password.slice(colonIdx + 1);
+  }
+  if (!password.trim()) return null;
+
+  const result = parseVlessStyleHost(rest.slice(atIdx + 1), password, "hysteria2");
+  if (!result) return null;
+  result.username = username;
+  result.password = password;
+  return result;
 }
 
 /** Shared host parsing for vless:// and trojan:// URI patterns */
@@ -331,6 +359,7 @@ function parseVlessStyleHost(
 
 export function parseProxyLink(link: string): ParsedProxyServer | null {
   const trimmed = link.trim();
+  if (trimmed.startsWith("hysteria2://") || trimmed.startsWith("hy2://")) return parseHysteria2Link(trimmed);
   if (trimmed.startsWith("trojan://")) return parseTrojanLink(trimmed);
   if (trimmed.startsWith("vless://")) return parseVlessLink(trimmed);
   if (trimmed.startsWith("ss://")) return parseSSLink(trimmed);

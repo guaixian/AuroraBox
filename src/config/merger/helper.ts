@@ -202,6 +202,25 @@ export async function mergeManualServersConfig(newConfig: any): Promise<void> {
             };
 
             switch (ptype) {
+                case "hysteria2": {
+                    outbound.type = "hysteria2";
+                    outbound.password = server.password;
+                    const hops = parseVlessOpts((server as any).vless_opts || "{}");
+                    if (hops.upmbps) outbound.up_mbps = parseInt(hops.upmbps, 10) || 100;
+                    if (hops.downmbps) outbound.down_mbps = parseInt(hops.downmbps, 10) || 200;
+                    if (hops.obfs || hops["obfs-password"]) {
+                        outbound.obfs = { type: "salamander", password: hops.obfs || hops["obfs-password"] };
+                    }
+                    // TLS
+                    const tls: any = { enabled: true };
+                    if (hops.sni) tls.server_name = hops.sni;
+                    if (hops.insecure === "1") tls.insecure = true;
+                    if (hops.alpn) tls.alpn = hops.alpn.split(",");
+                    if (hops.pinSHA256) tls.pin_sha256 = hops.pinSHA256;
+                    if (hops.fingerprint) tls.utls = { enabled: true, fingerprint: hops.fingerprint };
+                    outbound.tls = tls;
+                    break;
+                }
                 case "socks5":
                     outbound.type = "socks";
                     outbound.version = "5";

@@ -96,7 +96,7 @@ export type ProxyServer = {
     vless_opts: string
 }
 
-export type ProxyType = 'ss' | 'socks5' | 'http' | 'vless' | 'trojan';
+export type ProxyType = 'ss' | 'socks5' | 'http' | 'vless' | 'trojan' | 'hysteria2';
 
 // 获取订阅列表的 SWR 键
 export const GET_SUBSCRIPTIONS_LIST_SWR_KEY = 'get-subscriptions-list'

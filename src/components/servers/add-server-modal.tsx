@@ -18,6 +18,7 @@ const PROXY_TYPES: { value: ProxyType; label: string }[] = [
   { value: "ss", label: "Shadowsocks" },
   { value: "trojan", label: "Trojan" },
   { value: "vless", label: "VLESS" },
+  { value: "hysteria2", label: "Hysteria2" },
   { value: "socks5", label: "SOCKS5" },
   { value: "http", label: "HTTP" },
 ];
