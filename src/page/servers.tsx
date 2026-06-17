@@ -133,7 +133,29 @@ function ServersPage() {
   const handleRemoveFromGroup = async (g: ProxyGroup, serverId: string) => {
     try { await removeGroupMember(g.identifier, serverId); setGroupMembers(prev => ({ ...prev, [g.identifier]: (prev[g.identifier] || []).filter((m: any) => m.server_identifier !== serverId) })); } catch (e: any) { toast.error(String(e)); }
   };
-  const GROUP_TYPE_LABELS: Record<string, string> = { fixed: "固定", auto: "自动", random: "随机", chain: "链路" };
+  const handleReorderMember = async (g: ProxyGroup, serverId: string, direction: "up" | "down") => {
+    const members = groupMembers[g.identifier] || [];
+    const idx = members.findIndex((m: any) => m.server_identifier === serverId);
+    if (idx === -1) return;
+    const newIdx = direction === "up" ? idx - 1 : idx + 1;
+    if (newIdx < 0 || newIdx >= members.length) return;
+    const reordered = [...members];
+    [reordered[idx], reordered[newIdx]] = [reordered[newIdx], reordered[idx]];
+    // Update sort_order in DB
+    try {
+      for (let i = 0; i < reordered.length; i++) {
+        await addGroupMember(g.identifier, reordered[i].server_identifier, i);
+      }
+      setGroupMembers(prev => ({ ...prev, [g.identifier]: reordered }));
+    } catch (e: any) { toast.error(String(e)); }
+  };
+  const GROUP_TYPE_LABELS: Record<string, string> = { fixed: "手动选择", auto: "自动最优", random: "随机切换", chain: "链路代理" };
+  const GROUP_TYPE_TIPS: Record<string, string> = {
+    fixed: "选择一个固定的代理使用",
+    auto: "自动选择延迟最低的代理",
+    random: "每次启动随机选择一个代理",
+    chain: "流量按顺序经过每个代理 (1→2→3)"
+  };
 
   // ── Build outbound JSON ───────────────────────────────────────────
   const buildOutboundJSON = (s: ProxyServer): string => {
@@ -360,30 +382,53 @@ function ServersPage() {
               </div>
               {expandedGroupId === g.identifier && (
                 <div className="px-4 pb-3 border-t border-[var(--aurorabox-separator)] pt-2">
-                  <p className="text-xs text-[var(--aurorabox-label-secondary)] mb-2">
-                    {g.group_type === "fixed" && "固定使用组内第一个代理"}
-                    {g.group_type === "auto" && "自动选择延迟最低的代理"}
-                    {g.group_type === "random" && "每次随机选择一个代理"}
-                    {g.group_type === "chain" && "按顺序链路连接 1→2→3"}
-                  </p>
-                  {/* Members list */}
-                  <div className="text-xs text-[var(--aurorabox-label-secondary)] mb-1">成员：</div>
-                  {(groupMembers[g.identifier] || []).map((m: any) => {
-                    const svr = (servers || []).find(s => s.identifier === m.server_identifier);
-                    return svr ? (
-                      <div key={m.server_identifier} className="flex items-center gap-2 py-1 text-xs text-[var(--aurorabox-label)]">
-                        <span className="truncate flex-1">{svr.name} ({svr.server_address}:{svr.server_port})</span>
-                        <button onClick={() => handleRemoveFromGroup(g, m.server_identifier)} className="text-[var(--aurorabox-red)]">✕</button>
-                      </div>
-                    ) : null;
-                  })}
-                  {/* Add server to group */}
-                  <div className="mt-2 text-xs text-[var(--aurorabox-label-secondary)]">+ 添加服务器：</div>
-                  <div className="flex flex-wrap gap-1 mt-1">
-                    {(servers || []).filter(s => !(groupMembers[g.identifier] || []).some((m: any) => m.server_identifier === s.identifier)).slice(0, 8).map(s => (
+                  <p className="text-xs text-[var(--aurorabox-label-secondary)] mb-3">{GROUP_TYPE_TIPS[g.group_type]}</p>
+                  {/* Members with mode-specific controls */}
+                  <div className="space-y-1">
+                    {(groupMembers[g.identifier] || []).map((m: any, idx: number) => {
+                      const svr = (servers || []).find(s => s.identifier === m.server_identifier);
+                      if (!svr) return null;
+                      const isFirst = idx === 0;
+                      const isLast = idx === (groupMembers[g.identifier] || []).length - 1;
+                      return (
+                        <div key={m.server_identifier} className="flex items-center gap-2 py-1.5 text-xs rounded px-2 hover:bg-[var(--aurorabox-row-hover)]">
+                          {/* Chain: order number */}
+                          {g.group_type === "chain" && <span className="w-5 text-center font-mono text-[var(--aurorabox-label-tertiary)]">{idx + 1}</span>}
+                          {/* Fixed: radio to pick default */}
+                          {g.group_type === "fixed" && (
+                            <input type="radio" name={`gp-${g.identifier}`} checked={isFirst}
+                              onChange={() => {/* move to front via reorder */}}
+                              className="w-3.5 h-3.5 accent-[var(--aurorabox-blue)]" />
+                          )}
+                          <span className="truncate flex-1 text-[var(--aurorabox-label)]">
+                            {svr.name} <span className="text-[var(--aurorabox-label-tertiary)]">({svr.server_address}:{svr.server_port})</span>
+                          </span>
+                          {/* Chain: reorder buttons */}
+                          {g.group_type === "chain" && (
+                            <div className="flex gap-0.5">
+                              <button onClick={() => handleReorderMember(g, m.server_identifier, "up")} disabled={isFirst}
+                                className="text-[10px] px-1.5 rounded disabled:opacity-30 hover:bg-[var(--aurorabox-fill)]">▲</button>
+                              <button onClick={() => handleReorderMember(g, m.server_identifier, "down")} disabled={isLast}
+                                className="text-[10px] px-1.5 rounded disabled:opacity-30 hover:bg-[var(--aurorabox-fill)]">▼</button>
+                            </div>
+                          )}
+                          <button onClick={() => handleRemoveFromGroup(g, m.server_identifier)} className="text-[var(--aurorabox-red)] hover:brightness-75">✕</button>
+                        </div>
+                      );
+                    })}
+                    {(!groupMembers[g.identifier] || groupMembers[g.identifier].length === 0) && (
+                      <p className="text-xs text-[var(--aurorabox-label-tertiary)] py-2 text-center">暂无成员，从下方添加</p>
+                    )}
+                  </div>
+                  {/* Add server buttons */}
+                  <div className="mt-3 flex flex-wrap gap-1">
+                    {(servers || []).filter(s => !(groupMembers[g.identifier] || []).some((m: any) => m.server_identifier === s.identifier)).map(s => (
                       <button key={s.identifier} onClick={() => handleAddToGroup(g, s)}
-                        className="text-[10px] px-2 py-1 rounded bg-[var(--aurorabox-fill)] text-[var(--aurorabox-label)] hover:brightness-95">{s.name}</button>
+                        className="text-[10px] px-2 py-1 rounded bg-[var(--aurorabox-fill)] text-[var(--aurorabox-label-secondary)] hover:brightness-95">+ {s.name}</button>
                     ))}
+                    {(servers || []).filter(s => !(groupMembers[g.identifier] || []).some((m: any) => m.server_identifier === s.identifier)).length === 0 && (
+                      <span className="text-[10px] text-[var(--aurorabox-label-tertiary)]">所有服务器已加入此组</span>
+                    )}
                   </div>
                 </div>
               )}
