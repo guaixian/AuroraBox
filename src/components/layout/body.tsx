@@ -2,7 +2,6 @@ import React, { Suspense, useMemo } from "react";
 import { ActiveScreenType } from "../../single/context";
 import HomePage from "../../page/home";
 
-const ConfigurationPage = React.lazy(() => import("../../page/config"));
 const DevPage = React.lazy(() => import("../../page/developer"));
 const SettingsPage = React.lazy(() => import("../../page/settings"));
 const RouterSettingsPage = React.lazy(() => import("../../page/router"));
@@ -24,12 +23,6 @@ export function Body({ lang, activeScreen }: BodyProps) {
     switch (activeScreen) {
       case "home":
         return <HomePage />;
-      case "configuration":
-        return (
-          <Suspense fallback={<LoadingFallback />}>
-            <ConfigurationPage />
-          </Suspense>
-        );
       case "settings":
         return (
           <Suspense fallback={<LoadingFallback />}>

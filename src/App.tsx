@@ -5,7 +5,7 @@ import { listen } from '@tauri-apps/api/event';
 import { getCurrentWindow } from '@tauri-apps/api/window';
 import { motion } from 'framer-motion';
 import { Suspense, useEffect, useState } from 'react';
-import { GearWideConnected, House, Layers } from 'react-bootstrap-icons';
+import { GearWideConnected, House } from 'react-bootstrap-icons';
 import { Toaster } from 'sonner';
 
 import React from 'react';
@@ -38,8 +38,7 @@ function App() {
   const [isSettingsHovered, setIsSettingsHovered] = useState(false);
   const [dockLang, setDockLang] = useState({
     home: t("home"),
-    configuration: t("configuration"),
-    settings: t("settings"),
+        settings: t("settings"),
   })
   useSWR('swr-purgeLegacyTemplateCache-key', async () => {
     await purgeLegacyTemplateCache();
@@ -168,8 +167,7 @@ function App() {
     const handleLanguageChange = () => {
       setDockLang({
         home: t("home"),
-        configuration: t("configuration"),
-        settings: t("settings"),
+                settings: t("settings"),
       })
     };
     handleLanguageChange();
@@ -184,8 +182,7 @@ function App() {
     initLanguage().then(() => {
       setDockLang({
         home: t("home"),
-        configuration: t("configuration"),
-        settings: t("settings"),
+                settings: t("settings"),
       })
     })
   }, []);
@@ -229,7 +226,7 @@ function AppShell({
   activeScreen: ActiveScreenType;
   setActiveScreen: (s: ActiveScreenType) => void;
   language: string;
-  dockLang: { home: string; configuration: string; settings: string };
+  dockLang: { home: string; settings: string };
   isSettingsHovered: boolean;
   setIsSettingsHovered: (v: boolean) => void;
 }) {
@@ -272,14 +269,6 @@ function AppShell({
           >
             <House size={18} />
             <span className='text-[11px] capitalize'>{dockLang.home}</span>
-          </button>
-
-          <button
-            onClick={() => setActiveScreen('configuration')}
-            data-active={activeScreen === 'configuration'}
-          >
-            <Layers size={18} />
-            <span className='text-[11px] capitalize'>{dockLang.configuration}</span>
           </button>
 
           <button

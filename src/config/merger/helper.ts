@@ -449,6 +449,10 @@ export async function mergeProxyGroupsConfig(newConfig: any): Promise<void> {
             if (!tags.length) continue;
 
             const prefix = `gp-${group.identifier.slice(0, 6)}`;
+            // Remove any previous entries from this group to avoid duplicates
+            outbounds[gwIdx].outbounds = outbounds[gwIdx].outbounds.filter(
+                (t: string) => !t.startsWith(prefix)
+            );
 
             if (group.group_type === "chain") {
                 // Chain: create linked outbounds referencing existing ones
@@ -485,6 +489,30 @@ export async function mergeProxyGroupsConfig(newConfig: any): Promise<void> {
                     outbounds.push({ tag: selTag, type: "selector", outbounds: [...tags], default: tags[0] });
                     outbounds[gwIdx].outbounds.push(selTag);
                     if (group.is_active) outbounds[gwIdx].outbounds.unshift(selTag);
+                }
+            }
+        }
+
+        // Deduplicate ExitGateway outbounds
+        const seen = new Set<string>();
+        outbounds[gwIdx].outbounds = outbounds[gwIdx].outbounds.filter((t: string) => {
+            if (seen.has(t)) return false;
+            seen.add(t);
+            return true;
+        });
+
+        // If any group is active, move it to the front (default)
+        for (const group of groups) {
+            if (!group.is_active) continue;
+            const servers = await getServersByGroup(group.identifier);
+            if (!servers.length) continue;
+            const prefix = `gp-${group.identifier.slice(0, 6)}`;
+            const groupTag = outbounds[gwIdx].outbounds.find((t: string) => t.startsWith(prefix));
+            if (groupTag) {
+                const idx = outbounds[gwIdx].outbounds.indexOf(groupTag);
+                if (idx > 0) {
+                    outbounds[gwIdx].outbounds.splice(idx, 1);
+                    outbounds[gwIdx].outbounds.unshift(groupTag);
                 }
             }
         }

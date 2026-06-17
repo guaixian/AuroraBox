@@ -1,7 +1,6 @@
 import {
   GearWideConnected,
   House,
-  Layers,
   Server,
   Wrench,
 } from "react-bootstrap-icons";
@@ -27,11 +26,6 @@ export function Sidebar() {
 
   const topItems: NavItem[] = [
     { screen: "home", icon: <House size={20} />, label: t("home") },
-    {
-      screen: "configuration",
-      icon: <Layers size={20} />,
-      label: t("configuration"),
-    },
     { screen: "servers", icon: <Server size={20} />, label: t("servers") },
   ];
 
