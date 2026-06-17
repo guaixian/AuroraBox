@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import useSWR from "swr";
-import { CloudPlus, Pencil, Server, Speedometer2, Trash3 } from "react-bootstrap-icons";
+import { CloudPlus, Clipboard, Pencil, Server, Speedometer2, Trash3 } from "react-bootstrap-icons";
 import { deleteProxyServer, getProxyServers, setActiveProxyServer } from "../action/db";
 import { GET_PROXY_SERVERS_SWR_KEY } from "../types/definition";
 import type { ProxyServer } from "../types/definition";
@@ -82,6 +82,12 @@ function ServersPage() {
         return `http://${s.username ? s.username + ":" + s.password : ""}@${host}#${encodeURIComponent(s.name)}`;
       default: return "";
     }
+  };
+
+  const handleCopyLink = async (s: ProxyServer) => {
+    const link = buildShareLink(s);
+    if (!link) return;
+    try { await navigator.clipboard.writeText(link); toast.success("已复制"); } catch { toast.error("复制失败"); }
   };
 
   const handleExportLinks = async () => {
@@ -271,6 +277,7 @@ function ServersPage() {
                       className="flex items-center gap-1 px-3 py-1.5 text-xs rounded-md bg-[var(--aurorabox-fill)] text-[var(--aurorabox-label)] hover:brightness-95 disabled:opacity-50">
                       <Speedometer2 size={12} /> {isTesting(s, "speed") ? "..." : t("test_speed")}
                     </button>
+                    <button onClick={() => handleCopyLink(s)} className="flex items-center gap-1 px-3 py-1.5 text-xs rounded-md bg-[var(--aurorabox-fill)] text-[var(--aurorabox-label)] hover:brightness-95"><Clipboard size={12} /> 复制</button>
                     <button onClick={() => handleEdit(s)} className="flex items-center gap-1 px-3 py-1.5 text-xs rounded-md bg-[var(--aurorabox-fill)] text-[var(--aurorabox-label)] hover:brightness-95"><Pencil size={12} /> {t("edit")}</button>
                     <button onClick={() => handleDelete(s.identifier)} className="flex items-center gap-1 px-3 py-1.5 text-xs rounded-md bg-[var(--aurorabox-red)]/10 text-[var(--aurorabox-red)] hover:brightness-95"><Trash3 size={12} /> {t("delete")}</button>
                   </div>
