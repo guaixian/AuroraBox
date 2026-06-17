@@ -8,6 +8,23 @@ function parseVlessOpts(raw: string): Record<string, string> {
     try { return JSON.parse(raw); } catch { return {}; }
 }
 
+/**
+ * Patch rule-set CDN URLs to use the public jsdelivr CDN instead of
+ * the OneOh Cloud mirror, which may go down or change URL structure.
+ * Operates on the config object in-place before writing to disk.
+ */
+export function patchRuleSetCDN(config: any): void {
+    const route = config?.route;
+    if (!route?.rule_set) return;
+
+    for (const rs of route.rule_set) {
+        if (typeof rs.url === "string" && rs.url.includes("jsdelivr.oneoh.cloud")) {
+            rs.url = rs.url.replace("jsdelivr.oneoh.cloud", "cdn.jsdelivr.net");
+            console.log(`[cdn-patch] ${rs.tag}: using cdn.jsdelivr.net`);
+        }
+    }
+}
+
 
 
 type Item = {

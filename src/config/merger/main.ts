@@ -2,7 +2,7 @@ import * as path from '@tauri-apps/api/path';
 import { getSubscriptionConfig } from '../../action/db';
 import { getAllowLan, getClashApiSecret, getCustomRuleSet, getStoreValue, isBypassRouterEnabled, setStoreValue } from '../../single/store';
 import { STAGE_VERSION_STORE_KEY } from '../../types/definition';
-import { configureMixedInbound, configureTunInbound, mergeManualServersConfig, updateDHCPSettings2Config, updateVPNServerConfigFromDB } from './helper';
+import { configureMixedInbound, configureTunInbound, mergeManualServersConfig, patchRuleSetCDN, updateDHCPSettings2Config, updateVPNServerConfigFromDB } from './helper';
 
 import { configType, getConfigTemplateCacheKey } from '../common';
 import { getBuiltInTemplate } from '../templates';
@@ -43,6 +43,7 @@ async function updateExperimentalConfig(newConfig: any, dbCacheFilePath: string)
 export async function setMixedConfig(identifier: string | null) {
     // 一定要优先深拷贝配置文件，否则会修改原始配置文件对象，导致后续使用时出错。
     const newConfig = await getConfigTemplate('mixed');
+    patchRuleSetCDN(newConfig);
 
     // 根据当前的 Stage 版本设置日志等级
     let level = await getStoreValue(STAGE_VERSION_STORE_KEY) === "dev" ? "debug" : "info";
@@ -99,6 +100,7 @@ export async function setMixedConfig(identifier: string | null) {
 
 export async function setTunConfig(identifier: string | null) {
     const newConfig = await getConfigTemplate('tun');
+    patchRuleSetCDN(newConfig);
 
     // 根据当前的 Stage 版本设置日志等级
     let level = await getStoreValue(STAGE_VERSION_STORE_KEY) === "dev" ? "debug" : "info";
@@ -156,6 +158,7 @@ export async function setTunConfig(identifier: string | null) {
 export async function setGlobalMixedConfig(identifier: string | null) {
 
     const newConfig = await getConfigTemplate('mixed-global');
+    patchRuleSetCDN(newConfig);
 
     // 根据当前的 Stage 版本设置日志等级
     let level = await getStoreValue(STAGE_VERSION_STORE_KEY) === "dev" ? "debug" : "info";
@@ -183,6 +186,7 @@ export async function setGlobalMixedConfig(identifier: string | null) {
 
 export default async function setGlobalTunConfig(identifier: string | null) {
     const newConfig = await getConfigTemplate('tun-global');
+    patchRuleSetCDN(newConfig);
     // 根据当前的 Stage 版本设置日志等级
     let level = await getStoreValue(STAGE_VERSION_STORE_KEY) === "dev" ? "debug" : "info";
     newConfig.log.level = level;
