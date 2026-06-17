@@ -401,22 +401,15 @@ export async function batchInsertProxyServers(servers: Omit<ProxyServer, "id" | 
     const db = await getDataBaseInstance();
     const identifiers: string[] = [];
     const now = Math.floor(Date.now() / 1000);
-    // Use a transaction for batch inserts
-    await db.execute('BEGIN');
-    try {
-        for (const server of servers) {
-            const identifier = uuidHexNoDash();
-            await db.execute(
-                `INSERT INTO proxy_servers (identifier, name, server_address, server_port, password, encryption_method, plugin, plugin_opts, proxy_type, username, vless_uuid, vless_opts, created_at, updated_at)
-                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-                [identifier, server.name, server.server_address, server.server_port, server.password, server.encryption_method, server.plugin || '', server.plugin_opts || '', (server as any).proxy_type || 'ss', (server as any).username || '', (server as any).vless_uuid || '', (server as any).vless_opts || '', now, now]
-            );
-            identifiers.push(identifier);
-        }
-        await db.execute('COMMIT');
-    } catch (e) {
-        await db.execute('ROLLBACK');
-        throw e;
+    // tauri-plugin-sql auto-commits each execute; no manual BEGIN/COMMIT
+    for (const server of servers) {
+        const identifier = uuidHexNoDash();
+        await db.execute(
+            `INSERT INTO proxy_servers (identifier, name, server_address, server_port, password, encryption_method, plugin, plugin_opts, proxy_type, username, vless_uuid, vless_opts, created_at, updated_at)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+            [identifier, server.name, server.server_address, server.server_port, server.password, server.encryption_method, server.plugin || '', server.plugin_opts || '', (server as any).proxy_type || 'ss', (server as any).username || '', (server as any).vless_uuid || '', (server as any).vless_opts || '', now, now]
+        );
+        identifiers.push(identifier);
     }
     return identifiers;
 }
