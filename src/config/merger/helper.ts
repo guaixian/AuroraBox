@@ -9,18 +9,75 @@ function parseVlessOpts(raw: string): Record<string, string> {
 }
 
 /**
- * Patch rule-set CDN URLs to use the public jsdelivr CDN instead of
- * the OneOh Cloud mirror, which may go down or change URL structure.
- * Operates on the config object in-place before writing to disk.
+ * Strip remote rule_set entries and convert rule_set-based rules to
+ * inline equivalents. This avoids the startup HTTP downloads that can
+ * fail when CDNs are unreachable. The config is mutated in-place.
+ *
+ * Strategy: remove all rule_set entries and replace every rule that
+ * references a rule_set with a simplified inline version.
  */
 export function patchRuleSetCDN(config: any): void {
     const route = config?.route;
-    if (!route?.rule_set) return;
+    if (!route) return;
 
-    for (const rs of route.rule_set) {
-        if (typeof rs.url === "string" && rs.url.includes("jsdelivr.oneoh.cloud")) {
-            rs.url = rs.url.replace("jsdelivr.oneoh.cloud", "cdn.jsdelivr.net");
-            console.log(`[cdn-patch] ${rs.tag}: using cdn.jsdelivr.net`);
+    // Remove ALL remote rule_set entries — we only use inline rules
+    if (route.rule_set) {
+        route.rule_set = [];
+    }
+
+    // Replace rule_set-based rules with inline equivalents.
+    // The templates use rule_set references like:
+    //   { "rule_set": "geosite-cn", "outbound": "direct" }
+    //   { "rule_set": "geoip-cn", "outbound": "direct" }
+    //
+    // We just drop them and rely on the default outbound (ExitGateway)
+    // plus a few hard-coded direct-routing rules.
+    if (route.rules && Array.isArray(route.rules)) {
+        route.rules = route.rules.filter((r: any) => {
+            // Keep rules that don't reference rule_sets
+            if (r.rule_set) return false;
+            // Keep DNS hijack, protocol sniffing, private-IP rules
+            return true;
+        });
+    }
+
+    // Inline key routing: private IPs → direct, rest → ExitGateway
+    const inlineRules = [
+        // DNS hijack prevention
+        { "protocol": "dns", "outbound": "dns-out" },
+        // Private & local IPs → direct
+        {
+            "ip_is_private": true,
+            "outbound": "direct",
+        },
+        {
+            "ip_cidr": [
+                "10.0.0.0/8",
+                "172.16.0.0/12",
+                "192.168.0.0/16",
+                "127.0.0.0/8",
+                "224.0.0.0/4",
+                "::1/128",
+                "fc00::/7",
+                "fe80::/10",
+            ],
+            "outbound": "direct",
+        },
+    ];
+
+    // Prepend inline rules (higher priority)
+    route.rules = [...inlineRules, ...(route.rules || [])];
+
+    // Also strip rule_set references from DNS rules
+    if (config.dns?.rules && Array.isArray(config.dns.rules)) {
+        config.dns.rules = config.dns.rules.filter((r: any) => !r.rule_set);
+    }
+    // And from the DNS server list (used for domain-based server selection)
+    if (config.dns?.servers && Array.isArray(config.dns.servers)) {
+        for (const s of config.dns.servers) {
+            if (s.rules && Array.isArray(s.rules)) {
+                s.rules = s.rules.filter((r: any) => !r.rule_set);
+            }
         }
     }
 }
