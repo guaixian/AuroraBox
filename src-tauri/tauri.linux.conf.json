@@ -27,7 +27,12 @@
     ],
     "linux": {
       "deb": {
-        "desktopTemplate": "resources/main.desktop"
+        "desktopTemplate": "resources/main.desktop",
+        "files": {
+          "/usr/lib/AuroraBox/aurorabox-tun-helper": "resources/linux/aurorabox-tun-helper",
+          "/etc/polkit-1/rules.d/49-aurorabox.rules": "resources/linux/49-aurorabox.rules",
+          "/usr/share/polkit-1/actions/com.guaixian.aurorabox.policy": "resources/linux/com.guaixian.aurorabox.policy"
+        }
       },
       "rpm": {
         "desktopTemplate": "resources/main.desktop"
