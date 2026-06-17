@@ -293,6 +293,7 @@
     "username_optional": "用户名 (可选)",
     "test_latency": "测延迟",
     "test_speed": "测速度",
+    "test_all": "测全部",
     "testing": "测试中...",
     "speed_test_complete": "速度测试完成",
     "zzzzzeof": "zzzzzeof",

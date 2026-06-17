@@ -1,6 +1,6 @@
 import { useState } from "react";
 import useSWR from "swr";
-import { CloudPlus, LightningCharge, Pencil, Server, Speedometer2, Trash3 } from "react-bootstrap-icons";
+import { CloudPlus, Pencil, Server, Speedometer2, Trash3 } from "react-bootstrap-icons";
 import { deleteProxyServer, getProxyServers, setActiveProxyServer } from "../action/db";
 import { GET_PROXY_SERVERS_SWR_KEY } from "../types/definition";
 import type { ProxyServer } from "../types/definition";
@@ -9,7 +9,6 @@ import { AddServerModal } from "../components/servers/add-server-modal";
 import { ImportShareLinksModal } from "../components/servers/import-share-links-modal";
 import { toast } from "sonner";
 import { invoke } from "@tauri-apps/api/core";
-import { fetch } from "@tauri-apps/plugin-http";
 
 type LatencyMap = Record<string, { ms: number | null; error?: string }>;
 type SpeedMap = Record<string, { kbps: number | null; error?: string }>;
@@ -40,57 +39,68 @@ function ServersPage() {
   const handleEdit = (s: ProxyServer) => { setEditServer(s); setAddVisible(true); };
   const handleAdd = () => { setEditServer(null); setAddVisible(true); };
 
-  // ── Latency test ──────────────────────────────────────────────────
-  const handleTestLatency = async () => {
+  // ── Build sing-box outbound JSON from a ProxyServer row ──────────
+  const buildOutboundJSON = (s: ProxyServer): string => {
+    const ptype = s.proxy_type || "ss";
+    const tag = `${ptype}-${(s as any).identifier?.slice(0, 8) || "00000000"}`;
+    const base: any = {
+      tag, server: s.server_address, server_port: s.server_port,
+      domain_resolver: "system",
+    };
+    switch (ptype) {
+      case "hysteria2":
+        base.type = "hysteria2"; base.password = s.password;
+        const hops = (() => { try { return JSON.parse((s as any).vless_opts || "{}"); } catch { return {}; } })();
+        base.tls = { enabled: true, server_name: hops.sni || s.server_address, insecure: hops.insecure === "1" || hops.allowInsecure === "1" };
+        if (hops.obfs) base.obfs = { type: "salamander", password: hops.obfs };
+        break;
+      case "trojan":
+        base.type = "trojan"; base.password = s.password;
+        const topts = (() => { try { return JSON.parse((s as any).vless_opts || "{}"); } catch { return {}; } })();
+        base.tls = { enabled: true, server_name: topts.sni || s.server_address };
+        break;
+      case "vless":
+        base.type = "vless"; base.uuid = (s as any).vless_uuid || "";
+        const vopts = (() => { try { return JSON.parse((s as any).vless_opts || "{}"); } catch { return {}; } })();
+        base.tls = { enabled: vopts.security !== "none", server_name: vopts.sni || "" };
+        break;
+      case "socks5": base.type = "socks"; base.version = "5"; break;
+      case "http": base.type = "http"; break;
+      default: base.type = "shadowsocks"; base.method = s.encryption_method; base.password = s.password; break;
+    }
+    return JSON.stringify(base);
+  };
+
+  // ── Test all via sing-box ─────────────────────────────────────────
+  const handleTestAll = async () => {
     if (!servers?.length) return;
     setTestingLatency(true);
+    setTestingSpeed(true);
     setLatencyMap({});
-    const targets: [string, number][] = servers.map(s => [s.server_address, s.server_port]);
+    setSpeedMap({});
+
+    const outbounds = servers.map(s => buildOutboundJSON(s));
     try {
-      const results = await invoke<{ server: string; port: number; latency_ms: number | null; error: string | null }[]>(
-        "test_tcp_latency", { targets }
-      );
-      const map: LatencyMap = {};
+      const results = await invoke<{
+        server: string; port: number;
+        latency_ms: number | null; speed_kbps: number | null; error: string | null;
+      }[]>("run_singbox_tests", { outbounds });
+
+      const lMap: LatencyMap = {};
+      const sMap: SpeedMap = {};
       for (const r of results) {
         const key = `${r.server}:${r.port}`;
-        map[key] = { ms: r.latency_ms, error: r.error ?? undefined };
+        lMap[key] = { ms: r.latency_ms, error: r.latency_ms == null ? (r.error ?? undefined) : undefined };
+        sMap[key] = { kbps: r.speed_kbps ? Math.round(r.speed_kbps) : null, error: r.speed_kbps == null ? (r.error ?? undefined) : undefined };
       }
-      setLatencyMap(map);
+      setLatencyMap(lMap);
+      setSpeedMap(sMap);
     } catch (e) {
       toast.error(String(e));
     } finally {
       setTestingLatency(false);
+      setTestingSpeed(false);
     }
-  };
-
-  // ── Speed test (through running sing-box mixed inbound) ───────────
-  const SPEED_DOWNLOAD_URL = "http://www.gstatic.com/generate_204";
-  const PROXY_BASE = "http://127.0.0.1:6789";
-  const handleTestSpeed = async () => {
-    if (!servers?.length) return;
-    setTestingSpeed(true);
-    setSpeedMap({});
-    for (const s of servers) {
-      const key = `${s.server_address}:${s.server_port}`;
-      try {
-        const start = performance.now();
-        // Route through sing-box mixed inbound proxy
-        const resp = await fetch(SPEED_DOWNLOAD_URL, {
-          method: "GET",
-          proxy: { all: PROXY_BASE },
-          connectTimeout: 10000,
-        });
-        const elapsed = (performance.now() - start) / 1000;
-        const body = await resp.text();
-        const bytes = new TextEncoder().encode(body).length;
-        const kbps = bytes / 1024 / Math.max(elapsed, 0.1);
-        setSpeedMap(prev => ({ ...prev, [key]: { kbps: Math.round(kbps), error: undefined } }));
-      } catch (e: any) {
-        setSpeedMap(prev => ({ ...prev, [key]: { kbps: null, error: e?.message || String(e) || "failed" } }));
-      }
-      await new Promise(r => setTimeout(r, 200));
-    }
-    setTestingSpeed(false);
   };
 
   const latencyColor = (ms: number | null | undefined) => {
@@ -126,15 +136,10 @@ function ServersPage() {
             className="flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg bg-[var(--aurorabox-fill)] text-[var(--aurorabox-label)] hover:brightness-95">
             {t("batch_import")}
           </button>
-          <button onClick={handleTestLatency} disabled={testingLatency || !servers?.length}
+          <button onClick={handleTestAll} disabled={(testingLatency || testingSpeed) || !servers?.length}
             className="flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg bg-[var(--aurorabox-fill)] text-[var(--aurorabox-label)] hover:brightness-95 disabled:opacity-50">
-            <LightningCharge size={16} className={testingLatency ? "animate-pulse" : ""} />
-            {testingLatency ? t("testing") : t("test_latency")}
-          </button>
-          <button onClick={handleTestSpeed} disabled={testingSpeed || !servers?.length}
-            className="flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg bg-[var(--aurorabox-fill)] text-[var(--aurorabox-label)] hover:brightness-95 disabled:opacity-50">
-            <Speedometer2 size={16} className={testingSpeed ? "animate-pulse" : ""} />
-            {testingSpeed ? t("testing") : t("test_speed")}
+            <Speedometer2 size={16} className={(testingLatency || testingSpeed) ? "animate-pulse" : ""} />
+            {(testingLatency || testingSpeed) ? t("testing") : t("test_all")}
           </button>
         </div>
 
