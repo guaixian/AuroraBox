@@ -196,13 +196,10 @@ pub async fn run_singbox_tests(
         let tcp_ms = tcp_ping(&server, svr_port);
 
         // ── Generate temp sing-box config ──────────────────────────
+        // sing-box 1.12+ requires ENABLE_DEPRECATED_LEGACY_DNS_SERVERS
+        // for the dns.servers format. Set it on the child process.
         let test_config = serde_json::json!({
             "log": { "disabled": true },
-            "dns": {
-                "servers": [
-                    { "tag": "dns-direct", "address": "tcp://8.8.8.8", "detour": "direct" }
-                ]
-            },
             "inbounds": [{
                 "tag": "test-mixed",
                 "type": "mixed",
@@ -211,7 +208,7 @@ pub async fn run_singbox_tests(
                 "set_system_proxy": false
             }],
             "outbounds": [
-                { "tag": "direct", "type": "direct", "domain_resolver": "dns-direct" },
+                { "tag": "direct", "type": "direct" },
                 parsed.clone()
             ],
             "route": {
@@ -232,7 +229,8 @@ pub async fn run_singbox_tests(
             .shell()
             .sidecar("sing-box")
             .map_err(|e| format!("sidecar: {}", e))?
-            .args(["run", "-c", &config_path, "--disable-color"]);
+            .args(["run", "-c", &config_path, "--disable-color"])
+            .env("ENABLE_DEPRECATED_LEGACY_DNS_SERVERS", "true");
 
         let (_rx, child) = cmd.spawn().map_err(|e| format!("spawn: {}", e))?;
         let pid = child.pid();
