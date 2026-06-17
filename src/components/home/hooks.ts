@@ -3,7 +3,7 @@ import { getCurrentWindow } from "@tauri-apps/api/window";
 import { confirm, message } from '@tauri-apps/plugin-dialog';
 import { useContext, useEffect, useRef, useState } from "react";
 import useSWR, { mutate as swrMutate } from "swr";
-import { insertSubscription } from "../../action/db";
+import { getProxyServers, insertSubscription } from "../../action/db";
 import { clearEngineError, useEngineState } from "../../hooks/useEngineState";
 import { NavContext } from "../../single/context";
 import { getProxyPort, getStoreValue, setStoreValue } from "../../single/store";
@@ -356,8 +356,12 @@ export const useVPNOperations = () => {
 
     const startService = async (isEmpty: boolean) => {
         if (isEmpty) {
-            setActiveScreen('configuration');
-            return message(t('please_add_subscription'), { title: t('tips'), kind: 'error' });
+            // Check for manual proxy servers before rejecting
+            const servers = await getProxyServers();
+            if (!servers?.length) {
+                setActiveScreen('configuration');
+                return message(t('please_add_subscription'), { title: t('tips'), kind: 'error' });
+            }
         }
 
         // Pre-start check: if port is occupied by orphan processes, show repair modal
@@ -396,8 +400,11 @@ export const useVPNOperations = () => {
 
     const restartService = async (isEmpty: boolean) => {
         if (isEmpty) {
-            setActiveScreen('configuration');
-            return message(t('please_add_subscription'), { title: t('tips'), kind: 'error' });
+            const servers = await getProxyServers();
+            if (!servers?.length) {
+                setActiveScreen('configuration');
+                return message(t('please_add_subscription'), { title: t('tips'), kind: 'error' });
+            }
         }
         try {
             vpnServiceManager.syncConfig({});
@@ -410,8 +417,11 @@ export const useVPNOperations = () => {
 
     const toggleService = async (isEmpty: boolean) => {
         if (isEmpty) {
-            setActiveScreen('configuration');
-            return message(t('please_add_subscription'), { title: t('tips'), kind: 'error' });
+            const servers = await getProxyServers();
+            if (!servers?.length) {
+                setActiveScreen('configuration');
+                return message(t('please_add_subscription'), { title: t('tips'), kind: 'error' });
+            }
         }
 
         try {

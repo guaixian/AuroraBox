@@ -10,7 +10,7 @@ import { ModeSwitcher } from "../components/home/mode-switcher";
 import { PowerToggle } from "../components/home/power-toggle";
 import { PrestartRepairModal } from "../components/home/prestart-repair-modal";
 import { StatusDisplay } from "../components/home/status-display";
-import { useSubscriptions } from "../hooks/useDB";
+import { useSubscriptions, useProxyServers } from "../hooks/useDB";
 import { t } from "../utils/helper";
 
 import "./home.css";
@@ -32,7 +32,10 @@ export default function HomePage() {
     } = useVPNOperations();
     const { indicatorStyle, modeButtonsRef } = useModeIndicator(selectedMode);
 
-    const isEmpty = !subscriptions?.length;
+    const { data: servers } = useProxyServers();
+    const hasServers = !!servers?.length;
+    // Can start if there are subscriptions OR manual proxy servers
+    const isEmpty = !subscriptions?.length && !hasServers;
 
     useEffect(() => {
         initializeMode();
