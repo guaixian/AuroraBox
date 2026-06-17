@@ -75,7 +75,7 @@ export function IOSTextField({
                 )}
                 style={{
                     background: bg,
-                    color: "var(--onebox-label)",
+                    color: "var(--aurorabox-label)",
                     transition: "background 180ms ease-out",
                     fontFamily: monospace
                         ? '"SF Mono", ui-monospace, "Menlo", monospace'

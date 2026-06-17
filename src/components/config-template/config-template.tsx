@@ -231,14 +231,14 @@ export default function ConfigTemplate() {
                 className="flex gap-2 items-center px-3"
                 style={{
                     height: 36,
-                    borderBottom: '0.5px solid var(--onebox-separator)',
-                    background: 'var(--onebox-toolbar-bg)',
+                    borderBottom: '0.5px solid var(--aurorabox-separator)',
+                    background: 'var(--aurorabox-toolbar-bg)',
                     backdropFilter: 'blur(24px) saturate(180%)',
                     WebkitBackdropFilter: 'blur(24px) saturate(180%)',
                 }}
             >
                 <select
-                    className="onebox-select"
+                    className="aurorabox-select"
                     value={selectedMode}
                     onChange={(e) => setSelectedMode(e.target.value as configType)}
                 >
@@ -256,12 +256,12 @@ export default function ConfigTemplate() {
                             height: 24,
                         }}
                     >
-                        <ExclamationCircle size={12} style={{ color: 'var(--onebox-red)' }} />
-                        <div className="text-[11px]" style={{ color: 'var(--onebox-red)' }}>
+                        <ExclamationCircle size={12} style={{ color: 'var(--aurorabox-red)' }} />
+                        <div className="text-[11px]" style={{ color: 'var(--aurorabox-red)' }}>
                             {t('local_file_warning') || ''}
                         </div>
                         <button
-                            className="onebox-toolbar-btn ml-auto"
+                            className="aurorabox-toolbar-btn ml-auto"
                             onClick={handleRestoreDefault}
                             title="恢复默认"
                         >
@@ -270,7 +270,7 @@ export default function ConfigTemplate() {
                     </div>
                 ) : (
                     <div className="flex-1 flex items-center gap-1">
-                        <label className="onebox-search flex-1">
+                        <label className="aurorabox-search flex-1">
                             <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                                 <path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z" />
                                 <path d="M14 2v4a2 2 0 0 0 2 2h4" />
@@ -285,10 +285,10 @@ export default function ConfigTemplate() {
 
                         {hasPathChanged && (
                             <button
-                                className="onebox-toolbar-btn"
+                                className="aurorabox-toolbar-btn"
                                 onClick={handleSave}
                                 title={t('save') || 'Save'}
-                                style={{ color: 'var(--onebox-red)' }}
+                                style={{ color: 'var(--aurorabox-red)' }}
                             >
                                 <Check size={12} />
                             </button>
@@ -296,7 +296,7 @@ export default function ConfigTemplate() {
 
                         {!isDefaultPath && (
                             <button
-                                className="onebox-toolbar-btn"
+                                className="aurorabox-toolbar-btn"
                                 onClick={handleRestoreDefault}
                                 title="Restore default"
                             >
@@ -305,11 +305,11 @@ export default function ConfigTemplate() {
                         )}
 
                         <button
-                            className="onebox-toolbar-btn"
+                            className="aurorabox-toolbar-btn"
                             onClick={handleSync}
                             disabled={loading}
                             title={t('update') || 'Update'}
-                            style={{ color: 'var(--onebox-blue)' }}
+                            style={{ color: 'var(--aurorabox-blue)' }}
                         >
                             <ArrowClockwise className={loading ? 'animate-spin' : ''} size={12} />
                         </button>
@@ -318,10 +318,10 @@ export default function ConfigTemplate() {
             </div>
 
             <pre
-                className="relative px-4 pt-3 pb-4 overflow-auto flex-1 text-[11px] leading-relaxed onebox-selectable"
+                className="relative px-4 pt-3 pb-4 overflow-auto flex-1 text-[11px] leading-relaxed aurorabox-selectable"
                 style={{
                     fontFamily: 'ui-monospace, "SF Mono", Menlo, Consolas, monospace',
-                    color: 'var(--onebox-label)',
+                    color: 'var(--aurorabox-label)',
                     margin: 0,
                     whiteSpace: 'pre',
                 }}
@@ -333,7 +333,7 @@ export default function ConfigTemplate() {
                             title="Unsaved content from dropped file"
                             style={{
                                 background: 'rgba(255, 149, 0, 0.15)',
-                                color: 'var(--onebox-orange)',
+                                color: 'var(--aurorabox-orange)',
                             }}
                         >
                             <ExclamationCircle size={11} />
@@ -341,11 +341,11 @@ export default function ConfigTemplate() {
                         </div>
                     )}
                     <button
-                        className="onebox-toolbar-btn disabled:opacity-40"
+                        className="aurorabox-toolbar-btn disabled:opacity-40"
                         onClick={handleCopy}
                         disabled={!configContent}
                         title={t('config_copied_to_clipboard') || 'Copy'}
-                        style={{ color: 'var(--onebox-blue)' }}
+                        style={{ color: 'var(--aurorabox-blue)' }}
                     >
                         <Copy size={12} />
                     </button>
@@ -353,7 +353,7 @@ export default function ConfigTemplate() {
                 {configContent || (
                     <div
                         className="text-center py-12 text-[12px]"
-                        style={{ color: 'var(--onebox-label-tertiary)' }}
+                        style={{ color: 'var(--aurorabox-label-tertiary)' }}
                     >
                         {"No content loaded. Click Sync to load from URL or drag & drop a JSON/JSONC file here."}
                     </div>

@@ -39,7 +39,7 @@ type BodyProps = {
 // 加载中的组件
 const LoadingFallback = () => (
   <div className="flex flex-col items-center justify-center h-full space-y-4">
-    <span className="onebox-spinner onebox-spinner-ring onebox-spinner-lg" />
+    <span className="aurorabox-spinner aurorabox-spinner-ring aurorabox-spinner-lg" />
   </div>
 );
 
@@ -303,7 +303,7 @@ function AppShell({
 
   return (
     <>
-      <main className="onebox-surface relative flex flex-col h-screen">
+      <main className="aurorabox-surface relative flex flex-col h-screen">
         {activeScreen === 'home' &&
           <div className='absolute inset-0  z-2   max-h-max flex justify-end p-1'>
             <Suspense >
@@ -313,7 +313,7 @@ function AppShell({
         }
         <Body activeScreen={activeScreen} lang={language} />
 
-        <div className="onebox-dock">
+        <div className="aurorabox-dock">
           <button
             onClick={() => setActiveScreen('home')}
             data-active={activeScreen === 'home'}

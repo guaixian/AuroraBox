@@ -2,7 +2,7 @@
 # tmp-test-helper-upgrade.sh — manual-gated verification for the XPC
 # "stale connection after SMJobBless" fix landed in
 # src-tauri/src/engine/macos/helper.m (onebox_helper_install now calls
-# `[[OneBoxHelperClient sharedClient] invalidate]` on the success path).
+# `[[AuroraBoxHelperClient sharedClient] invalidate]` on the success path).
 #
 # Background: NSXPCConnection is cached as a process-lifetime singleton.
 # SMJobBless atomically replaces the helper binary; the old mach port is
@@ -21,7 +21,7 @@
 # Modes
 #   default (MODE=fresh):
 #       Regression test for the fresh-install path. Removes the installed
-#       helper, lets the user launch OneBox, verifies SMJobBless fires and
+#       helper, lets the user launch AuroraBox, verifies SMJobBless fires and
 #       no 'xpc error: Couldn't communicate' appears on the DNS apply.
 #       NOTE: on fresh install the cached _connection is nil when
 #       `invalidate` runs, so the explicit invalidate is a no-op and the
@@ -31,16 +31,16 @@
 #   MODE=upgrade ONEBOX_OLD_HELPER=/path/to/old-helper:
 #       True upgrade path. Installs an older signed helper binary first
 #       (must be signed with the same identity as the current build),
-#       has the user launch OneBox briefly to establish an XPC connection,
+#       has the user launch AuroraBox briefly to establish an XPC connection,
 #       then upgrades to the current bundled helper. Verifies:
 #         (a) [client] XPC connection invalidated appears right after
 #             SMJobBless success (our new explicit invalidate),
 #         (b) the subsequent DNS apply succeeds without the xpc error.
 #
 # Prereqs:
-#   - Signed release build of OneBox installed in /Applications
+#   - Signed release build of AuroraBox installed in /Applications
 #     (SMJobBless requires a signed app; `tauri dev` won't work).
-#   - For MODE=upgrade: an older OneBox.app helper binary with a
+#   - For MODE=upgrade: an older AuroraBox.app helper binary with a
 #     CFBundleVersion textually different from the current bundled one.
 #
 # This script is disposable. Delete it once the fix has been merged and
@@ -50,12 +50,12 @@
 set -euo pipefail
 
 MODE="${MODE:-fresh}"
-HELPER_LABEL="cloud.oneoh.onebox.helper"
+HELPER_LABEL="com.guaixian.aurorabox.helper"
 HELPER_PATH="/Library/PrivilegedHelperTools/${HELPER_LABEL}"
 LAUNCHD_PLIST="/Library/LaunchDaemons/${HELPER_LABEL}.plist"
-APP_BUNDLE="/Applications/OneBox.app"
+APP_BUNDLE="/Applications/AuroraBox.app"
 BUNDLED_HELPER="${APP_BUNDLE}/Contents/Library/LaunchServices/${HELPER_LABEL}"
-LOG_FILE="$HOME/Library/Logs/cloud.oneoh.onebox/OneBox.log"
+LOG_FILE="$HOME/Library/Logs/com.guaixian.aurorabox/AuroraBox.log"
 
 say()  { printf '\n\033[1;36m==> %s\033[0m\n' "$*"; }
 warn() { printf '\033[1;33m!! %s\033[0m\n' "$*"; }
@@ -90,7 +90,7 @@ extract_cfbundle_version() {
 }
 
 require_app_bundle() {
-    [[ -d "$APP_BUNDLE" ]] || fail "OneBox.app not found at $APP_BUNDLE"
+    [[ -d "$APP_BUNDLE" ]] || fail "AuroraBox.app not found at $APP_BUNDLE"
     [[ -f "$BUNDLED_HELPER" ]] || fail "Bundled helper not found at $BUNDLED_HELPER"
     local v
     v="$(extract_cfbundle_version "$BUNDLED_HELPER")"
@@ -100,12 +100,12 @@ require_app_bundle() {
 }
 
 quit_onebox_if_running() {
-    if pgrep -x OneBox >/dev/null 2>&1; then
-        gate "OneBox is running. Quit it (⌘Q or tray → Quit) so the next launch is a true cold start."
-        if pgrep -x OneBox >/dev/null 2>&1; then
-            fail "OneBox still running after gate"
+    if pgrep -x AuroraBox >/dev/null 2>&1; then
+        gate "AuroraBox is running. Quit it (⌘Q or tray → Quit) so the next launch is a true cold start."
+        if pgrep -x AuroraBox >/dev/null 2>&1; then
+            fail "AuroraBox still running after gate"
         fi
-        ok "OneBox is not running"
+        ok "AuroraBox is not running"
     fi
 }
 
@@ -212,7 +212,7 @@ if [[ "$MODE" == "upgrade" ]]; then
     sudo launchctl bootstrap system "$LAUNCHD_PLIST"
     assert_helper_registered
 
-    gate "Launch OneBox. The version check should see installed='$OLD_VERSION' == nothing to do (wait — bundled='$BUNDLED_VERSION' ≠ '$OLD_VERSION', so an SMJobBless UPGRADE prompt WILL appear). Click Install Helper + authenticate. Then in OneBox, switch mode to TUN and toggle connect."
+    gate "Launch AuroraBox. The version check should see installed='$OLD_VERSION' == nothing to do (wait — bundled='$BUNDLED_VERSION' ≠ '$OLD_VERSION', so an SMJobBless UPGRADE prompt WILL appear). Click Install Helper + authenticate. Then in AuroraBox, switch mode to TUN and toggle connect."
 
     MARKER="$(date '+%Y-%m-%d %H:%M:%S')"
     sleep 1
@@ -231,7 +231,7 @@ else
     remove_installed_helper
 
     MARKER="$(date '+%Y-%m-%d %H:%M:%S')"
-    gate "Launch OneBox. macOS will prompt 'OneBox wants to install a helper tool' — click Install Helper and authenticate. Then in OneBox, switch mode to TUN and toggle connect."
+    gate "Launch AuroraBox. macOS will prompt 'AuroraBox wants to install a helper tool' — click Install Helper and authenticate. Then in AuroraBox, switch mode to TUN and toggle connect."
 
     sleep 1
     say "Waiting 6s for SMJobBless + DNS apply to land in the log..."
@@ -262,11 +262,11 @@ Not verified automatically by this script:
   - macOS-13+ SMAppService migration path (this script tests SMJobBless only).
   - The invalidationHandler actually firing async after our explicit
     invalidate returns — only observable via os_log from XPC itself, not
-    in OneBox.log. The fix bypasses the race by invalidating synchronously,
+    in AuroraBox.log. The fix bypasses the race by invalidating synchronously,
     so the async handler is no longer load-bearing.
 
 If MODE=fresh passed but you want to exercise the true upgrade path,
 re-run with:
-  MODE=upgrade ONEBOX_OLD_HELPER=/path/to/older/cloud.oneoh.onebox.helper \
+  MODE=upgrade ONEBOX_OLD_HELPER=/path/to/older/com.guaixian.aurorabox.helper \
       scripts/tmp-test-helper-upgrade.sh
 EOF

@@ -43,7 +43,7 @@ pub fn program_data_dir() -> PathBuf {
         .map(PathBuf::from)
         .unwrap_or_else(|| PathBuf::from(r"C:\ProgramData"));
     let mut p = base;
-    p.push("OneBox");
+    p.push("AuroraBox");
     p.push("service");
     p
 }
@@ -310,7 +310,7 @@ pub fn ensure_installed(bundled_exe: &Path) -> Result<(), String> {
 
     let dir = program_data_dir();
     std::fs::create_dir_all(&dir)
-        .map_err(|e| format!("mkdir ProgramData\\OneBox\\service: {}", e))?;
+        .map_err(|e| format!("mkdir ProgramData\\AuroraBox\\service: {}", e))?;
 
     let scm = open_scm(SC_MANAGER_CONNECT | SC_MANAGER_CREATE_SERVICE)?;
 
@@ -511,7 +511,7 @@ mod tests {
         );
         let s = p.to_string_lossy();
         assert!(
-            s.ends_with(r"OneBox\service") || s.ends_with("OneBox/service"),
+            s.ends_with(r"AuroraBox\service") || s.ends_with("AuroraBox/service"),
             "unexpected program_data_dir tail: {}",
             s
         );

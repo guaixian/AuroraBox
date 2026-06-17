@@ -1,6 +1,6 @@
 //! Windows service-state watchdog.
 //!
-//! sing-box runs inside the OneBoxTunService (an SCM service process),
+//! sing-box runs inside the AuroraBoxTunService (an SCM service process),
 //! and if that process exits for any reason other than our own `stop`
 //! we have to synthesize the same cleanup path the sidecar child monitor
 //! provides on the other two platforms — otherwise the UI never learns

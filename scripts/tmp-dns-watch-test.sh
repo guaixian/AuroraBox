@@ -14,7 +14,7 @@
 # before the next step runs.
 #
 # Prereqs:
-#   - Signed release build of OneBox installed in /Applications
+#   - Signed release build of AuroraBox installed in /Applications
 #     (the privileged helper's caller validation rejects `tauri dev`).
 #   - Helper already installed (Settings -> Privileged Helper -> Install).
 #   - Active primary service is Wi-Fi (adjust SERVICE below if not).
@@ -25,7 +25,7 @@ set -euo pipefail
 
 SERVICE="${ONEBOX_TEST_SERVICE:-Wi-Fi}"
 TEST_DNS="1.1.1.1"
-LOG_FILE="$HOME/Library/Logs/cloud.oneoh.onebox/OneBox.log"
+LOG_FILE="$HOME/Library/Logs/com.guaixian.aurorabox/AuroraBox.log"
 
 say() { printf '\n\033[1;36m==> %s\033[0m\n' "$*"; }
 warn() { printf '\033[1;33m!! %s\033[0m\n' "$*"; }
@@ -79,7 +79,7 @@ fi
 PRE_TUN_DNS="$(current_dns)"
 say "Step 0 — snapshotted pre-TUN [$SERVICE] DNS: '$PRE_TUN_DNS'"
 
-gate "Open OneBox, set mode to TUN, tap the connect toggle. Wait until UI shows 'connected'."
+gate "Open AuroraBox, set mode to TUN, tap the connect toggle. Wait until UI shows 'connected'."
 
 sleep 2
 CURRENT="$(current_dns)"
@@ -115,7 +115,7 @@ if [[ -f "$LOG_FILE" ]]; then
     fi
 fi
 
-gate "Stop TUN mode from OneBox. Wait for UI 'disconnected' state."
+gate "Stop TUN mode from AuroraBox. Wait for UI 'disconnected' state."
 
 sleep 2
 say "Step 6 — verifying restore used the LATEST external write ('$TEST_DNS'), not pre-TUN ('$PRE_TUN_DNS')"

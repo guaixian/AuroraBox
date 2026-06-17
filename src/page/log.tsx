@@ -26,7 +26,7 @@ function Segments({
     onChange: (v: TabKey) => void;
 }) {
     return (
-        <div className="onebox-segctl" role="tablist">
+        <div className="aurorabox-segctl" role="tablist">
             {TABS.map(({ key, labelKey, fallback }) => (
                 <button
                     key={key}
@@ -35,7 +35,7 @@ function Segments({
                     aria-selected={value === key}
                     data-active={value === key}
                     onClick={() => onChange(key)}
-                    className="onebox-segctl-item"
+                    className="aurorabox-segctl-item"
                 >
                     {t(labelKey) || fallback}
                 </button>
@@ -60,7 +60,7 @@ function LogsTools({
 }) {
     return (
         <>
-            <label className="onebox-search" aria-label={t('filter_placeholder') || 'Filter'}>
+            <label className="aurorabox-search" aria-label={t('filter_placeholder') || 'Filter'}>
                 <Search size={11} />
                 <input
                     type="text"
@@ -71,7 +71,7 @@ function LogsTools({
             </label>
             <button
                 type="button"
-                className="onebox-toolbar-btn"
+                className="aurorabox-toolbar-btn"
                 data-active={autoScroll}
                 onClick={() => setAutoScroll(!autoScroll)}
                 title={t('auto_scroll')}
@@ -81,7 +81,7 @@ function LogsTools({
             </button>
             <button
                 type="button"
-                className="onebox-toolbar-btn"
+                className="aurorabox-toolbar-btn"
                 onClick={clearLogs}
                 title={t('clear_log')}
             >
@@ -105,7 +105,7 @@ function ConfigTools({ getContent }: { getContent: () => string | undefined }) {
     return (
         <button
             type="button"
-            className="onebox-toolbar-btn"
+            className="aurorabox-toolbar-btn"
             onClick={handleCopy}
             title={t('config_copied_to_clipboard') || 'Copy'}
         >
@@ -135,7 +135,7 @@ export default function LogPage() {
         const parts = text.split(new RegExp(`(${highlight})`, 'gi'));
         return parts.map((part, index) =>
             part.toLowerCase() === highlight.toLowerCase() ? (
-                <mark key={index} className="onebox-highlight">
+                <mark key={index} className="aurorabox-highlight">
                     {part}
                 </mark>
             ) : (
@@ -172,17 +172,17 @@ export default function LogPage() {
 
     if (isLanguageLoading) {
         return (
-            <div className="onebox-mac-window flex items-center justify-center">
-                <span className="onebox-spinner onebox-spinner-ring onebox-spinner-lg" />
+            <div className="aurorabox-mac-window flex items-center justify-center">
+                <span className="aurorabox-spinner aurorabox-spinner-ring aurorabox-spinner-lg" />
             </div>
         );
     }
 
     return (
-        <div className="onebox-mac-window">
+        <div className="aurorabox-mac-window">
             <Toaster position="top-center" toastOptions={{ duration: 2000 }} />
 
-            <div className="onebox-mac-toolbar">
+            <div className="aurorabox-mac-toolbar">
                 <Segments value={activeTab} onChange={setActiveTab} />
                 <div className="flex-1" />
                 {activeTab === 'logs' && (
@@ -202,7 +202,7 @@ export default function LogPage() {
             {/* Logs: scrollable log stream, own ref for auto-scroll. */}
             <div
                 ref={logContainerRef}
-                className="onebox-mac-content"
+                className="aurorabox-mac-content"
                 style={{ display: activeTab === 'logs' ? 'block' : 'none' }}
                 role="tabpanel"
             >
@@ -219,27 +219,27 @@ export default function LogPage() {
 
             {/* Config & template: their own inner scrollers. */}
             <div
-                className="onebox-mac-content"
+                className="aurorabox-mac-content"
                 style={{ display: activeTab === 'config' ? 'block' : 'none' }}
                 role="tabpanel"
             >
                 <ConfigViewer onContent={setConfigContent} />
             </div>
             <div
-                className="onebox-mac-content"
+                className="aurorabox-mac-content"
                 style={{ display: activeTab === 'config-template' ? 'block' : 'none' }}
                 role="tabpanel"
             >
                 <ConfigTemplate />
             </div>
 
-            <div className="onebox-mac-statusbar">
+            <div className="aurorabox-mac-statusbar">
                 <span className="inline-flex items-center gap-1.5">
-                    <ArrowUpCircle size={11} style={{ color: 'var(--onebox-blue)' }} />
+                    <ArrowUpCircle size={11} style={{ color: 'var(--aurorabox-blue)' }} />
                     <span>{formatNetworkSpeed(speed.upload)}</span>
                 </span>
                 <span className="inline-flex items-center gap-1.5">
-                    <ArrowDownCircle size={11} style={{ color: 'var(--onebox-blue)' }} />
+                    <ArrowDownCircle size={11} style={{ color: 'var(--aurorabox-blue)' }} />
                     <span>{formatNetworkSpeed(speed.download)}</span>
                 </span>
             </div>

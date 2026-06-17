@@ -1,13 +1,13 @@
 #!/usr/bin/env bash
 #
-# Sign the prebuilt OneBox privileged helper with the Developer ID Application
+# Sign the prebuilt AuroraBox privileged helper with the Developer ID Application
 # certificate. The embedded Info.plist / Launchd.plist sections must already be
 # present — scripts/build-helper.sh takes care of that.
 #
 # Usage:
 #   scripts/sign-helper.sh [path-to-helper-binary]
 #
-# Defaults to src-tauri/target/helper/cloud.oneoh.onebox.helper.
+# Defaults to src-tauri/target/helper/com.guaixian.aurorabox.helper.
 #
 # The signing identity is hard-coded to match the Team ID baked into
 # src-tauri/helper/Info.plist (SMAuthorizedClients) and the DR embedded in
@@ -23,7 +23,7 @@ SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 
 SIGNING_IDENTITY="Developer ID Application: OneOh Cloud LLC (GN2W3N34TM)"
-HELPER_BIN="${1:-$REPO_ROOT/src-tauri/target/helper/cloud.oneoh.onebox.helper}"
+HELPER_BIN="${1:-$REPO_ROOT/src-tauri/target/helper/com.guaixian.aurorabox.helper}"
 
 if [[ "$(uname -s)" != "Darwin" ]]; then
     echo "sign-helper.sh: macOS only, skipping" >&2
@@ -42,7 +42,7 @@ fi
 codesign \
     --force \
     --sign "$SIGNING_IDENTITY" \
-    --identifier "cloud.oneoh.onebox.helper" \
+    --identifier "com.guaixian.aurorabox.helper" \
     --options runtime \
     --timestamp \
     "$HELPER_BIN"

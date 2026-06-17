@@ -13,9 +13,9 @@ export default function Settings() {
   const version = useVersion();
 
   return (
-    <div className="onebox-scrollpage">
-      <div className="onebox-page-inner">
-        <div className="onebox-grouped-card mb-5">
+    <div className="aurorabox-scrollpage">
+      <div className="aurorabox-page-inner">
+        <div className="aurorabox-grouped-card mb-5">
           <ToggleAutoStart />
           <ToggleLan />
           <ProxyPortSetting />
@@ -23,13 +23,13 @@ export default function Settings() {
           <ToggleLanguage />
         </div>
 
-        <div className="onebox-grouped-card">
+        <div className="aurorabox-grouped-card">
           <RouterSettingsItem />
           <UpdaterItem />
           <AboutItem />
         </div>
 
-        <div className="text-center text-[11px] mt-6 mb-2" style={{ color: 'var(--onebox-label-tertiary)' }}>
+        <div className="text-center text-[11px] mt-6 mb-2" style={{ color: 'var(--aurorabox-label-tertiary)' }}>
           <p>{t("version")} {version}</p>
           <p className="mt-0.5">© 2025 OneOh Cloud</p>
         </div>

@@ -3,10 +3,10 @@
 <plist version="1.0">
 <dict>
     <key>Label</key>
-    <string>cloud.oneoh.onebox.helper</string>
+    <string>com.guaixian.aurorabox.helper</string>
     <key>MachServices</key>
     <dict>
-        <key>cloud.oneoh.onebox.helper</key>
+        <key>com.guaixian.aurorabox.helper</key>
         <true/>
     </dict>
 </dict>

@@ -50,7 +50,7 @@ const REPO = 'OneOhCloud/conf-template';
 const BRANCH = process.env.CONF_TEMPLATE_BRANCH ?? 'stable';
 
 /**
- * Maps OneBox internal `configType` → the corresponding conf-template filename.
+ * Maps AuroraBox internal `configType` → the corresponding conf-template filename.
  * Mixed/TUN "rules" mode uses files suffixed `-rules.jsonc`; global uses `-global.jsonc`.
  * Keep in sync with `src/config/common.ts::configType` and
  * `src/single/store.ts::getDefaultConfigTemplateURL` (they must agree).
@@ -117,7 +117,7 @@ async function fetchLatestSha(): Promise<string> {
     try {
         const res = await fetch(
             `https://api.github.com/repos/${REPO}/branches/${BRANCH}`,
-            { headers: { 'User-Agent': 'onebox-sync-templates' } },
+            { headers: { 'User-Agent': 'aurorabox-sync-templates' } },
         );
         if (!res.ok) return 'unknown';
         const json = (await res.json()) as { commit?: { sha?: string } };

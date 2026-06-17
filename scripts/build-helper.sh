@@ -1,11 +1,11 @@
 #!/usr/bin/env bash
 #
-# Build the OneBox privileged helper as a universal (x86_64 + arm64) Mach-O
+# Build the AuroraBox privileged helper as a universal (x86_64 + arm64) Mach-O
 # binary with the Info.plist and Launchd.plist embedded as __TEXT sections.
 # SMJobBless requires both plists to live inside the binary itself; the copies
 # on disk are only the source of truth for the embed step.
 #
-# Output: src-tauri/target/helper/cloud.oneoh.onebox.helper
+# Output: src-tauri/target/helper/com.guaixian.aurorabox.helper
 #
 # Verification:
 #   otool -s __TEXT __info_plist    <binary>
@@ -18,7 +18,7 @@ SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 HELPER_DIR="$REPO_ROOT/src-tauri/helper"
 BUILD_DIR="$REPO_ROOT/src-tauri/target/helper"
-LABEL="cloud.oneoh.onebox.helper"
+LABEL="com.guaixian.aurorabox.helper"
 
 if [[ "$(uname -s)" != "Darwin" ]]; then
     echo "build-helper.sh: macOS only, skipping" >&2

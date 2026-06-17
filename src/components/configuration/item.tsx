@@ -98,7 +98,7 @@ export const SubscriptionItem: React.FC<SubscriptionItemProps> = ({
 
     const isBusy = loading || isDeleting;
     const progressWidth = Math.min(usage, 100);
-    const progressColor = danger ? "#FF3B30" : "var(--onebox-blue)";
+    const progressColor = danger ? "#FF3B30" : "var(--aurorabox-blue)";
 
     const pillStyle =
         message && messageType && messageStyles[messageType as keyof typeof messageStyles];
@@ -134,7 +134,7 @@ export const SubscriptionItem: React.FC<SubscriptionItemProps> = ({
                             style={{
                                 color: danger
                                     ? "#FF3B30"
-                                    : "var(--onebox-label)",
+                                    : "var(--aurorabox-label)",
                             }}
                         >
                             {titleText}
@@ -154,7 +154,7 @@ export const SubscriptionItem: React.FC<SubscriptionItemProps> = ({
 
                     <div
                         className="mt-0.5 text-[11px] tabular-nums truncate"
-                        style={{ color: "var(--onebox-label-secondary)" }}
+                        style={{ color: "var(--aurorabox-label-secondary)" }}
                     >
                         {isLocalFile ? (
                             remainingText
@@ -212,14 +212,14 @@ export const SubscriptionItem: React.FC<SubscriptionItemProps> = ({
                         <div
                             className="grid grid-cols-3 relative"
                             style={{
-                                borderTop: "0.5px solid var(--onebox-separator)",
+                                borderTop: "0.5px solid var(--aurorabox-separator)",
                             }}
                         >
                             <button
                                 type="button"
                                 onClick={() => setDetailOpen(true)}
                                 className="py-2.5 flex items-center justify-center gap-1.5 text-[13px] font-medium transition-colors active:bg-[rgba(0,122,255,0.06)]"
-                                style={{ color: "var(--onebox-blue)" }}
+                                style={{ color: "var(--aurorabox-blue)" }}
                             >
                                 <InfoCircle size={13} />
                                 <span>{t("details")}</span>
@@ -229,9 +229,9 @@ export const SubscriptionItem: React.FC<SubscriptionItemProps> = ({
                                 onClick={handleUpdate}
                                 className="py-2.5 flex items-center justify-center gap-1.5 text-[13px] font-medium transition-colors active:bg-[rgba(0,122,255,0.06)]"
                                 style={{
-                                    color: "var(--onebox-blue)",
-                                    borderLeft: "0.5px solid var(--onebox-separator)",
-                                    borderRight: "0.5px solid var(--onebox-separator)",
+                                    color: "var(--aurorabox-blue)",
+                                    borderLeft: "0.5px solid var(--aurorabox-separator)",
+                                    borderRight: "0.5px solid var(--aurorabox-separator)",
                                 }}
                             >
                                 <ArrowClockwise size={13} />

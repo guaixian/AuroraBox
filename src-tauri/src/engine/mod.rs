@@ -74,7 +74,7 @@ pub trait EngineManager {
 
     /// Idempotently install the platform's privileged companion:
     ///   - macOS: SMJobBless → /Library/PrivilegedHelperTools/…
-    ///   - Windows: SCM CreateService → OneBoxTunService
+    ///   - Windows: SCM CreateService → AuroraBoxTunService
     ///   - Linux: no-op (helper script + polkit policy ship in the .deb/.rpm)
     ///
     /// Prompts for OS-level authorization on first call (Touch ID / UAC).

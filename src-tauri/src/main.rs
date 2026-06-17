@@ -2,5 +2,5 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
 fn main() {
-    oneoh_sing_box_lib::run()
+    aurorabox_lib::run()
 }

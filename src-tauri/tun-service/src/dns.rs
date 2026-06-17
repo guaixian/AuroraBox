@@ -396,7 +396,7 @@ pub fn restore_all() -> (usize, usize) {
 
 // =========================== service log =============================
 
-/// Append a line to `%PROGRAMDATA%\OneBox\service\service.log`, falling back to
+/// Append a line to `%PROGRAMDATA%\AuroraBox\service\service.log`, falling back to
 /// `%TEMP%\onebox-service.log` if ProgramData is not writable. Silently ignores
 /// errors (failed logging must never kill the service).
 pub fn log_line(msg: &str) {
@@ -404,7 +404,7 @@ pub fn log_line(msg: &str) {
     let path = match std::env::var_os("ProgramData") {
         Some(pd) => {
             let mut p = std::path::PathBuf::from(pd);
-            p.push("OneBox");
+            p.push("AuroraBox");
             p.push("service");
             let _ = std::fs::create_dir_all(&p);
             p.push("service.log");
@@ -469,7 +469,7 @@ mod tests {
         assert!(is_tun_alias("WinTUN Userspace Tunnel"));
         assert!(is_tun_alias("wintun"));
         assert!(is_tun_alias("TAP-Windows Adapter V9"));
-        assert!(is_tun_alias("OneBox TUN"));
+        assert!(is_tun_alias("AuroraBox TUN"));
         assert!(is_tun_alias("utun0"));
     }
 

@@ -4,8 +4,8 @@ use tauri_plugin_autostart::MacosLauncher;
 use tauri_plugin_log::{RotationStrategy, Target, TargetKind, TimezoneStrategy};
 use tauri_plugin_sql::Migration;
 
-// OneBox.log rotation policy — rotate when the active file exceeds 50 MB,
-// keep all rotated files (renamed to OneBox_YYYY-MM-DD_HH-MM-SS.log). A
+// AuroraBox.log rotation policy — rotate when the active file exceeds 50 MB,
+// keep all rotated files (renamed to AuroraBox_YYYY-MM-DD_HH-MM-SS.log). A
 // startup sweep in `core::log::cleanup_old_onebox_logs` deletes rotated
 // files older than 7 days. Uncompressed — triage speed trumps disk cost.
 const ONEBOX_LOG_MAX_FILE_SIZE: u128 = 50 * 1024 * 1024;
@@ -30,7 +30,7 @@ pub fn register_plugins(builder: Builder<Wry>, migrations: Vec<Migration>) -> Bu
         ))
         .plugin(tauri_plugin_deep_link::init())
         .plugin({
-            let targets = ["oneoh_sing_box_lib", "tauri_plugin_deep_link"];
+            let targets = ["aurorabox_lib", "tauri_plugin_deep_link"];
             tauri_plugin_log::Builder::new()
                 .filter(move |metadata| {
                     targets

@@ -17,7 +17,7 @@ use crate::engine::EngineManager;
 //     通过 TUN 适配器访问,所有 SMHNR 并发查询都会进 TUN → sing-box `hijack-dns`。
 //
 //     旧实现用临时 PowerShell 脚本 + ShellExecuteW runas,现在重构为"自我提权 +
-//     helper 子命令":父进程(非提权)用 `OneBox.exe --onebox-tun-helper <sub> ...`
+//     helper 子命令":父进程(非提权)用 `AuroraBox.exe --onebox-tun-helper <sub> ...`
 //     ShellExecuteExW runas 启动一份新 exe,elevated 子进程在 lib.rs::run() 开头
 //     被 windows_native::run_helper 捕获,直接走注册表写 DNS / 起 sing-box /
 //     taskkill sing-box,跑完 exit,不进入 tauri runtime。
@@ -30,7 +30,7 @@ use crate::engine::EngineManager;
 //     出接口检测不再做 —— helper 以 scorched-earth 策略对所有非 TUN 且有 IP 的
 //     网卡都覆写 DNS,和 restore 路径的枚举策略对称,符合 CLAUDE.md 设计哲学#3。
 
-/// Locate the bundled `tun-service.exe` sitting next to `OneBox.exe`.
+/// Locate the bundled `tun-service.exe` sitting next to `AuroraBox.exe`.
 /// In `cargo run` dev builds it's placed there automatically by the workspace
 /// build. Release bundling via Tauri `externalBin` is still TODO.
 #[cfg(target_os = "windows")]
@@ -70,7 +70,7 @@ pub fn start_tun_service(
     use tun_service::scm;
 
     let bundled = bundled_service_exe_path().ok_or_else(|| {
-        "cannot locate bundled tun-service.exe next to OneBox.exe; \
+        "cannot locate bundled tun-service.exe next to AuroraBox.exe; \
          release bundling via externalBin is still TODO"
             .to_string()
     })?;
@@ -102,7 +102,7 @@ pub fn start_tun_service(
         .map_err(|e| format!("start_service_with_args failed: {}", e))?;
 
     log::info!(
-        "[service] OneBoxTunService started (config={}, gateway={}, sidecar={})",
+        "[service] AuroraBoxTunService started (config={}, gateway={}, sidecar={})",
         path,
         if gateway.is_empty() {
             "-"
@@ -123,7 +123,7 @@ pub fn stop_tun_process() -> Result<(), String> {
         log::error!("[service] stop_service failed: {}", e);
         e
     })?;
-    log::info!("[service] OneBoxTunService stop requested");
+    log::info!("[service] AuroraBoxTunService stop requested");
     Ok(())
 }
 
@@ -155,7 +155,7 @@ pub fn restart_privileged_command(sidecar_path: String, path: String) -> Result<
         gateway_arg.as_str(),
         sidecar_path.as_str(),
     ])?;
-    log::info!("[service] OneBoxTunService restarted");
+    log::info!("[service] AuroraBoxTunService restarted");
     // DNS cache flush happens inside the service (service.rs::service_main)
     // because `ipconfig /flushdns` needs admin on Windows 10+. Calling it
     // from this Rust process would run as the user and silently fail.
@@ -346,7 +346,7 @@ impl EngineManager for WindowsEngine {
 
     async fn restart(_app: &AppHandle) -> Result<(), String> {
         // Windows service is driven by SCM; SIGHUP is not a thing. The
-        // "reload" is a stop+start of OneBoxTunService, with the service
+        // "reload" is a stop+start of AuroraBoxTunService, with the service
         // itself running `ipconfig /flushdns` from SYSTEM context during
         // its startup (see tun-service/src/service.rs::service_main).
         let (config_path, sidecar_path) = {

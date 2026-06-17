@@ -12,7 +12,7 @@ export default function NetworkSpeed({ isRunning }: NetworkSpeedProps) {
     return (
         <div
             className="flex items-center gap-3 justify-center text-[12px] tabular-nums"
-            style={{ color: 'var(--onebox-label-secondary)' }}
+            style={{ color: 'var(--aurorabox-label-secondary)' }}
         >
             <span className="inline-block w-24 text-right">↑ {formatNetworkSpeed(speed.upload)}</span>
             <span className="inline-block w-24 text-left">↓ {formatNetworkSpeed(speed.download)}</span>

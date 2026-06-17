@@ -40,7 +40,7 @@ pub(crate) enum PortCleanupError {
 impl PortCleanupError {
     pub(crate) fn start_error(&self) -> String {
         format!(
-            "{}:{}: port is occupied and OneBox could not stop the process",
+            "{}:{}: port is occupied and AuroraBox could not stop the process",
             PORT_OCCUPIED_CANNOT_START,
             self.port()
         )

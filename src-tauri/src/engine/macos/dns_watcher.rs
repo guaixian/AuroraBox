@@ -62,7 +62,7 @@ fn watcher_thread_main() {
         callout: on_dynamic_store_change,
         info: (),
     };
-    let Some(store) = SCDynamicStoreBuilder::new("cloud.oneoh.onebox.dns-watcher")
+    let Some(store) = SCDynamicStoreBuilder::new("com.guaixian.aurorabox.dns-watcher")
         .callback_context(ctx)
         .build()
     else {

@@ -32,7 +32,7 @@ const FormStep: React.FC<FormStepProps> = ({
     <>
         <h3
             className="text-[16px] font-semibold text-center pt-5 pb-3.5 px-5 tracking-[-0.01em]"
-            style={{ color: "var(--onebox-label)" }}
+            style={{ color: "var(--aurorabox-label)" }}
         >
             {t("add_subscription")}
         </h3>
@@ -52,11 +52,11 @@ const FormStep: React.FC<FormStepProps> = ({
         </div>
         <div
             className="grid grid-cols-2"
-            style={{ borderTop: "0.5px solid var(--onebox-separator)" }}
+            style={{ borderTop: "0.5px solid var(--aurorabox-separator)" }}
         >
             <button
                 className="h-11 text-[14px] transition-colors active:bg-[rgba(60,60,67,0.05)]"
-                style={{ color: "var(--onebox-blue)" }}
+                style={{ color: "var(--aurorabox-blue)" }}
                 onClick={onClose}
             >
                 {t("close")}
@@ -64,8 +64,8 @@ const FormStep: React.FC<FormStepProps> = ({
             <button
                 className="h-11 text-[14px] font-semibold transition-colors active:bg-[rgba(0,122,255,0.08)]"
                 style={{
-                    color: "var(--onebox-blue)",
-                    borderLeft: "0.5px solid var(--onebox-separator)",
+                    color: "var(--aurorabox-blue)",
+                    borderLeft: "0.5px solid var(--aurorabox-separator)",
                 }}
                 onClick={onAdd}
             >
@@ -120,7 +120,7 @@ export function useSubscriptionModalController() {
                     <motion.div
                         className="relative w-full max-w-[290px] rounded-[14px] overflow-hidden"
                         style={{
-                            background: 'var(--onebox-card)',
+                            background: 'var(--aurorabox-card)',
                             boxShadow:
                                 "0 22px 48px -12px rgba(15, 23, 42, 0.3), 0 4px 14px rgba(15, 23, 42, 0.08)",
                         }}
@@ -175,7 +175,7 @@ export function AddSubscriptionTriggerButton({
             >
                 <Plus
                     className="size-5"
-                    style={{ color: "var(--onebox-blue)" }}
+                    style={{ color: "var(--aurorabox-blue)" }}
                 />
             </motion.div>
         </button>

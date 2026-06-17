@@ -69,7 +69,7 @@ export default function DNSSettingsItem() {
                 />
                 <p
                     className="text-[11px] mt-2 ml-1 leading-snug"
-                    style={{ color: "var(--onebox-label-secondary)" }}
+                    style={{ color: "var(--aurorabox-label-secondary)" }}
                 >
                     {t(
                         "dns_hint",

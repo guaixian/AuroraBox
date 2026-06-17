@@ -68,7 +68,7 @@ export default function HomePage() {
 
     return (
         <div
-            className="onebox-home relative w-full min-h-[calc(100dvh-56px)] overflow-x-hidden"
+            className="aurorabox-home relative w-full min-h-[calc(100dvh-56px)] overflow-x-hidden"
             data-phase={phase}
         >
             <PrestartRepairModal
@@ -80,7 +80,7 @@ export default function HomePage() {
             {/* systemBlue aura — only rendered when the tile is active or
                 connecting. Same design vocabulary as the warm glow under
                 an active HomeKit accessory. Idle shows no decoration. */}
-            <div className="onebox-aura" aria-hidden />
+            <div className="aurorabox-aura" aria-hidden />
 
             {/* Content */}
             <div className="relative min-h-[calc(100dvh-56px)] flex flex-col items-center px-5 pt-5 pb-5">

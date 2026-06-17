@@ -3,11 +3,11 @@
 <plist version="1.0">
 <dict>
     <key>CFBundleIdentifier</key>
-    <string>cloud.oneoh.onebox.helper</string>
+    <string>com.guaixian.aurorabox.helper</string>
     <key>CFBundleInfoDictionaryVersion</key>
     <string>6.0</string>
     <key>CFBundleName</key>
-    <string>OneBoxHelper</string>
+    <string>AuroraBoxHelper</string>
     <!-- CFBundleVersion drives SMJobBless's "replace the installed helper?"
          decision. MUST be manually bumped whenever anything under
          src-tauri/helper/ changes (main.m, this Info.plist, Launchd.plist),
@@ -21,7 +21,7 @@
     <string>3</string>
     <key>SMAuthorizedClients</key>
     <array>
-        <string>identifier "cloud.oneoh.onebox" and anchor apple generic and certificate 1[field.1.2.840.113635.100.6.2.6] /* exists */ and certificate leaf[field.1.2.840.113635.100.6.1.13] /* exists */ and certificate leaf[subject.OU] = "GN2W3N34TM"</string>
+        <string>identifier "com.guaixian.aurorabox" and anchor apple generic and certificate 1[field.1.2.840.113635.100.6.2.6] /* exists */ and certificate leaf[field.1.2.840.113635.100.6.1.13] /* exists */ and certificate leaf[subject.OU] = "GN2W3N34TM"</string>
     </array>
 </dict>
 </plist>

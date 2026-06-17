@@ -1,6 +1,6 @@
-# OneBox privileged helper
+# AuroraBox privileged helper
 
-A root-level launchd daemon invoked from the OneBox main app via XPC. It
+A root-level launchd daemon invoked from the AuroraBox main app via XPC. It
 runs all operations that require root privilege (TUN startup, DNS override,
 IP forwarding, route cleanup) so the main app never holds the user's sudo
 password. It replaces the `echo 'PASSWORD' | sudo -S ...` pattern that
@@ -21,7 +21,7 @@ when any external process (not just NetworkUp events) resets the system DNS.
 | Method | What it does | Validation |
 |---|---|---|
 | `ping` | Heartbeat / install check | (none beyond caller signature) |
-| `startSingBoxWithConfigPath:` | `posix_spawn` sing-box as root, track pid via `dispatch_source_t` | config path must be absolute, `.json`, under `~/Library/Application Support/cloud.oneoh.onebox/`, no `..`; sing-box binary derived from caller's `SecCode` bundle |
+| `startSingBoxWithConfigPath:` | `posix_spawn` sing-box as root, track pid via `dispatch_source_t` | config path must be absolute, `.json`, under `~/Library/Application Support/com.guaixian.aurorabox/`, no `..`; sing-box binary derived from caller's `SecCode` bundle |
 | `stopSingBox` | `SIGTERM` to tracked pid | only the pid the helper itself spawned |
 | `reloadSingBox` | `SIGHUP` to tracked pid | same |
 | `setIpForwarding:` | `sysctl(CTL_NET, PF_INET, IPPROTO_IP, IPCTL_FORWARDING)` | boolean, no injection surface |
@@ -30,7 +30,7 @@ when any external process (not just NetworkUp events) resets the system DNS.
 | `removeTunRoutesForInterface:` | `netstat` route enumeration + `route delete` + `ifconfig down` | interface must match `^utun[0-9]+$` |
 
 Process exit notifications flow back to the client via bidirectional XPC
-(`OneBoxHelperClientProtocol::singBoxDidExitWithPid:exitCode:`), which
+(`AuroraBoxHelperClientProtocol::singBoxDidExitWithPid:exitCode:`), which
 bridges into a Rust `tokio::mpsc` channel and triggers
 `handle_process_termination` through the existing VPN state machine.
 
@@ -77,7 +77,7 @@ through `cargo tauri build`:
    `scripts/sign-helper.sh` (codesign with hardened runtime + DR check).
 3. Tauri's `copy_custom_files_to_bundle` reads
    `bundle.macOS.files` from `tauri.macos.conf.json` and copies the signed
-   helper into `OneBox.app/Contents/Library/LaunchServices/`.
+   helper into `AuroraBox.app/Contents/Library/LaunchServices/`.
 4. Tauri's `create_info_plist` merges
    `src-tauri/Info.privileged-helper.plist` (containing only
    `SMPrivilegedExecutables`) into the main app's `Info.plist`.
@@ -93,8 +93,8 @@ integration is just three config lines + one prebuild shell script.
 
 ## Hard-coded invariants
 
-- **Main app bundle identifier**: `cloud.oneoh.onebox`.
-- **Helper bundle identifier**: `cloud.oneoh.onebox.helper`. Changing this
+- **Main app bundle identifier**: `com.guaixian.aurorabox`.
+- **Helper bundle identifier**: `com.guaixian.aurorabox.helper`. Changing this
   requires updating `Info.plist` (`CFBundleIdentifier`), `Launchd.plist`
   (`Label` and `MachServices` key), every `machServiceName:` reference in
   `Sources/main.m` and `src-tauri/src/helper_client.m`, and the
@@ -115,7 +115,7 @@ integration is just three config lines + one prebuild shell script.
 `NSXPCConnection`'s `audit_token_t` (via the undocumented-but-stable
 `auditToken` property) to a `SecCodeRef`, then calls
 `SecCodeCheckValidity` against a hard-coded requirement string
-(`identifier "cloud.oneoh.onebox" and anchor apple generic and certificate
+(`identifier "com.guaixian.aurorabox" and anchor apple generic and certificate
 1[field.1.2.840.113635.100.6.2.6] /* exists */ and certificate leaf[...]
 and subject.OU = "GN2W3N34TM"`). Any other local process — unsigned,
 different Team ID, tampered — is rejected at `shouldAcceptNewConnection`
@@ -134,5 +134,5 @@ When the user toggles TUN mode on macOS, `core.rs` calls
 function pings the helper — if it responds, it's already installed. If not,
 it calls `helper_client::api::install()` which triggers the macOS
 authorization prompt via `SMJobBless`. The user sees a single system dialog
-("OneBox wants to install a helper tool") and never needs to enter their
+("AuroraBox wants to install a helper tool") and never needs to enter their
 password again.

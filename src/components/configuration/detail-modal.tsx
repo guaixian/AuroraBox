@@ -209,7 +209,7 @@ export function SubscriptionDetailModal({
                             className="relative w-full max-w-[340px] rounded-[18px] overflow-hidden flex flex-col"
                             style={{
                                 maxHeight: 'calc(100dvh - 60px)',
-                                background: 'var(--onebox-bg)',
+                                background: 'var(--aurorabox-bg)',
                                 boxShadow:
                                     '0 22px 48px -12px rgba(15, 23, 42, 0.32), 0 4px 14px rgba(15, 23, 42, 0.08)',
                             }}
@@ -224,11 +224,11 @@ export function SubscriptionDetailModal({
                             {/* ── Header ───────────────────────────────── */}
                             <div
                                 className="relative flex items-center justify-center h-11 shrink-0"
-                                style={{ background: 'var(--onebox-card)' }}
+                                style={{ background: 'var(--aurorabox-card)' }}
                             >
                                 <h3
                                     className="text-[15px] font-semibold tracking-[-0.01em]"
-                                    style={{ color: 'var(--onebox-label)' }}
+                                    style={{ color: 'var(--aurorabox-label)' }}
                                 >
                                     {t('details')}
                                 </h3>
@@ -240,7 +240,7 @@ export function SubscriptionDetailModal({
                                 >
                                     <X
                                         size={18}
-                                        style={{ color: 'var(--onebox-label-secondary)' }}
+                                        style={{ color: 'var(--aurorabox-label-secondary)' }}
                                     />
                                 </button>
                             </div>
@@ -254,7 +254,7 @@ export function SubscriptionDetailModal({
                                         pattern where the device name headlines the
                                         same grouped list that contains its specs. */}
                                     <section>
-                                        <div className="onebox-grouped-card">
+                                        <div className="aurorabox-grouped-card">
                                             {/* Name row — avatar + inline-editable text */}
                                             <div className="px-4 py-3.5 flex items-center gap-3">
                                                 <Avatar
@@ -285,8 +285,8 @@ export function SubscriptionDetailModal({
                                                                     onBlur={handleSaveName}
                                                                     className="flex-1 min-w-0 text-[15px] font-medium tracking-[-0.01em] bg-transparent border-0 outline-none"
                                                                     style={{
-                                                                        color: 'var(--onebox-label)',
-                                                                        borderBottom: '1px solid var(--onebox-blue)',
+                                                                        color: 'var(--aurorabox-label)',
+                                                                        borderBottom: '1px solid var(--aurorabox-blue)',
                                                                         padding: '1px 0',
                                                                     }}
                                                                 />
@@ -295,7 +295,7 @@ export function SubscriptionDetailModal({
                                                                     disabled={savingName}
                                                                     className="size-5 rounded-full flex items-center justify-center shrink-0"
                                                                     style={{
-                                                                        background: 'var(--onebox-blue)',
+                                                                        background: 'var(--aurorabox-blue)',
                                                                         color: '#FFFFFF',
                                                                         opacity: nameChanged ? 1 : 0.4,
                                                                     }}
@@ -318,7 +318,7 @@ export function SubscriptionDetailModal({
                                                                 <span
                                                                     className="text-[15px] font-medium tracking-[-0.01em] truncate"
                                                                     style={{
-                                                                        color: danger ? '#FF3B30' : 'var(--onebox-label)',
+                                                                        color: danger ? '#FF3B30' : 'var(--aurorabox-label)',
                                                                     }}
                                                                 >
                                                                     {item.name}
@@ -326,7 +326,7 @@ export function SubscriptionDetailModal({
                                                                 <PencilSquare
                                                                     size={11}
                                                                     className="opacity-40 group-hover:opacity-80 transition-opacity shrink-0"
-                                                                    style={{ color: 'var(--onebox-label-secondary)' }}
+                                                                    style={{ color: 'var(--aurorabox-label-secondary)' }}
                                                                 />
                                                             </motion.button>
                                                         )}
@@ -342,7 +342,7 @@ export function SubscriptionDetailModal({
                                                                 );
                                                             }}
                                                             className="mt-0.5 inline-flex items-center gap-1 text-[11px]"
-                                                            style={{ color: 'var(--onebox-blue)' }}
+                                                            style={{ color: 'var(--aurorabox-blue)' }}
                                                         >
                                                             <Globe size={9} />
                                                             <span className="truncate">
@@ -386,22 +386,22 @@ export function SubscriptionDetailModal({
                                         lines without crowding the stats
                                         grid above. */}
                                     <section>
-                                        <div className="onebox-grouped-card">
+                                        <div className="aurorabox-grouped-card">
                                             <div className="px-4 py-3">
                                                 <div
                                                     className="text-[12px] mb-1"
                                                     style={{
-                                                        color: 'var(--onebox-label-secondary)',
+                                                        color: 'var(--aurorabox-label-secondary)',
                                                     }}
                                                 >
                                                     {t('subscription_url')}
                                                 </div>
                                                 <div
-                                                    className="text-[11.5px] leading-snug break-all onebox-selectable"
+                                                    className="text-[11.5px] leading-snug break-all aurorabox-selectable"
                                                     style={{
                                                         fontFamily:
                                                             'ui-monospace, "SF Mono", Menlo, monospace',
-                                                        color: 'var(--onebox-label)',
+                                                        color: 'var(--aurorabox-label)',
                                                     }}
                                                 >
                                                     {item.subscription_url}
@@ -412,21 +412,21 @@ export function SubscriptionDetailModal({
 
                                     {/* Primary actions */}
                                     <section>
-                                        <div className="onebox-grouped-card">
+                                        <div className="aurorabox-grouped-card">
                                             <ActionRow
                                                 icon={
                                                     copiedUrl ? (
                                                         <ClipboardCheck
                                                             size={16}
                                                             style={{
-                                                                color: 'var(--onebox-green)',
+                                                                color: 'var(--aurorabox-green)',
                                                             }}
                                                         />
                                                     ) : (
                                                         <ClipboardIcon
                                                             size={16}
                                                             style={{
-                                                                color: 'var(--onebox-blue)',
+                                                                color: 'var(--aurorabox-blue)',
                                                             }}
                                                         />
                                                     )
@@ -440,14 +440,14 @@ export function SubscriptionDetailModal({
                                                         <ClipboardCheck
                                                             size={16}
                                                             style={{
-                                                                color: 'var(--onebox-green)',
+                                                                color: 'var(--aurorabox-green)',
                                                             }}
                                                         />
                                                     ) : (
                                                         <ClipboardIcon
                                                             size={16}
                                                             style={{
-                                                                color: 'var(--onebox-blue)',
+                                                                color: 'var(--aurorabox-blue)',
                                                             }}
                                                         />
                                                     )
@@ -477,7 +477,7 @@ export function SubscriptionDetailModal({
                                                         <ArrowClockwise
                                                             size={16}
                                                             style={{
-                                                                color: 'var(--onebox-blue)',
+                                                                color: 'var(--aurorabox-blue)',
                                                             }}
                                                         />
                                                     </motion.div>
@@ -498,7 +498,7 @@ export function SubscriptionDetailModal({
                                         pool with the blue-glyph primary
                                         actions above. */}
                                     <section>
-                                        <div className="onebox-grouped-card">
+                                        <div className="aurorabox-grouped-card">
                                             <button
                                                 type="button"
                                                 onClick={handleDelete}
@@ -545,13 +545,13 @@ function InfoRow({
             <div className="flex items-center justify-between gap-3">
                 <span
                     className="text-[14px] tracking-[-0.005em] shrink-0"
-                    style={{ color: 'var(--onebox-label)' }}
+                    style={{ color: 'var(--aurorabox-label)' }}
                 >
                     {label}
                 </span>
                 <span
                     className="text-[13px] truncate tabular-nums"
-                    style={{ color: 'var(--onebox-label-secondary)' }}
+                    style={{ color: 'var(--aurorabox-label-secondary)' }}
                 >
                     {value}
                 </span>
@@ -571,7 +571,7 @@ function ProgressBar({ percent, danger }: { percent: number; danger: boolean }) 
                 className="h-full rounded-full"
                 style={{
                     width: `${percent}%`,
-                    background: danger ? '#FF3B30' : 'var(--onebox-blue)',
+                    background: danger ? '#FF3B30' : 'var(--aurorabox-blue)',
                     transition: 'width 400ms cubic-bezier(0.32, 0.72, 0, 1)',
                 }}
             />
@@ -604,7 +604,7 @@ function ActionRow({
             </div>
             <span
                 className="flex-1 text-left text-[14px] tracking-[-0.005em]"
-                style={{ color: 'var(--onebox-label)' }}
+                style={{ color: 'var(--aurorabox-label)' }}
             >
                 {label}
             </span>

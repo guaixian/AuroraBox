@@ -103,7 +103,7 @@ export function AppleSelectMenu<T>(props: AppleSelectMenuProps<T>) {
                 type="button"
                 disabled={disabled}
                 onClick={toggle}
-                style={{ background: 'var(--onebox-card)', boxShadow: 'var(--onebox-shadow-card)' }}
+                style={{ background: 'var(--aurorabox-card)', boxShadow: 'var(--aurorabox-shadow-card)' }}
                 className={`
                     group w-full text-left rounded-2xl
                     px-3.5 py-2.5
@@ -122,8 +122,8 @@ export function AppleSelectMenu<T>(props: AppleSelectMenuProps<T>) {
                         className="size-3 shrink-0 transition-transform duration-200"
                         style={{
                             color: isOpen
-                                ? 'var(--onebox-blue)'
-                                : 'var(--onebox-label-tertiary)',
+                                ? 'var(--aurorabox-blue)'
+                                : 'var(--aurorabox-label-tertiary)',
                         }}
                     />
                 </div>
@@ -160,7 +160,7 @@ export function AppleSelectMenu<T>(props: AppleSelectMenuProps<T>) {
                         <div
                             className="overflow-hidden rounded-2xl backdrop-blur-2xl backdrop-saturate-150"
                             style={{
-                                background: 'var(--onebox-menu-bg)',
+                                background: 'var(--aurorabox-menu-bg)',
                                 boxShadow:
                                     '0 16px 48px rgba(15, 23, 42, 0.16), 0 4px 12px rgba(15, 23, 42, 0.08)',
                             }}
@@ -172,7 +172,7 @@ export function AppleSelectMenu<T>(props: AppleSelectMenuProps<T>) {
                                 {options.length === 0 ? (
                                     <div
                                         className="px-3 py-3 text-sm text-center"
-                                        style={{ color: 'var(--onebox-label-tertiary)' }}
+                                        style={{ color: 'var(--aurorabox-label-tertiary)' }}
                                     >
                                         {emptyLabel ?? "—"}
                                     </div>
@@ -200,7 +200,7 @@ export function AppleSelectMenu<T>(props: AppleSelectMenuProps<T>) {
                                                     setIsOpen(false);
                                                 }}
                                                 className={`
-                                                    onebox-menu-option
+                                                    aurorabox-menu-option
                                                     w-full text-left
                                                     px-3 py-2 rounded-xl
                                                     flex items-center gap-2
@@ -254,13 +254,13 @@ export function AppleSelectPlaceholder({
                 ${tone === "loading" ? "" : "opacity-70"}
             `}
             style={{
-                background: 'var(--onebox-card)',
-                boxShadow: 'var(--onebox-shadow-card)',
+                background: 'var(--aurorabox-card)',
+                boxShadow: 'var(--aurorabox-shadow-card)',
             }}
         >
             <div
                 className="flex-1 min-w-0 text-sm"
-                style={{ color: 'var(--onebox-label-tertiary)' }}
+                style={{ color: 'var(--aurorabox-label-tertiary)' }}
             >
                 {children}
             </div>

@@ -13,10 +13,10 @@ interface LogTableProps {
 
 export default function LogTable({ logs, filter, highlightText }: LogTableProps) {
     return (
-        <div className="py-2 onebox-selectable">
+        <div className="py-2 aurorabox-selectable">
             {logs.map((log, index) => (
-                <div key={`${log.timestamp}-${index}`} className="onebox-logrow">
-                    <span className="onebox-logrow-time">{log.timestamp}</span>
+                <div key={`${log.timestamp}-${index}`} className="aurorabox-logrow">
+                    <span className="aurorabox-logrow-time">{log.timestamp}</span>
                     <span className="flex-1 min-w-0">
                         {highlightText(log.message, filter)}
                     </span>

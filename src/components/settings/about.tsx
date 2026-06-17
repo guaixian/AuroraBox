@@ -24,7 +24,7 @@ import {
     getSingBoxUserAgent,
     t,
 } from "../../utils/helper";
-import oneboxLogoUrl from "../../assets/onebox-logo.png";
+import auroraboxLogoUrl from "../../assets/aurorabox-logo.png";
 import { Portal } from "../common/portal";
 import { SettingItem } from "./common";
 
@@ -133,7 +133,7 @@ function AboutSheet({ onClose }: { onClose: () => void }) {
                         className="relative w-full max-w-[340px] rounded-[18px] overflow-hidden flex flex-col"
                         style={{
                             maxHeight: "calc(100dvh - 80px)",
-                            background: 'var(--onebox-bg)',
+                            background: 'var(--aurorabox-bg)',
                             boxShadow:
                                 "0 22px 48px -12px rgba(15, 23, 42, 0.32), 0 4px 14px rgba(15, 23, 42, 0.08)",
                         }}
@@ -148,11 +148,11 @@ function AboutSheet({ onClose }: { onClose: () => void }) {
                         {/* Title bar */}
                         <div
                             className="relative flex items-center justify-center h-11 shrink-0"
-                            style={{ background: 'var(--onebox-card)' }}
+                            style={{ background: 'var(--aurorabox-card)' }}
                         >
                             <h3
                                 className="text-[15px] font-semibold tracking-[-0.01em] capitalize"
-                                style={{ color: "var(--onebox-label)" }}
+                                style={{ color: "var(--aurorabox-label)" }}
                             >
                                 {t("about")}
                             </h3>
@@ -165,7 +165,7 @@ function AboutSheet({ onClose }: { onClose: () => void }) {
                                 <X
                                     size={18}
                                     style={{
-                                        color: "var(--onebox-label-secondary)",
+                                        color: "var(--aurorabox-label-secondary)",
                                     }}
                                 />
                             </button>
@@ -175,7 +175,7 @@ function AboutSheet({ onClose }: { onClose: () => void }) {
                             {/* Hero */}
                             <div
                                 className="flex flex-col items-center pt-6 pb-7"
-                                style={{ background: 'var(--onebox-card)' }}
+                                style={{ background: 'var(--aurorabox-card)' }}
                             >
                                 {/* 72px squircle tile. The source PNG has ~22 px
                                     of transparent padding on every side (content
@@ -197,22 +197,22 @@ function AboutSheet({ onClose }: { onClose: () => void }) {
                                     }}
                                 >
                                     <img
-                                        src={oneboxLogoUrl}
-                                        alt="OneBox"
+                                        src={auroraboxLogoUrl}
+                                        alt="AuroraBox"
                                         className="size-full"
                                         style={{ transform: 'scale(1.25)' }}
                                     />
                                 </div>
                                 <h2
                                     className="text-[22px] font-semibold tracking-[-0.02em]"
-                                    style={{ color: "var(--onebox-label)" }}
+                                    style={{ color: "var(--aurorabox-label)" }}
                                 >
-                                    OneBox
+                                    AuroraBox
                                 </h2>
                                 <p
                                     className="text-[13px] mt-1"
                                     style={{
-                                        color: "var(--onebox-label-secondary)",
+                                        color: "var(--aurorabox-label-secondary)",
                                     }}
                                 >
                                     {t("version")} {osInfo.appVersion}
@@ -223,7 +223,7 @@ function AboutSheet({ onClose }: { onClose: () => void }) {
                                 {/* Device info */}
                                 <section>
                                     <SectionLabel>{t("system_info")}</SectionLabel>
-                                    <div className="onebox-grouped-card">
+                                    <div className="aurorabox-grouped-card">
                                         <InfoRow
                                             label={t("os")}
                                             value={formatOsInfo(
@@ -244,13 +244,13 @@ function AboutSheet({ onClose }: { onClose: () => void }) {
                                 {/* Links */}
                                 <section>
                                     <SectionLabel>{t("copyright")}</SectionLabel>
-                                    <div className="onebox-grouped-card">
+                                    <div className="aurorabox-grouped-card">
                                         <LinkRow
                                             icon={
                                                 <Globe
                                                     size={18}
                                                     style={{
-                                                        color: "var(--onebox-blue)",
+                                                        color: "var(--aurorabox-blue)",
                                                     }}
                                                 />
                                             }
@@ -262,7 +262,7 @@ function AboutSheet({ onClose }: { onClose: () => void }) {
                                                 <Github
                                                     size={18}
                                                     style={{
-                                                        color: "var(--onebox-blue)",
+                                                        color: "var(--aurorabox-blue)",
                                                     }}
                                                 />
                                             }
@@ -277,7 +277,7 @@ function AboutSheet({ onClose }: { onClose: () => void }) {
                                     className="rounded-[14px] px-3 py-2.5 text-[11px] leading-relaxed"
                                     style={{
                                         background: "rgba(118, 118, 128, 0.08)",
-                                        color: "var(--onebox-label-secondary)",
+                                        color: "var(--aurorabox-label-secondary)",
                                     }}
                                 >
                                     <pre className="whitespace-pre-wrap overflow-x-auto font-sans">
@@ -294,9 +294,9 @@ function AboutSheet({ onClose }: { onClose: () => void }) {
                                     }}
                                     className="w-full h-10 rounded-[12px] text-[13px] font-medium transition-colors active:bg-[rgba(60,60,67,0.06)]"
                                     style={{
-                                        background: "var(--onebox-card)",
-                                        color: "var(--onebox-label)",
-                                        boxShadow: "var(--onebox-shadow-card)",
+                                        background: "var(--aurorabox-card)",
+                                        color: "var(--aurorabox-label)",
+                                        boxShadow: "var(--aurorabox-shadow-card)",
                                     }}
                                 >
                                     {t("developer_options")}
@@ -323,7 +323,7 @@ function SectionLabel({ children }: { children: React.ReactNode }) {
     return (
         <h4
             className="px-4 mb-1.5 text-[11px] font-semibold uppercase tracking-[0.04em]"
-            style={{ color: "var(--onebox-label-secondary)" }}
+            style={{ color: "var(--aurorabox-label-secondary)" }}
         >
             {children}
         </h4>
@@ -353,13 +353,13 @@ function InfoRow({
         >
             <span
                 className="flex-1 min-w-0 text-[14px] tracking-[-0.005em] capitalize truncate"
-                style={{ color: "var(--onebox-label)" }}
+                style={{ color: "var(--aurorabox-label)" }}
             >
                 {label}
             </span>
             <span
                 className="text-[13px] tracking-[-0.005em] truncate"
-                style={{ color: "var(--onebox-label-secondary)" }}
+                style={{ color: "var(--aurorabox-label-secondary)" }}
             >
                 {value}
             </span>
@@ -382,13 +382,13 @@ function UaRow({ ua, onCopy }: { ua: string; onCopy: () => void }) {
         >
             <span
                 className="shrink-0 text-[14px] tracking-[-0.005em] capitalize"
-                style={{ color: "var(--onebox-label)" }}
+                style={{ color: "var(--aurorabox-label)" }}
             >
                 User-Agent
             </span>
             <span
                 className="flex-1 min-w-0 text-right text-[11px] truncate font-mono"
-                style={{ color: "var(--onebox-label-secondary)" }}
+                style={{ color: "var(--aurorabox-label-secondary)" }}
             >
                 {ua}
             </span>
@@ -420,7 +420,7 @@ function LinkRow({
             </div>
             <span
                 className="flex-1 min-w-0 text-[15px] tracking-[-0.005em]"
-                style={{ color: "var(--onebox-label)" }}
+                style={{ color: "var(--aurorabox-label)" }}
             >
                 {label}
             </span>
@@ -462,7 +462,7 @@ function CoreInfoSheet({
                     className="relative w-full max-w-[320px] rounded-[14px] overflow-hidden flex flex-col"
                     style={{
                         maxHeight: "calc(100dvh - 100px)",
-                        background: 'var(--onebox-card)',
+                        background: 'var(--aurorabox-card)',
                         boxShadow:
                             "0 22px 48px -12px rgba(15, 23, 42, 0.3), 0 4px 14px rgba(15, 23, 42, 0.08)",
                     }}
@@ -473,7 +473,7 @@ function CoreInfoSheet({
                 >
                     <h3
                         className="text-[16px] font-semibold text-center pt-4 pb-3 px-5 tracking-[-0.01em] capitalize"
-                        style={{ color: "var(--onebox-label)" }}
+                        style={{ color: "var(--aurorabox-label)" }}
                     >
                         {t("core_info")}
                     </h3>
@@ -482,7 +482,7 @@ function CoreInfoSheet({
                             className="rounded-xl px-3 py-2.5 text-[11px] leading-relaxed font-mono whitespace-pre-wrap break-all"
                             style={{
                                 background: "rgba(118, 118, 128, 0.08)",
-                                color: "var(--onebox-label-secondary)",
+                                color: "var(--aurorabox-label-secondary)",
                             }}
                         >
                             {versionDump}
@@ -493,8 +493,8 @@ function CoreInfoSheet({
                         onClick={onClose}
                         className="w-full h-11 text-[14px] font-semibold transition-colors active:bg-[rgba(0,122,255,0.08)] shrink-0"
                         style={{
-                            color: "var(--onebox-blue)",
-                            borderTop: "0.5px solid var(--onebox-separator)",
+                            color: "var(--aurorabox-blue)",
+                            borderTop: "0.5px solid var(--aurorabox-separator)",
                         }}
                     >
                         {t("close")}

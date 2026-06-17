@@ -53,7 +53,7 @@ function StepCircle({ state }: { state: StepState }) {
         return (
             <CheckCircleFill
                 size={CIRCLE_SIZE_PX}
-                style={{ color: 'var(--onebox-blue)' }}
+                style={{ color: 'var(--aurorabox-blue)' }}
             />
         );
     }
@@ -70,7 +70,7 @@ function StepCircle({ state }: { state: StepState }) {
             >
                 <div
                     className="absolute inset-0 rounded-full"
-                    style={{ background: 'var(--onebox-blue)' }}
+                    style={{ background: 'var(--aurorabox-blue)' }}
                 />
                 <div
                     className="absolute rounded-full"
@@ -114,10 +114,10 @@ function StepRow({
         state === 'error'
             ? '#FF3B30'
             : state === 'active'
-                ? 'var(--onebox-label)'
+                ? 'var(--aurorabox-label)'
                 : state === 'done'
-                    ? 'var(--onebox-label-secondary)'
-                    : 'var(--onebox-label-tertiary)';
+                    ? 'var(--aurorabox-label-secondary)'
+                    : 'var(--aurorabox-label-tertiary)';
 
     const fontWeight = state === 'active' ? 500 : 400;
 
@@ -146,7 +146,7 @@ function StepRow({
                             className="absolute top-full left-1/2 -translate-x-1/2"
                             style={{
                                 width: 1.5,
-                                background: 'var(--onebox-blue)',
+                                background: 'var(--aurorabox-blue)',
                             }}
                             initial={false}
                             animate={{ height: RAIL_SEGMENT_PX * railFillPercent }}
@@ -275,7 +275,7 @@ export function PrestartRepairModal({
                     <motion.div
                         className="relative w-full max-w-72.5 rounded-[14px] overflow-hidden"
                         style={{
-                            background: 'var(--onebox-card)',
+                            background: 'var(--aurorabox-card)',
                             boxShadow:
                                 '0 22px 48px -12px rgba(15, 23, 42, 0.3), 0 4px 14px rgba(15, 23, 42, 0.08)',
                         }}
@@ -305,7 +305,7 @@ export function PrestartRepairModal({
 
                             <h3
                                 className="text-[16px] font-semibold text-center tracking-[-0.01em] mb-4"
-                                style={{ color: 'var(--onebox-label)' }}
+                                style={{ color: 'var(--aurorabox-label)' }}
                             >
                                 {titleText}
                             </h3>
@@ -319,7 +319,7 @@ export function PrestartRepairModal({
                                             className="text-[11px] px-2 py-0.5 rounded-full"
                                             style={{
                                                 background: 'rgba(60, 60, 67, 0.08)',
-                                                color: 'var(--onebox-label-secondary)',
+                                                color: 'var(--aurorabox-label-secondary)',
                                             }}
                                         >
                                             {t('prestart_pid_label', 'Orphan process')} {pid}
@@ -362,8 +362,8 @@ export function PrestartRepairModal({
                                 type="button"
                                 className="w-full h-11 text-[14px] font-semibold transition-colors active:bg-[rgba(0,122,255,0.08)]"
                                 style={{
-                                    color: isFailed ? '#FF3B30' : 'var(--onebox-blue)',
-                                    borderTop: '0.5px solid var(--onebox-separator)',
+                                    color: isFailed ? '#FF3B30' : 'var(--aurorabox-blue)',
+                                    borderTop: '0.5px solid var(--aurorabox-separator)',
                                 }}
                                 onClick={onClose}
                             >

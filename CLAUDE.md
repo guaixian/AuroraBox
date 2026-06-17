@@ -125,9 +125,9 @@ This is a project-specific reminder of the global
 
 Runtime log location:
 
-- macOS: `~/Library/Logs/cloud.oneoh.onebox/OneBox.log`
-- Linux: `~/.config/cloud.oneoh.onebox/logs/`
-- Windows: `%APPDATA%\cloud.oneoh.onebox\logs\`
+- macOS: `~/Library/Logs/com.guaixian.aurorabox/OneBox.log`
+- Linux: `~/.config/com.guaixian.aurorabox/logs/`
+- Windows: `%APPDATA%\com.guaixian.aurorabox\logs\`
 
 For **any** deep-link report ("doesn't auto-import", "opens the app but does nothing", "sometimes works, sometimes doesn't"), open this file **before** reading Rust or TS source. Key markers are all produced by `src-tauri/src/app/setup.rs`.
 
@@ -227,7 +227,7 @@ The canonical way to cut a release on any channel is `make bump` on that channel
 
 ### Why: the whole upgrade path hinges on this one integer
 
-`ensure_helper_installed` in `src-tauri/src/engine/macos/mod.rs` reads the `CFBundleVersion` string from **both** the bundled helper (`/Applications/OneBox.app/Contents/Library/LaunchServices/cloud.oneoh.onebox.helper`) and the installed helper (`/Library/PrivilegedHelperTools/cloud.oneoh.onebox.helper`) by scanning each binary's `__TEXT,__info_plist` section for the `<key>CFBundleVersion</key>` marker. Mismatch → `SMJobBless` → authorization prompt → new helper replaces old. Match → skip.
+`ensure_helper_installed` in `src-tauri/src/engine/macos/mod.rs` reads the `CFBundleVersion` string from **both** the bundled helper (`/Applications/OneBox.app/Contents/Library/LaunchServices/com.guaixian.aurorabox.helper`) and the installed helper (`/Library/PrivilegedHelperTools/com.guaixian.aurorabox.helper`) by scanning each binary's `__TEXT,__info_plist` section for the `<key>CFBundleVersion</key>` marker. Mismatch → `SMJobBless` → authorization prompt → new helper replaces old. Match → skip.
 
 That string is the **only** signal. The privileged helper is a launchd-managed root daemon that keeps running across app updates — it answers XPC pings from the old code even after the user installs a new OneBox.app. Without a deliberate bump, the new helper bytes inside `Contents/Library/LaunchServices/` just sit there; `ensure_helper_installed` sees matching versions and moves on.
 

@@ -33,8 +33,8 @@ export default function ConfigViewer({ onContent }: ConfigViewerProps) {
     if (error) {
         return (
             <div
-                className="px-4 py-4 font-mono text-xs onebox-selectable"
-                style={{ color: 'var(--onebox-red)' }}
+                className="px-4 py-4 font-mono text-xs aurorabox-selectable"
+                style={{ color: 'var(--aurorabox-red)' }}
             >
                 <p>{t("error_loading_config") || "Error loading config:"}</p>
                 <p className="mt-2">
@@ -46,17 +46,17 @@ export default function ConfigViewer({ onContent }: ConfigViewerProps) {
 
     return (
         <pre
-            className="px-4 py-3 text-[11px] leading-relaxed onebox-selectable"
+            className="px-4 py-3 text-[11px] leading-relaxed aurorabox-selectable"
             style={{
                 fontFamily: 'ui-monospace, "SF Mono", Menlo, Consolas, monospace',
-                color: 'var(--onebox-label)',
+                color: 'var(--aurorabox-label)',
                 margin: 0,
                 whiteSpace: 'pre',
                 overflowX: 'auto',
             }}
         >
             {configContent || (
-                <span style={{ color: 'var(--onebox-label-tertiary)' }}>
+                <span style={{ color: 'var(--aurorabox-label-tertiary)' }}>
                     {t("loading") || "Loading..."}
                 </span>
             )}

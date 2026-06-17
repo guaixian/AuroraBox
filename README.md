@@ -15,7 +15,7 @@
 
   <p>
     <a href="https://github.com/SagerNet/sing-box"><img alt="sing-box latest version" src="https://repology.org/badge/version-for-repo/homebrew/sing-box.svg?header=sing-box"></a>
-    <a href="https://github.com/OneOhCloud/OneBox/releases"><img alt="GitHub release" src="https://img.shields.io/github/v/release/OneOhCloud/OneBox?display_name=tag&sort=semver"></a>
+    <a href="https://github.com/guaixian/AuroraBox/releases"><img alt="GitHub release" src="https://img.shields.io/github/v/release/guaixian/AuroraBox?display_name=tag&sort=semver"></a>
     <a href="./LICENSE"><img alt="License" src="https://img.shields.io/badge/license-Apache--2.0-blue"></a>
   </p>
 
@@ -64,7 +64,7 @@ It is designed for people who want a clean daily-driver client instead of a conf
 
 ## Download
 
-Get the latest build from the [GitHub Releases page](https://github.com/OneOhCloud/OneBox/releases), or install the mobile companion from the store badges above.
+Get the latest build from the [GitHub Releases page](https://github.com/guaixian/AuroraBox/releases), or install the mobile companion from the store badges above.
 
 The macOS build is notarized by Apple, so it can be installed without manual security overrides.
 
@@ -112,4 +112,4 @@ cargo test -- --nocapture
 
 This software is licensed under the [Apache License 2.0](./LICENSE).
 
-The **OneBox** name, logos, icons, and other brand assets are proprietary assets of OneOh Cloud LLC. The Apache License does not grant permission to use those branding elements in derivative works. Any use of these assets or the product name must follow the [NOTICE](./NOTICE) policy.
+AuroraBox is a fork of OneBox by OneOh Cloud LLC. The original **OneBox** name, logos, icons, and other brand assets are proprietary assets of OneOh Cloud LLC. The Apache License does not grant permission to use those branding elements in derivative works. Any use of these assets or the product name must follow the [NOTICE](./NOTICE) policy.

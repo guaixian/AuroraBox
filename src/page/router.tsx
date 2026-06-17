@@ -133,10 +133,10 @@ export default function RouterSettings() {
     };
 
     return (
-        <div className="onebox-scrollpage">
+        <div className="aurorabox-scrollpage">
             <HelpModal isOpen={showHelp} onClose={() => setShowHelp(false)} />
 
-            <div className="onebox-page-inner !pt-3 pb-6">
+            <div className="aurorabox-page-inner !pt-3 pb-6">
                 {/* Mode — Direct vs Proxy */}
                 <Segmented
                     options={[
@@ -167,8 +167,8 @@ export default function RouterSettings() {
                                                 ? "rgba(0, 122, 255, 0.12)"
                                                 : "transparent",
                                             color: active
-                                                ? "var(--onebox-blue)"
-                                                : "var(--onebox-label-secondary)",
+                                                ? "var(--aurorabox-blue)"
+                                                : "var(--aurorabox-label-secondary)",
                                             fontWeight: active ? 600 : 400,
                                         }}
                                     >
@@ -193,7 +193,7 @@ export default function RouterSettings() {
                             disabled={!input.trim()}
                             className="shrink-0 size-10 rounded-xl flex items-center justify-center transition-all active:brightness-95 disabled:opacity-40 disabled:cursor-not-allowed"
                             style={{
-                                background: "var(--onebox-blue)",
+                                background: "var(--aurorabox-blue)",
                                 color: "#FFFFFF",
                                 boxShadow: input.trim()
                                     ? "0 1px 3px rgba(0, 122, 255, 0.3)"
@@ -210,7 +210,7 @@ export default function RouterSettings() {
                 <div className="flex items-center justify-between mt-6 mb-1.5 px-1">
                     <h3
                         className="text-[11px] font-semibold uppercase tracking-[0.04em]"
-                        style={{ color: "var(--onebox-label-secondary)" }}
+                        style={{ color: "var(--aurorabox-label-secondary)" }}
                     >
                         {t("rules_count_label", "Rules")}
                         {` · ${flatRules.length}`}
@@ -224,7 +224,7 @@ export default function RouterSettings() {
                         <QuestionCircle
                             size={13}
                             style={{
-                                color: "var(--onebox-label-secondary)",
+                                color: "var(--aurorabox-label-secondary)",
                             }}
                         />
                     </button>
@@ -239,7 +239,7 @@ export default function RouterSettings() {
                         transition={{ duration: 0.18, ease: [0.32, 0.72, 0, 1] }}
                     >
                         {flatRules.length > 0 ? (
-                            <div className="onebox-grouped-card">
+                            <div className="aurorabox-grouped-card">
                                 {flatRules.map((rule) => (
                                     <RuleRow
                                         key={`${rule.kind}-${rule.index}-${rule.value}`}
@@ -252,9 +252,9 @@ export default function RouterSettings() {
                             </div>
                         ) : (
                             <div
-                                className="onebox-plain-card px-4 py-8 text-center text-[13px]"
+                                className="aurorabox-plain-card px-4 py-8 text-center text-[13px]"
                                 style={{
-                                    color: "var(--onebox-label-tertiary)",
+                                    color: "var(--aurorabox-label-tertiary)",
                                 }}
                             >
                                 {t("no_rules", "No rules yet")}
@@ -269,7 +269,7 @@ export default function RouterSettings() {
                     used to provide, without needing a separate block. */}
                 <p
                     className="px-1 mt-3 text-[11px] leading-snug"
-                    style={{ color: "var(--onebox-label-secondary)" }}
+                    style={{ color: "var(--aurorabox-label-secondary)" }}
                 >
                     {t(`${activeTab}_rules_hint`)}
                     <span className="mx-1.5 opacity-50">·</span>
@@ -306,7 +306,7 @@ function RuleRow({
             <span
                 className="flex-1 min-w-0 text-[13px] truncate"
                 style={{
-                    color: "var(--onebox-label)",
+                    color: "var(--aurorabox-label)",
                     fontFamily:
                         '"SF Mono", ui-monospace, "Menlo", monospace',
                 }}
@@ -364,11 +364,11 @@ function Segmented<T extends string>({
                             compact ? "h-6 text-[12px]" : "h-7 text-[13px]"
                         } ${active ? "font-medium" : ""}`}
                         style={{
-                            background: active ? "var(--onebox-card)" : "transparent",
+                            background: active ? "var(--aurorabox-card)" : "transparent",
                             color: active
-                                ? "var(--onebox-label)"
-                                : "var(--onebox-label-secondary)",
-                            boxShadow: active ? "var(--onebox-shadow-card)" : "none",
+                                ? "var(--aurorabox-label)"
+                                : "var(--aurorabox-label-secondary)",
+                            boxShadow: active ? "var(--aurorabox-shadow-card)" : "none",
                         }}
                     >
                         {label}

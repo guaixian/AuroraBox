@@ -34,7 +34,7 @@ export function HelpModal({ isOpen, onClose }: HelpModalProps) {
                         className="relative w-full max-w-[320px] rounded-[14px] overflow-hidden flex flex-col"
                         style={{
                             maxHeight: "calc(100dvh - 80px)",
-                            background: 'var(--onebox-card)',
+                            background: 'var(--aurorabox-card)',
                             boxShadow:
                                 "0 22px 48px -12px rgba(15, 23, 42, 0.3), 0 4px 14px rgba(15, 23, 42, 0.08)",
                         }}
@@ -46,7 +46,7 @@ export function HelpModal({ isOpen, onClose }: HelpModalProps) {
                         <div className="relative flex items-center justify-center px-4 pt-4 pb-3">
                             <h3
                                 className="text-[16px] font-semibold tracking-[-0.01em]"
-                                style={{ color: "var(--onebox-label)" }}
+                                style={{ color: "var(--aurorabox-label)" }}
                             >
                                 {t("rule_info_title", "Rule Information")}
                             </h3>
@@ -59,7 +59,7 @@ export function HelpModal({ isOpen, onClose }: HelpModalProps) {
                                 <X
                                     size={18}
                                     style={{
-                                        color: "var(--onebox-label-secondary)",
+                                        color: "var(--aurorabox-label-secondary)",
                                     }}
                                 />
                             </button>
@@ -70,7 +70,7 @@ export function HelpModal({ isOpen, onClose }: HelpModalProps) {
                                 icon={
                                     <ShieldCheck
                                         size={16}
-                                        style={{ color: "var(--onebox-blue)" }}
+                                        style={{ color: "var(--aurorabox-blue)" }}
                                     />
                                 }
                                 title={t("direct_rules", "Direct Rules")}
@@ -83,7 +83,7 @@ export function HelpModal({ isOpen, onClose }: HelpModalProps) {
                                 icon={
                                     <Globe
                                         size={16}
-                                        style={{ color: "var(--onebox-blue)" }}
+                                        style={{ color: "var(--aurorabox-blue)" }}
                                     />
                                 }
                                 title={t("proxy_rules", "Proxy Rules")}
@@ -95,7 +95,7 @@ export function HelpModal({ isOpen, onClose }: HelpModalProps) {
 
                             <div
                                 className="text-[12px] leading-relaxed space-y-1.5 px-1"
-                                style={{ color: "var(--onebox-label-secondary)" }}
+                                style={{ color: "var(--aurorabox-label-secondary)" }}
                             >
                                 <BulletItem
                                     label={t("domain_rules", "Domain Rules")}
@@ -127,7 +127,7 @@ export function HelpModal({ isOpen, onClose }: HelpModalProps) {
                                 className="rounded-xl px-3 py-2 text-[12px] leading-snug"
                                 style={{
                                     background: "rgba(0, 122, 255, 0.08)",
-                                    color: "var(--onebox-blue)",
+                                    color: "var(--aurorabox-blue)",
                                 }}
                             >
                                 {t(
@@ -142,8 +142,8 @@ export function HelpModal({ isOpen, onClose }: HelpModalProps) {
                             onClick={onClose}
                             className="w-full h-11 text-[14px] font-semibold transition-colors active:bg-[rgba(0,122,255,0.08)] shrink-0"
                             style={{
-                                color: "var(--onebox-blue)",
-                                borderTop: "0.5px solid var(--onebox-separator)",
+                                color: "var(--aurorabox-blue)",
+                                borderTop: "0.5px solid var(--aurorabox-separator)",
                             }}
                         >
                             {t("close", "Close")}
@@ -171,14 +171,14 @@ function InfoCard({
         >
             <div
                 className="flex items-center gap-2 text-[13px] font-medium mb-1"
-                style={{ color: "var(--onebox-label)" }}
+                style={{ color: "var(--aurorabox-label)" }}
             >
                 {icon}
                 <span>{title}</span>
             </div>
             <p
                 className="text-[12px] leading-snug"
-                style={{ color: "var(--onebox-label-secondary)" }}
+                style={{ color: "var(--aurorabox-label-secondary)" }}
             >
                 {body}
             </p>
@@ -191,7 +191,7 @@ function BulletItem({ label, desc }: { label: string; desc: string }) {
         <p>
             <span
                 className="font-medium"
-                style={{ color: "var(--onebox-label)" }}
+                style={{ color: "var(--aurorabox-label)" }}
             >
                 {label}
             </span>

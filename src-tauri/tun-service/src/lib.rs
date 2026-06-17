@@ -5,7 +5,7 @@ pub mod dns;
 pub mod scm;
 pub mod service;
 
-pub const SERVICE_NAME: &str = "OneBoxTunService";
-pub const SERVICE_DISPLAY_NAME: &str = "OneBox TUN Service";
+pub const SERVICE_NAME: &str = "AuroraBoxTunService";
+pub const SERVICE_DISPLAY_NAME: &str = "AuroraBox TUN Service";
 pub const SERVICE_DESCRIPTION: &str =
-    "Runs sing-box in TUN mode on behalf of OneBox. Installed once per machine; started on demand without UAC.";
+    "Runs sing-box in TUN mode on behalf of AuroraBox. Installed once per machine; started on demand without UAC.";

@@ -5,7 +5,7 @@
  *
  * Dev flow (`deno task tauri dev` → `beforeDevCommand`):
  *   `cargo build -p tun-service` produces `src-tauri/target/debug/tun-service.exe`
- *   right next to the dev-mode `one-box.exe`. That's exactly where
+ *   right next to the dev-mode `aurora-box.exe`. That's exactly where
  *   `vpn::windows::bundled_service_exe_path()` looks, so no further copying is
  *   needed for dev.
  *
@@ -14,7 +14,7 @@
  *   `src-tauri/binaries/<name>-<target-triple>.exe` at bundling time. Tauri
  *   strips the triple suffix when copying into the final installer, so the
  *   runtime-side lookup in the bundled app still finds `tun-service.exe` next
- *   to `one-box.exe`. Detect the rustc host triple via `rustc -vV` and copy
+ *   to `aurora-box.exe`. Detect the rustc host triple via `rustc -vV` and copy
  *   the freshly built release binary into that location.
  *
  * Platform gating: non-Windows hosts exit silently. The Windows service

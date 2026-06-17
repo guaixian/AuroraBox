@@ -31,11 +31,11 @@ export function PowerToggle({ isRunning, isLoading, onClick }: PowerToggleProps)
             aria-pressed={isRunning}
             aria-label="Toggle connection"
             className={clsx(
-                "onebox-tile",
+                "aurorabox-tile",
                 "relative grid place-items-center",
                 "size-40 rounded-[44px]",
                 "disabled:cursor-not-allowed",
-                `onebox-tile--${phase}`,
+                `aurorabox-tile--${phase}`,
             )}
         >
             <Power
@@ -46,7 +46,7 @@ export function PowerToggle({ isRunning, isLoading, onClick }: PowerToggleProps)
                         phase === "on"
                             ? "#FFFFFF"
                             : phase === "connecting"
-                                ? "var(--onebox-blue)"
+                                ? "var(--aurorabox-blue)"
                                 : "rgba(60, 60, 67, 0.4)",
                 }}
             />

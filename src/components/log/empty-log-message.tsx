@@ -15,19 +15,19 @@ export default function EmptyLogMessage({ filter }: EmptyLogMessageProps) {
             <div className="flex flex-col items-center gap-3 max-w-sm text-center">
                 <Icon
                     size={28}
-                    style={{ color: 'var(--onebox-label-tertiary)' }}
+                    style={{ color: 'var(--aurorabox-label-tertiary)' }}
                 />
                 {filter ? (
                     <>
                         <p
                             className="text-[13px] font-medium"
-                            style={{ color: 'var(--onebox-label)' }}
+                            style={{ color: 'var(--aurorabox-label)' }}
                         >
                             {t('no_matching_logs') || '没有匹配的日志记录'}
                         </p>
                         <p
                             className="text-[11px] font-mono"
-                            style={{ color: 'var(--onebox-label-secondary)' }}
+                            style={{ color: 'var(--aurorabox-label-secondary)' }}
                         >
                             {filter}
                         </p>
@@ -35,7 +35,7 @@ export default function EmptyLogMessage({ filter }: EmptyLogMessageProps) {
                 ) : (
                     <p
                         className="text-[13px]"
-                        style={{ color: 'var(--onebox-label-secondary)' }}
+                        style={{ color: 'var(--aurorabox-label-secondary)' }}
                     >
                         {t('no_log_records')}
                     </p>

@@ -1,7 +1,7 @@
 {
   "$schema": "../node_modules/@tauri-apps/cli/config.schema.json",
-  "identifier": "cloud.oneoh.onebox",
-  "productName": "OneBox",
+  "identifier": "com.guaixian.aurorabox",
+  "productName": "AuroraBox",
   "build": {
     "beforeBundleCommand": "scripts/prebundle.sh"
   },
@@ -26,7 +26,7 @@
       "entitlements": "packages/macos/entitlements.plist",
       "infoPlist": "Info.privileged-helper.plist",
       "files": {
-        "Library/LaunchServices/cloud.oneoh.onebox.helper": "target/helper/cloud.oneoh.onebox.helper"
+        "Library/LaunchServices/com.guaixian.aurorabox.helper": "target/helper/com.guaixian.aurorabox.helper"
       }
     }
   }

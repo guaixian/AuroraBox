@@ -8,8 +8,8 @@
  * Tailwind blue-500 default.
  * ========================================================================== */
 
-.onebox-home {
-  background: var(--onebox-bg);
+.aurorabox-home {
+  background: var(--aurorabox-bg);
 }
 
 /* ---- Active-state aura --------------------------------------------------
@@ -18,7 +18,7 @@
  * when it's switched on. Idle shows nothing.
  * ---------------------------------------------------------------------- */
 
-.onebox-aura {
+.aurorabox-aura {
   position: absolute;
   top: 18px;
   left: 50%;
@@ -34,11 +34,11 @@
   transition: opacity 400ms cubic-bezier(0.32, 0.72, 0, 1);
 }
 
-.onebox-home[data-phase="on"] .onebox-aura {
+.aurorabox-home[data-phase="on"] .aurorabox-aura {
   opacity: 1;
 }
 
-.onebox-home[data-phase="connecting"] .onebox-aura {
+.aurorabox-home[data-phase="connecting"] .aurorabox-aura {
   opacity: 0.55;
 }
 
@@ -46,7 +46,7 @@
  * Optical glass, no backdrop-filter.
  * ---------------------------------------------------------------------- */
 
-.onebox-tile {
+.aurorabox-tile {
   position: relative;
   z-index: 1;
   transition:
@@ -56,8 +56,8 @@
   will-change: transform;
 }
 
-.onebox-tile--idle,
-.onebox-tile--connecting {
+.aurorabox-tile--idle,
+.aurorabox-tile--connecting {
   background: linear-gradient(
     140deg,
     #FFFFFF 0%,
@@ -73,8 +73,8 @@
 }
 
 /* Dark-mode idle tile: dim glass card, darker gradient, pulled-back highlights. */
-:root[data-theme="dark"] .onebox-tile--idle,
-:root[data-theme="dark"] .onebox-tile--connecting {
+:root[data-theme="dark"] .aurorabox-tile--idle,
+:root[data-theme="dark"] .aurorabox-tile--connecting {
   background: linear-gradient(
     140deg,
     #2C2C2E 0%,
@@ -90,8 +90,8 @@
 }
 
 @media (prefers-color-scheme: dark) {
-  :root[data-theme="system"] .onebox-tile--idle,
-  :root[data-theme="system"] .onebox-tile--connecting {
+  :root[data-theme="system"] .aurorabox-tile--idle,
+  :root[data-theme="system"] .aurorabox-tile--connecting {
     background: linear-gradient(
       140deg,
       #2C2C2E 0%,
@@ -107,7 +107,7 @@
   }
 }
 
-.onebox-tile--on {
+.aurorabox-tile--on {
   background: linear-gradient(
     140deg,
     #4DA3FF 0%,
@@ -122,11 +122,11 @@
     0 2px 8px rgba(0, 122, 255, 0.18);
 }
 
-.onebox-tile:hover:not(:disabled) {
+.aurorabox-tile:hover:not(:disabled) {
   transform: translateY(-0.5px);
 }
 
-.onebox-tile:active:not(:disabled) {
+.aurorabox-tile:active:not(:disabled) {
   transform: scale(0.975);
   transition-duration: 120ms;
 }
@@ -136,7 +136,7 @@
  * pill, minimal shadow.
  * ---------------------------------------------------------------------- */
 
-.onebox-segmented {
+.aurorabox-segmented {
   /* Bright-airy trough — roughly half the opacity of Apple's default
      UISegmentedControl track (0.16) so the active pill (pure white)
      reads as clearly elevated rather than sinking into a grey well. */
@@ -144,7 +144,7 @@
   box-shadow: inset 0 0.5px 0.5px rgba(60, 60, 67, 0.03);
 }
 
-.onebox-segmented-pill {
+.aurorabox-segmented-pill {
   background: #FFFFFF;
   box-shadow:
     inset 0 0.5px 0 rgba(255, 255, 255, 1),
@@ -156,13 +156,13 @@
 }
 
 /* Dark-mode segmented control: lighter trough, slightly-elevated pill on
-   the dark card fill. Same shape-of-the-payload pattern as onebox-tile. */
-:root[data-theme="dark"] .onebox-segmented {
+   the dark card fill. Same shape-of-the-payload pattern as aurorabox-tile. */
+:root[data-theme="dark"] .aurorabox-segmented {
   background: rgba(255, 255, 255, 0.08);
   box-shadow: inset 0 0.5px 0.5px rgba(0, 0, 0, 0.2);
 }
 
-:root[data-theme="dark"] .onebox-segmented-pill {
+:root[data-theme="dark"] .aurorabox-segmented-pill {
   background: rgba(120, 120, 128, 0.55);
   box-shadow:
     inset 0 0.5px 0 rgba(255, 255, 255, 0.12),
@@ -171,12 +171,12 @@
 }
 
 @media (prefers-color-scheme: dark) {
-  :root[data-theme="system"] .onebox-segmented {
+  :root[data-theme="system"] .aurorabox-segmented {
     background: rgba(255, 255, 255, 0.08);
     box-shadow: inset 0 0.5px 0.5px rgba(0, 0, 0, 0.2);
   }
 
-  :root[data-theme="system"] .onebox-segmented-pill {
+  :root[data-theme="system"] .aurorabox-segmented-pill {
     background: rgba(120, 120, 128, 0.55);
     box-shadow:
       inset 0 0.5px 0 rgba(255, 255, 255, 0.12),
@@ -187,11 +187,11 @@
 
 /* ---- Status row dot pulse (connecting only) ----------------------------- */
 
-@keyframes onebox-dot-pulse {
+@keyframes aurorabox-dot-pulse {
   0%, 100% { opacity: 1; transform: scale(1); }
   50%      { opacity: 0.4; transform: scale(0.85); }
 }
 
-.onebox-dot-pulse {
-  animation: onebox-dot-pulse 1.8s cubic-bezier(0.45, 0, 0.55, 1) infinite;
+.aurorabox-dot-pulse {
+  animation: aurorabox-dot-pulse 1.8s cubic-bezier(0.45, 0, 0.55, 1) infinite;
 }

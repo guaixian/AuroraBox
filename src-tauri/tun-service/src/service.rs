@@ -1,4 +1,4 @@
-//! ServiceMain dispatcher for the OneBox TUN service.
+//! ServiceMain dispatcher for the AuroraBox TUN service.
 //!
 //! SCM invokes `service_main` with argv that includes the service arguments
 //! passed by `StartServiceW` in the client. We parse:

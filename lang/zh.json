@@ -164,7 +164,7 @@
     "no_node": "当前配置没有节点",
     "no_rules": "暂无规则",
     "no_subscription_config": "还没有配置",
-    "no_subscription_hint": "添加配置链接开始使用 OneBox。",
+    "no_subscription_hint": "添加配置链接开始使用 AuroraBox。",
     "no_subscription": "没有配置",
     "no_update_available": "没有可用更新",
     "node_selection": "节点选择",
@@ -186,7 +186,7 @@
     "proxy_port_saved": "代理端口已保存",
     "proxy_port_saved_stop_vpn": "代理端口已保存，VPN服务已停止",
     "proxy_port_save_failed": "保存代理端口失败",
-    "port_occupied_cannot_start": "端口 {{port}} 被占用，OneBox 无法停止占用进程，无法启动。",
+    "port_occupied_cannot_start": "端口 {{port}} 被占用，AuroraBox 无法停止占用进程，无法启动。",
     "proxy_rules": "代理规则",
     "reconnect_failed": "重新连接失败，请检查网络",
     "release_success_stop_vpn": "资源释放成功，VPN服务已停止",
@@ -260,6 +260,6 @@
     "prestart_killing": "正在清理...",
     "prestart_verifying": "正在验证...",
     "prestart_success": "修复成功，正在启动",
-    "prestart_failed": "端口被占用，OneBox 无法停止占用进程，无法启动。",
+    "prestart_failed": "端口被占用，AuroraBox 无法停止占用进程，无法启动。",
     "prestart_pid_label": "残留进程"
 }

@@ -63,7 +63,7 @@ export default function SelectNode(props: SelectNodeProps) {
                     <span className="inline-block size-3 rounded-full bg-blue-500/20 animate-pulse" />
                     <span
                         className="h-3 w-24 rounded-full animate-pulse"
-                        style={{ background: 'var(--onebox-fill)' }}
+                        style={{ background: 'var(--aurorabox-fill)' }}
                     />
                 </span>
             </AppleSelectPlaceholder>
@@ -155,7 +155,7 @@ function NodeMenu(props: NodeMenuProps) {
                 <div
                     className={isSelected ? "font-semibold text-blue-600" : ""}
                     style={
-                        isSelected ? undefined : { color: 'var(--onebox-label)' }
+                        isSelected ? undefined : { color: 'var(--aurorabox-label)' }
                     }
                 >
                     <NodeOption

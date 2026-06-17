@@ -162,7 +162,7 @@ async function getCronetLatestVersion(): Promise<string> {
         try {
             const response = await fetch(CRONET_REPO_API, {
                 headers: {
-                    'User-Agent': 'OneBox-Download-Script',
+                    'User-Agent': 'AuroraBox-Download-Script',
                     'Accept': 'application/vnd.github+json'
                 }
             });
@@ -216,7 +216,7 @@ async function downloadCronetLibraries(): Promise<void> {
 }
 
 // Upstream conf-template still publishes v1-named rule caches; rename to v2
-// on save so OneBox's v2 migration picks them up without touching upstream.
+// on save so AuroraBox's v2 migration picks them up without touching upstream.
 async function downloadDatabaseFiles(): Promise<void> {
     const dbFiles = [
         {

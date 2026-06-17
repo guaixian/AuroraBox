@@ -20,9 +20,9 @@ const appWindow = getCurrentWindow();
 
 export default function Page() {
     return (
-        <div className="onebox-scrollpage">
-            <div className="onebox-page-inner">
-                <div className="onebox-grouped-card mb-5">
+        <div className="aurorabox-scrollpage">
+            <div className="aurorabox-page-inner">
+                <div className="aurorabox-grouped-card mb-5">
                     <ToggleDev />
                     <ToggleDHCP />
                     <ToggleSystemProxyOnStart />
@@ -32,7 +32,7 @@ export default function Page() {
                     <ThemeToggle />
                 </div>
 
-                <div className="onebox-grouped-card">
+                <div className="aurorabox-grouped-card">
                     <StageSetting />
                     <TunStackSetting />
                     <DNSSettingsItem />

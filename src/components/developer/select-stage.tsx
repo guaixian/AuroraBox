@@ -97,7 +97,7 @@ export default function StageSetting() {
                         <p
                             className="text-[11px] text-center leading-snug px-1"
                             style={{
-                                color: "var(--onebox-label-tertiary)",
+                                color: "var(--aurorabox-label-tertiary)",
                             }}
                         >
                             Set <code className="font-mono">allowDev=true</code>{" "}

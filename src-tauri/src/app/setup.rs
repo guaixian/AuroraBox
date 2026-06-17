@@ -40,7 +40,7 @@ pub fn app_setup(app: &mut tauri::App) -> Result<(), Box<dyn std::error::Error>>
     // are not clobbered by a later v1 cleanup pass.
     crate::utils::purge_legacy_cache_files(app.handle());
 
-    // One-shot sweep of rotated OneBox.log archives older than 7 days.
+    // One-shot sweep of rotated AuroraBox.log archives older than 7 days.
     // Paired with tauri-plugin-log's KeepAll rotation in `plugins.rs`.
     crate::core::cleanup_old_onebox_logs(app.handle());
     if let Err(e) = crate::utils::copy_database_files(app.handle()) {
@@ -126,10 +126,10 @@ fn stop_orphan_tun_service_on_startup() {
     match scm::query_state() {
         QueriedState::Running | QueriedState::StartPending => {
             log::warn!(
-                "[service] OneBoxTunService was running before engine-state ownership; stopping orphan"
+                "[service] AuroraBoxTunService was running before engine-state ownership; stopping orphan"
             );
             if let Err(e) = scm::stop_service() {
-                log::warn!("[service] failed to stop orphan OneBoxTunService: {}", e);
+                log::warn!("[service] failed to stop orphan AuroraBoxTunService: {}", e);
             }
         }
         _ => {}
@@ -278,9 +278,9 @@ fn decide_suppress_argv_deeplink(
 
 // ── Deep Link ──────────────────────────────────────────────────────
 
-/// 从 `oneoh-networktools://config?data=...&apply=1` 中提取参数
+/// 从 `aurorabox-networktools://config?data=...&apply=1` 中提取参数
 fn extract_deep_link_data(url: &Url) -> Option<crate::app::state::DeepLinkPayload> {
-    if url.scheme() != "oneoh-networktools" || url.host_str() != Some("config") {
+    if url.scheme() != "aurorabox-networktools" || url.host_str() != Some("config") {
         return None;
     }
     let params: std::collections::HashMap<_, _> = url.query_pairs().collect();
@@ -303,7 +303,7 @@ fn store_pending_deep_link(
 fn clear_stale_hkcu_deep_link() {
     use windows::core::PCWSTR;
     use windows::Win32::System::Registry::{RegDeleteTreeW, HKEY_CURRENT_USER};
-    let path: Vec<u16> = "Software\\Classes\\oneoh-networktools\0"
+    let path: Vec<u16> = "Software\\Classes\\aurorabox-networktools\0"
         .encode_utf16()
         .collect();
     let rc = unsafe { RegDeleteTreeW(HKEY_CURRENT_USER, PCWSTR(path.as_ptr())) };
@@ -348,7 +348,7 @@ fn report_captive(app: &tauri::App) {
     let arch = tauri_plugin_os::arch();
     let locale = tauri_plugin_os::locale().unwrap_or_else(|| String::from("en-US"));
     let user_agent = format!(
-        "OneBox/{} (Tauri; {}/{}; {})",
+        "AuroraBox/{} (Tauri; {}/{}; {})",
         app_version, os, arch, locale
     );
 

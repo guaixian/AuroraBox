@@ -62,14 +62,14 @@ function UpdaterRow({
             <div className="flex-1 min-w-0">
                 <div
                     className="text-[15px] tracking-[-0.005em] truncate"
-                    style={{ color: "var(--onebox-label)" }}
+                    style={{ color: "var(--aurorabox-label)" }}
                 >
                     {title}
                 </div>
                 {subtitle && (
                     <div
                         className="text-[12px] truncate mt-0.5"
-                        style={{ color: "var(--onebox-label-secondary)" }}
+                        style={{ color: "var(--aurorabox-label-secondary)" }}
                     >
                         {subtitle}
                     </div>
@@ -79,7 +79,7 @@ function UpdaterRow({
             {phase === "downloading" ? (
                 <span
                     className="shrink-0 text-[13px] font-medium tabular-nums min-w-8.5 text-right"
-                    style={{ color: "var(--onebox-blue)" }}
+                    style={{ color: "var(--aurorabox-blue)" }}
                 >
                     {Math.floor(progress)}%
                 </span>
@@ -104,7 +104,7 @@ function UpdaterRow({
                         className="h-full"
                         style={{
                             width: `${Math.min(progress, 100)}%`,
-                            background: "var(--onebox-blue)",
+                            background: "var(--aurorabox-blue)",
                             transition:
                                 "width 300ms cubic-bezier(0.32, 0.72, 0, 1)",
                         }}
@@ -123,7 +123,7 @@ function renderCopy(
         case "available":
             return {
                 Icon: CloudArrowDownFill,
-                iconColor: "var(--onebox-blue)",
+                iconColor: "var(--aurorabox-blue)",
                 iconBg: "rgba(0, 122, 255, 0.1)",
                 title: t("update_available", "Update available"),
                 subtitle: version ? `v${version}` : undefined,
@@ -132,7 +132,7 @@ function renderCopy(
         case "downloading":
             return {
                 Icon: CloudArrowDownFill,
-                iconColor: "var(--onebox-blue)",
+                iconColor: "var(--aurorabox-blue)",
                 iconBg: "rgba(0, 122, 255, 0.1)",
                 title: t("downloading", "Downloading"),
                 subtitle: version ? `v${version}` : undefined,
@@ -158,7 +158,7 @@ function renderCopy(
         default:
             return {
                 Icon: CloudArrowUpFill,
-                iconColor: "var(--onebox-label-secondary)",
+                iconColor: "var(--aurorabox-label-secondary)",
                 iconBg: "rgba(118, 118, 128, 0.12)",
                 title: t("update", "Update"),
                 subtitle: undefined,

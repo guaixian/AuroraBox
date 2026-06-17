@@ -1,4 +1,4 @@
-// Objective-C shim bridging Rust to the OneBox privileged helper over XPC.
+// Objective-C shim bridging Rust to the AuroraBox privileged helper over XPC.
 //
 // Phase 2b.1 introduces a persistent NSXPCConnection + bidirectional XPC so
 // the helper can push `singBoxDidExit` events back to the main app without
@@ -12,7 +12,7 @@
 // - All returned C strings are malloc'd and must be freed by the caller via
 //   `onebox_helper_free_string`. Passing NULL is safe.
 // - Exit notifications from the helper flow through a client-side singleton
-//   (`OneBoxHelperClient`) that implements `OneBoxHelperClientProtocol`.
+//   (`AuroraBoxHelperClient`) that implements `AuroraBoxHelperClientProtocol`.
 //   The singleton forwards each event to an optional C callback registered
 //   from Rust, which in turn bridges into a tokio channel.
 // - This file is ARC-enabled (see build.rs -fobjc-arc flag). Do not insert
@@ -25,13 +25,13 @@
 #include <stdlib.h>
 #include <string.h>
 
-static NSString *const kOneBoxHelperMachServiceName = @"cloud.oneoh.onebox.helper";
-static const int64_t kOneBoxHelperDefaultTimeoutSeconds = 10;
-static const int64_t kOneBoxHelperStartTimeoutSeconds = 30;
+static NSString *const kAuroraBoxHelperMachServiceName = @"com.guaixian.aurorabox.helper";
+static const int64_t kAuroraBoxHelperDefaultTimeoutSeconds = 10;
+static const int64_t kAuroraBoxHelperStartTimeoutSeconds = 30;
 
 // These must exactly match the helper-side protocol signatures — any drift
 // between the two sides silently breaks XPC method dispatch.
-@protocol OneBoxHelperProtocol
+@protocol AuroraBoxHelperProtocol
 - (void)pingWithReply:(void (^)(NSString *reply))reply;
 - (void)startSingBoxWithConfigPath:(NSString *)configPath
                             logPath:(NSString *)logPath
@@ -48,7 +48,7 @@ static const int64_t kOneBoxHelperStartTimeoutSeconds = 30;
                                reply:(void (^)(NSString *error))reply;
 @end
 
-@protocol OneBoxHelperClientProtocol
+@protocol AuroraBoxHelperClientProtocol
 - (void)singBoxDidExitWithPid:(int)pid exitCode:(int)exitCode;
 @end
 
@@ -56,10 +56,10 @@ static const int64_t kOneBoxHelperStartTimeoutSeconds = 30;
 // C callback plumbing for async exit events
 // ============================================================================
 
-typedef void (*OneBoxHelperExitCallback)(int pid, int exit_code);
-static OneBoxHelperExitCallback g_exitCallback = NULL;
+typedef void (*AuroraBoxHelperExitCallback)(int pid, int exit_code);
+static AuroraBoxHelperExitCallback g_exitCallback = NULL;
 
-void onebox_helper_set_exit_callback(OneBoxHelperExitCallback cb) {
+void onebox_helper_set_exit_callback(AuroraBoxHelperExitCallback cb) {
     g_exitCallback = cb;
 }
 
@@ -67,22 +67,22 @@ void onebox_helper_set_exit_callback(OneBoxHelperExitCallback cb) {
 // Persistent connection singleton
 // ============================================================================
 
-@interface OneBoxHelperClient : NSObject <OneBoxHelperClientProtocol>
+@interface AuroraBoxHelperClient : NSObject <AuroraBoxHelperClientProtocol>
 + (instancetype)sharedClient;
 - (NSXPCConnection *)connection;
 - (void)invalidate;
 @end
 
-@implementation OneBoxHelperClient {
+@implementation AuroraBoxHelperClient {
     NSXPCConnection *_connection;
     NSLock *_connectionLock;
 }
 
 + (instancetype)sharedClient {
-    static OneBoxHelperClient *instance = nil;
+    static AuroraBoxHelperClient *instance = nil;
     static dispatch_once_t once;
     dispatch_once(&once, ^{
-        instance = [[OneBoxHelperClient alloc] init];
+        instance = [[AuroraBoxHelperClient alloc] init];
     });
     return instance;
 }
@@ -99,18 +99,18 @@ void onebox_helper_set_exit_callback(OneBoxHelperExitCallback cb) {
     [_connectionLock lock];
     if (_connection == nil) {
         NSXPCConnection *conn = [[NSXPCConnection alloc]
-            initWithMachServiceName:kOneBoxHelperMachServiceName
+            initWithMachServiceName:kAuroraBoxHelperMachServiceName
                             options:NSXPCConnectionPrivileged];
         conn.remoteObjectInterface =
-            [NSXPCInterface interfaceWithProtocol:@protocol(OneBoxHelperProtocol)];
+            [NSXPCInterface interfaceWithProtocol:@protocol(AuroraBoxHelperProtocol)];
         conn.exportedInterface =
-            [NSXPCInterface interfaceWithProtocol:@protocol(OneBoxHelperClientProtocol)];
+            [NSXPCInterface interfaceWithProtocol:@protocol(AuroraBoxHelperClientProtocol)];
         conn.exportedObject = self;
 
-        __weak OneBoxHelperClient *weakSelf = self;
+        __weak AuroraBoxHelperClient *weakSelf = self;
         conn.invalidationHandler = ^{
             NSLog(@"[client] XPC connection invalidated");
-            OneBoxHelperClient *strongSelf = weakSelf;
+            AuroraBoxHelperClient *strongSelf = weakSelf;
             if (strongSelf) {
                 [strongSelf->_connectionLock lock];
                 strongSelf->_connection = nil;
@@ -142,7 +142,7 @@ void onebox_helper_set_exit_callback(OneBoxHelperExitCallback cb) {
 // C callback if Rust has registered one.
 - (void)singBoxDidExitWithPid:(int)pid exitCode:(int)exitCode {
     NSLog(@"[client] sing-box exit notification pid=%d code=%d", pid, exitCode);
-    OneBoxHelperExitCallback cb = g_exitCallback;
+    AuroraBoxHelperExitCallback cb = g_exitCallback;
     if (cb != NULL) {
         cb(pid, exitCode);
     }
@@ -180,10 +180,10 @@ void onebox_helper_free_string(char *s) {
 // Shared template for simple "fire and forget with error reply" methods
 // that only return a NSString* error. Returns 0 on success, non-zero on
 // failure with *error_out set to an allocated C string.
-typedef void (^OneBoxHelperInvokeBlock)(id<OneBoxHelperProtocol> proxy,
+typedef void (^AuroraBoxHelperInvokeBlock)(id<AuroraBoxHelperProtocol> proxy,
                                          void (^replyHandler)(NSString *error));
 
-static int invokeErrorOnly(OneBoxHelperInvokeBlock block,
+static int invokeErrorOnly(AuroraBoxHelperInvokeBlock block,
                            int64_t timeoutSeconds,
                            char **error_out) {
     if (error_out != NULL) {
@@ -191,13 +191,13 @@ static int invokeErrorOnly(OneBoxHelperInvokeBlock block,
     }
 
     @autoreleasepool {
-        NSXPCConnection *conn = [[OneBoxHelperClient sharedClient] connection];
+        NSXPCConnection *conn = [[AuroraBoxHelperClient sharedClient] connection];
 
         __block NSString *errString = nil;
         __block BOOL completed = NO;
         dispatch_semaphore_t sem = dispatch_semaphore_create(0);
 
-        id<OneBoxHelperProtocol> proxy = [conn remoteObjectProxyWithErrorHandler:^(NSError *err) {
+        id<AuroraBoxHelperProtocol> proxy = [conn remoteObjectProxyWithErrorHandler:^(NSError *err) {
             if (!completed) {
                 errString = [NSString stringWithFormat:@"xpc error: %@",
                              err.localizedDescription ?: @"(nil)"];
@@ -243,14 +243,14 @@ int onebox_helper_ping(char **reply_out) {
     }
 
     @autoreleasepool {
-        NSXPCConnection *conn = [[OneBoxHelperClient sharedClient] connection];
+        NSXPCConnection *conn = [[AuroraBoxHelperClient sharedClient] connection];
 
         __block NSString *successReply = nil;
         __block NSString *errorReply = nil;
         __block BOOL completed = NO;
         dispatch_semaphore_t sem = dispatch_semaphore_create(0);
 
-        id<OneBoxHelperProtocol> proxy = [conn remoteObjectProxyWithErrorHandler:^(NSError *error) {
+        id<AuroraBoxHelperProtocol> proxy = [conn remoteObjectProxyWithErrorHandler:^(NSError *error) {
             if (!completed) {
                 errorReply = [NSString stringWithFormat:@"xpc error: %@",
                               error.localizedDescription ?: @"(nil)"];
@@ -268,7 +268,7 @@ int onebox_helper_ping(char **reply_out) {
         }];
 
         dispatch_time_t deadline = dispatch_time(
-            DISPATCH_TIME_NOW, kOneBoxHelperDefaultTimeoutSeconds * NSEC_PER_SEC);
+            DISPATCH_TIME_NOW, kAuroraBoxHelperDefaultTimeoutSeconds * NSEC_PER_SEC);
         if (dispatch_semaphore_wait(sem, deadline) != 0) {
             if (reply_out != NULL) {
                 *reply_out = onebox_copy_cstring(@"timeout waiting for helper reply");
@@ -312,14 +312,14 @@ int onebox_helper_start_sing_box(const char *config_path,
     @autoreleasepool {
         NSString *configPath = [NSString stringWithUTF8String:config_path];
         NSString *logPath = [NSString stringWithUTF8String:log_path];
-        NSXPCConnection *conn = [[OneBoxHelperClient sharedClient] connection];
+        NSXPCConnection *conn = [[AuroraBoxHelperClient sharedClient] connection];
 
         __block int resultPid = 0;
         __block NSString *errString = nil;
         __block BOOL completed = NO;
         dispatch_semaphore_t sem = dispatch_semaphore_create(0);
 
-        id<OneBoxHelperProtocol> proxy = [conn remoteObjectProxyWithErrorHandler:^(NSError *err) {
+        id<AuroraBoxHelperProtocol> proxy = [conn remoteObjectProxyWithErrorHandler:^(NSError *err) {
             if (!completed) {
                 errString = [NSString stringWithFormat:@"xpc error: %@",
                              err.localizedDescription ?: @"(nil)"];
@@ -340,7 +340,7 @@ int onebox_helper_start_sing_box(const char *config_path,
         }];
 
         dispatch_time_t deadline = dispatch_time(
-            DISPATCH_TIME_NOW, kOneBoxHelperStartTimeoutSeconds * NSEC_PER_SEC);
+            DISPATCH_TIME_NOW, kAuroraBoxHelperStartTimeoutSeconds * NSEC_PER_SEC);
         if (dispatch_semaphore_wait(sem, deadline) != 0) {
             if (error_out != NULL) {
                 *error_out = onebox_copy_cstring(@"timeout waiting for startSingBox reply");
@@ -361,22 +361,22 @@ int onebox_helper_start_sing_box(const char *config_path,
 }
 
 int onebox_helper_stop_sing_box(char **error_out) {
-    return invokeErrorOnly(^(id<OneBoxHelperProtocol> proxy, void (^replyHandler)(NSString *)) {
+    return invokeErrorOnly(^(id<AuroraBoxHelperProtocol> proxy, void (^replyHandler)(NSString *)) {
         [proxy stopSingBoxWithReply:replyHandler];
-    }, kOneBoxHelperDefaultTimeoutSeconds, error_out);
+    }, kAuroraBoxHelperDefaultTimeoutSeconds, error_out);
 }
 
 int onebox_helper_reload_sing_box(char **error_out) {
-    return invokeErrorOnly(^(id<OneBoxHelperProtocol> proxy, void (^replyHandler)(NSString *)) {
+    return invokeErrorOnly(^(id<AuroraBoxHelperProtocol> proxy, void (^replyHandler)(NSString *)) {
         [proxy reloadSingBoxWithReply:replyHandler];
-    }, kOneBoxHelperDefaultTimeoutSeconds, error_out);
+    }, kAuroraBoxHelperDefaultTimeoutSeconds, error_out);
 }
 
 int onebox_helper_set_ip_forwarding(bool enable, char **error_out) {
     BOOL objcBool = enable ? YES : NO;
-    return invokeErrorOnly(^(id<OneBoxHelperProtocol> proxy, void (^replyHandler)(NSString *)) {
+    return invokeErrorOnly(^(id<AuroraBoxHelperProtocol> proxy, void (^replyHandler)(NSString *)) {
         [proxy setIpForwarding:objcBool reply:replyHandler];
-    }, kOneBoxHelperDefaultTimeoutSeconds, error_out);
+    }, kAuroraBoxHelperDefaultTimeoutSeconds, error_out);
 }
 
 int onebox_helper_set_dns_servers(const char *service_name,
@@ -390,15 +390,15 @@ int onebox_helper_set_dns_servers(const char *service_name,
     }
     NSString *serviceName = [NSString stringWithUTF8String:service_name];
     NSString *dnsSpec = [NSString stringWithUTF8String:dns_spec];
-    return invokeErrorOnly(^(id<OneBoxHelperProtocol> proxy, void (^replyHandler)(NSString *)) {
+    return invokeErrorOnly(^(id<AuroraBoxHelperProtocol> proxy, void (^replyHandler)(NSString *)) {
         [proxy setDnsServersForService:serviceName spec:dnsSpec reply:replyHandler];
-    }, kOneBoxHelperDefaultTimeoutSeconds, error_out);
+    }, kAuroraBoxHelperDefaultTimeoutSeconds, error_out);
 }
 
 int onebox_helper_flush_dns_cache(char **error_out) {
-    return invokeErrorOnly(^(id<OneBoxHelperProtocol> proxy, void (^replyHandler)(NSString *)) {
+    return invokeErrorOnly(^(id<AuroraBoxHelperProtocol> proxy, void (^replyHandler)(NSString *)) {
         [proxy flushDnsCacheWithReply:replyHandler];
-    }, kOneBoxHelperDefaultTimeoutSeconds, error_out);
+    }, kAuroraBoxHelperDefaultTimeoutSeconds, error_out);
 }
 
 int onebox_helper_remove_tun_routes(const char *interface_name, char **error_out) {
@@ -409,9 +409,9 @@ int onebox_helper_remove_tun_routes(const char *interface_name, char **error_out
         return 1;
     }
     NSString *iface = [NSString stringWithUTF8String:interface_name];
-    return invokeErrorOnly(^(id<OneBoxHelperProtocol> proxy, void (^replyHandler)(NSString *)) {
+    return invokeErrorOnly(^(id<AuroraBoxHelperProtocol> proxy, void (^replyHandler)(NSString *)) {
         [proxy removeTunRoutesForInterface:iface reply:replyHandler];
-    }, kOneBoxHelperDefaultTimeoutSeconds, error_out);
+    }, kAuroraBoxHelperDefaultTimeoutSeconds, error_out);
 }
 
 // ============================================================================
@@ -480,7 +480,7 @@ int onebox_helper_install(char **error_out) {
 #pragma clang diagnostic ignored "-Wdeprecated-declarations"
         Boolean ok = SMJobBless(
             kSMDomainSystemLaunchd,
-            CFSTR("cloud.oneoh.onebox.helper"),
+            CFSTR("com.guaixian.aurorabox.helper"),
             authRef,
             &cfError);
 #pragma clang diagnostic pop
@@ -502,9 +502,9 @@ int onebox_helper_install(char **error_out) {
         // private queue, so a post-bless caller may race it and return the
         // stale _connection pointing at the dead port (first XPC call then
         // errors with "Couldn't communicate..."). Drop the cache synchronously
-        // so the next -[OneBoxHelperClient connection] lazily rebuilds against
+        // so the next -[AuroraBoxHelperClient connection] lazily rebuilds against
         // the new helper's fresh mach port.
-        [[OneBoxHelperClient sharedClient] invalidate];
+        [[AuroraBoxHelperClient sharedClient] invalidate];
 
         return 0;
     }

@@ -20,9 +20,9 @@ interface RadioOptionListProps<T extends string> {
  * glyph: systemBlue fill with a white centre dot when selected, hollow
  * ring when not.
  *
- * Uses `.onebox-grouped-list` (flush — keeps inset row separators but no
+ * Uses `.aurorabox-grouped-list` (flush — keeps inset row separators but no
  * card chrome) because every caller is already inside a SettingsModal.
- * Wrapping with `.onebox-grouped-card` here would nest a card inside the
+ * Wrapping with `.aurorabox-grouped-card` here would nest a card inside the
  * modal's card and produce a double-elevation look.
  */
 export function RadioOptionList<T extends string>({
@@ -31,7 +31,7 @@ export function RadioOptionList<T extends string>({
     options,
 }: RadioOptionListProps<T>) {
     return (
-        <div className="onebox-grouped-list">
+        <div className="aurorabox-grouped-list">
             {options.map((opt) => {
                 const checked = value === opt.key;
                 return (
@@ -47,7 +47,7 @@ export function RadioOptionList<T extends string>({
                         <div className="flex-1 min-w-0">
                             <div
                                 className="text-[14px] tracking-[-0.005em]"
-                                style={{ color: "var(--onebox-label)" }}
+                                style={{ color: "var(--aurorabox-label)" }}
                             >
                                 {opt.label}
                             </div>
@@ -55,7 +55,7 @@ export function RadioOptionList<T extends string>({
                                 <div
                                     className="text-[12px] mt-0.5"
                                     style={{
-                                        color: "var(--onebox-label-secondary)",
+                                        color: "var(--aurorabox-label-secondary)",
                                     }}
                                 >
                                     {opt.sublabel}
@@ -73,8 +73,8 @@ export function RadioOptionList<T extends string>({
                                 shrink-0 appearance-none
                                 size-4.5 rounded-full
                                 border-[1.5px] border-[rgba(60,60,67,0.28)]
-                                checked:border-[var(--onebox-blue)]
-                                checked:bg-[var(--onebox-blue)]
+                                checked:border-[var(--aurorabox-blue)]
+                                checked:bg-[var(--aurorabox-blue)]
                                 relative
                                 before:content-[''] before:absolute
                                 before:w-1.5 before:h-1.5

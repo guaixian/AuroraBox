@@ -16,7 +16,7 @@
 set -euo pipefail
 
 VM_HOST="${ONEBOX_LINUX_VM:-root@100.91.1.95}"
-VM_PATH="${ONEBOX_LINUX_VM_PATH:-/home/z/Desktop/OneBox}"
+VM_PATH="${ONEBOX_LINUX_VM_PATH:-/home/z/Desktop/AuroraBox}"
 
 SSH_OPTS=(-o ConnectTimeout=3 -o BatchMode=yes)
 

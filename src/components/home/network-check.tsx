@@ -15,7 +15,7 @@ type NetworkCheckProps = {
 
 const LoadingStatus = ({ icon: Icon = Globe }) => (
     <motion.div title={t("loading")}>
-        <Icon className="size-4" style={{ color: 'var(--onebox-label-tertiary)' }} />
+        <Icon className="size-4" style={{ color: 'var(--aurorabox-label-tertiary)' }} />
     </motion.div>
 );
 
@@ -27,7 +27,7 @@ const NetworkStatus = ({ isOk, icon: Icon, tip }: NetworkStatusProps) => (
     <div title={`${tip}:${isOk ? t("network_normal") : t("network_abnormal")}`}>
         <Icon
             className="size-4 transition-colors duration-300"
-            style={{ color: isOk ? 'var(--onebox-label)' : 'var(--onebox-red)' }}
+            style={{ color: isOk ? 'var(--aurorabox-label)' : 'var(--aurorabox-red)' }}
         />
     </div>
 );
@@ -56,7 +56,7 @@ export function AppleNetworkStatus() {
 export function GoogleNetworkStatus({ isRunning }: NetworkCheckProps) {
     const { data, isLoading, error } = useGoogleNetworkCheck();
 
-    if (!isRunning) return <Globe className="size-4" style={{ color: 'var(--onebox-label-tertiary)' }} />;
+    if (!isRunning) return <Globe className="size-4" style={{ color: 'var(--aurorabox-label-tertiary)' }} />;
     if (isLoading || !data) return <LoadingStatus />;
     if (error) {
         return <NetworkStatus isOk={false} icon={Globe} tip={t("vpn_network")} />;

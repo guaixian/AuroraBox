@@ -184,7 +184,7 @@ export const vpnServiceManager = {
                     t(
                         'port_occupied_cannot_start',
                         { port: occupiedPort },
-                        'Port {{port}} is occupied and OneBox cannot stop the process. Startup aborted.'
+                        'Port {{port}} is occupied and AuroraBox cannot stop the process. Startup aborted.'
                     ),
                     { title: t('error'), kind: 'error' },
                 );

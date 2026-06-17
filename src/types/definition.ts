@@ -3,7 +3,7 @@ export const SING_BOX_MAJOR_VERSION = "1.13";
 export const SING_BOX_MINOR_VERSION = "13";
 export const SING_BOX_VERSION = `v${SING_BOX_MAJOR_VERSION}.${SING_BOX_MINOR_VERSION}`;
 
-export const GITHUB_URL = 'https://github.com/OneOhCloud/OneBox'
+export const GITHUB_URL = 'https://github.com/OneOhCloud/AuroraBox'
 export const OFFICIAL_WEBSITE = 'https://sing-box.net'
 export const SSI_STORE_KEY = 'selected_subscription_identifier'
 export const DEVELOPER_TOGGLE_STORE_KEY = 'developer_toggle_key'
@@ -21,7 +21,7 @@ export const DEFAULT_BYPASS_ROUTER_WATCHDOG_INTERVAL: BypassRouterWatchdogInterv
 export const USER_AGENT_STORE_KEY = 'user_agent_key'
 export const DEFAULT_PROXY_PORT = 6789
 export const PROXY_PORT_STORE_KEY = 'proxy_port_key'
-export const PROXY_PORT_CHANGED_EVENT = 'onebox-proxy-port-changed'
+export const PROXY_PORT_CHANGED_EVENT = 'aurorabox-proxy-port-changed'
 
 // 上次检查更新的时间戳（ms），跨会话持久化
 export const LAST_UPDATE_CHECK_TIME_KEY = 'last_update_check_time_key'

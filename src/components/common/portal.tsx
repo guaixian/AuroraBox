@@ -4,7 +4,7 @@ import { createPortal } from "react-dom";
 /**
  * Render children into document.body instead of the caller's DOM location.
  *
- * Use this around modals/dialogs that sit inside `.onebox-grouped-card`
+ * Use this around modals/dialogs that sit inside `.aurorabox-grouped-card`
  * (or any other container with descendant-scoped CSS). Rendering in-place
  * can make `position: fixed` lose to a class-specificity-matching
  * ancestor rule (e.g. our `> * + * { position: relative }` separator

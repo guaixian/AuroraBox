@@ -27,11 +27,11 @@ export function ModeSwitcher(props: ModeSwitcherProps) {
     return (
         <div
             ref={containerRef}
-            className="onebox-segmented relative inline-flex p-0.75 rounded-full"
+            className="aurorabox-segmented relative inline-flex p-0.75 rounded-full"
         >
             <span
                 aria-hidden
-                className="onebox-segmented-pill absolute top-0.75 bottom-0.75 rounded-full"
+                className="aurorabox-segmented-pill absolute top-0.75 bottom-0.75 rounded-full"
                 style={{
                     left: `${indicatorStyle.left}px`,
                     width: `${indicatorStyle.width}px`,
@@ -56,8 +56,8 @@ export function ModeSwitcher(props: ModeSwitcherProps) {
                         )}
                         style={{
                             color: isActive
-                                ? "var(--onebox-label)"
-                                : "var(--onebox-label-secondary)",
+                                ? "var(--aurorabox-label)"
+                                : "var(--aurorabox-label-secondary)",
                         }}
                     >
                         <Icon
@@ -65,8 +65,8 @@ export function ModeSwitcher(props: ModeSwitcherProps) {
                             className="transition-colors duration-200"
                             style={{
                                 color: isActive
-                                    ? "var(--onebox-blue)"
-                                    : "var(--onebox-label-tertiary)",
+                                    ? "var(--aurorabox-blue)"
+                                    : "var(--aurorabox-label-tertiary)",
                             }}
                         />
                         <span className="capitalize">{t(key)}</span>

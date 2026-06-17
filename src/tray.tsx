@@ -194,7 +194,7 @@ async function createTrayIconOptions(menu: Menu) {
     return {
         menu,
         icon: trayIconData || defaultIcon,
-        tooltip: "OneBox",
+        tooltip: "AuroraBox",
         action: handleTrayIconAction,
     };
 }

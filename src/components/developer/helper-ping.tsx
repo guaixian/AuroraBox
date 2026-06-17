@@ -6,7 +6,7 @@ import { SettingItem } from "./common";
 
 // Developer-only probes for the platform's privileged companion:
 //   - macOS: XPC helper installed via SMJobBless.
-//   - Windows: OneBoxTunService installed via SCM (UAC on first install).
+//   - Windows: AuroraBoxTunService installed via SCM (UAC on first install).
 //   - Linux: helper script + polkit policy installed by the .deb/.rpm;
 //     "install" is a no-op that just verifies the script is on disk.
 //

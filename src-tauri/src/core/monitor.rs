@@ -116,7 +116,7 @@ pub(crate) fn spawn_process_monitor(
 /// use` (or the platform's localized equivalent) on stderr when its
 /// Mixed inbound's `listenConfig.Listen()` returns EADDRINUSE. The raw
 /// line goes to sing-box.log regardless; we additionally echo a
-/// prominent warn to the main OneBox.log so triage doesn't need to
+/// prominent warn to the main AuroraBox.log so triage doesn't need to
 /// cross-reference two files.
 fn scan_stderr_for_bind_error(pid: u32, line: &str) {
     let lc = line.to_ascii_lowercase();

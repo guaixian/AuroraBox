@@ -29,7 +29,7 @@ fn take_dns_override() -> Option<(String, String)> {
         .take()
 }
 
-pub const HELPER_PATH: &str = "/usr/lib/OneBox/onebox-tun-helper";
+pub const HELPER_PATH: &str = "/usr/lib/AuroraBox/aurorabox-tun-helper";
 
 /// Build the pkexec-wrapped command to start sing-box as root via the
 /// privileged helper. DNS override + sing-box launch happen in a single
@@ -428,7 +428,7 @@ impl EngineManager for LinuxEngine {
             Ok(())
         } else {
             Err(format!(
-                "{HELPER_PATH} not found — is the OneBox package installed?"
+                "{HELPER_PATH} not found — is the AuroraBox package installed?"
             ))
         }
     }

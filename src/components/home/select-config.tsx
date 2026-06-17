@@ -92,7 +92,7 @@ export default function SelectSub({ data, isLoading, onUpdate }: SubscriptionPro
             renderTrigger={() => (
                 <span
                     className="block truncate text-[14px] font-medium"
-                    style={{ color: 'var(--onebox-label)' }}
+                    style={{ color: 'var(--aurorabox-label)' }}
                 >
                     {selectedItem?.name ?? t("no_subscription")}
                 </span>
@@ -112,7 +112,7 @@ export default function SelectSub({ data, isLoading, onUpdate }: SubscriptionPro
                             style={
                                 isSelected
                                     ? undefined
-                                    : { color: 'var(--onebox-label)' }
+                                    : { color: 'var(--aurorabox-label)' }
                             }
                         >
                             {sub.name}
@@ -120,7 +120,7 @@ export default function SelectSub({ data, isLoading, onUpdate }: SubscriptionPro
                         {hint && (
                             <span
                                 className="truncate text-[11px] mt-0.5"
-                                style={{ color: 'var(--onebox-label-tertiary)' }}
+                                style={{ color: 'var(--aurorabox-label-tertiary)' }}
                             >
                                 {hint}
                             </span>

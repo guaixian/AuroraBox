@@ -397,7 +397,7 @@ pub fn self_elevate(args: &str) -> Result<(), String> {
 
 /// 以管理员身份启动当前 exe 进入 helper 子命令模式。
 pub fn self_elevate_helper(sub: &str, extra: &[&str]) -> Result<(), String> {
-    let mut parts: Vec<&str> = vec!["--onebox-tun-helper", sub];
+    let mut parts: Vec<&str> = vec!["--aurorabox-tun-helper", sub];
     parts.extend_from_slice(extra);
     let params = join_args(&parts);
     self_elevate(&params)
@@ -405,7 +405,7 @@ pub fn self_elevate_helper(sub: &str, extra: &[&str]) -> Result<(), String> {
 
 // ================= Helper 子进程入口 =================
 
-/// `OneBox.exe --onebox-tun-helper <sub> [args]` 的分发函数。
+/// `AuroraBox.exe --aurorabox-tun-helper <sub> [args]` 的分发函数。
 /// 在 lib.rs::run() 开头被调用,跑完直接 exit,不进入 tauri runtime。
 ///
 /// 子命令:
@@ -592,7 +592,7 @@ mod tests {
         assert!(is_tun_alias("sing-box"));
         assert!(is_tun_alias("sing-box tun"));
         assert!(is_tun_alias("WinTUN Userspace Tunnel"));
-        assert!(is_tun_alias("OneBox TUN"));
+        assert!(is_tun_alias("AuroraBox TUN"));
         assert!(!is_tun_alias("Wi-Fi"));
         assert!(!is_tun_alias("Ethernet"));
         assert!(!is_tun_alias("以太网"));
@@ -644,13 +644,13 @@ mod tests {
     #[test]
     fn join_args_assembles_helper_cmdline() {
         let s = join_args(&[
-            "--onebox-tun-helper",
+            "--aurorabox-tun-helper",
             "start",
-            r"C:\Program Files\OneBox\sing-box.exe",
+            r"C:\Program Files\AuroraBox\sing-box.exe",
             r"C:\Users\me\cfg.json",
             "172.19.0.1",
         ]);
-        assert!(s.starts_with("--onebox-tun-helper start \""));
+        assert!(s.starts_with("--aurorabox-tun-helper start \""));
         assert!(s.contains(r"Program Files"));
         assert!(s.ends_with(" 172.19.0.1"));
     }

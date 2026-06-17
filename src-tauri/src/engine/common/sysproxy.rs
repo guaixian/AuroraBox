@@ -124,7 +124,7 @@ mod macos_proxy {
 
     pub(super) fn clear_system_proxy() -> anyhow::Result<()> {
         // Clear the current active service, then opportunistically clear any
-        // other service still pointing at OneBox. This avoids leaving a stale
+        // other service still pointing at AuroraBox. This avoids leaving a stale
         // proxy behind if the active interface changed since start.
         let mut services = list_network_services()?;
         if let Ok(active) = detect_active_network_service() {

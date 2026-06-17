@@ -15,7 +15,7 @@ pub const TUN_INTERFACE_NAME: &str = "utun233";
 // ----------------------------------------------------------------------------
 // Active-primary DNS override slot
 //
-// OneBox only cares about the currently active (primary) network service —
+// AuroraBox only cares about the currently active (primary) network service —
 // non-primary services' DNS is irrelevant to the leak surface because the OS
 // resolver binds to the primary. This slot holds at most one entry:
 //
@@ -104,7 +104,7 @@ pub fn ensure_helper_installed() -> Result<(), String> {
 
     let bundled = bundled_helper_path().and_then(|p| read_helper_cfbundle_version(&p));
     let installed = read_helper_cfbundle_version(std::path::Path::new(
-        "/Library/PrivilegedHelperTools/cloud.oneoh.onebox.helper",
+        "/Library/PrivilegedHelperTools/com.guaixian.aurorabox.helper",
     ));
 
     match (bundled, installed) {
@@ -121,8 +121,8 @@ pub fn ensure_helper_installed() -> Result<(), String> {
 }
 
 /// Resolve the helper shipped inside this running app's bundle.
-/// /Applications/OneBox.app/Contents/MacOS/one-box
-///   → /Applications/OneBox.app/Contents/Library/LaunchServices/<label>
+/// /Applications/AuroraBox.app/Contents/MacOS/aurora-box
+///   → /Applications/AuroraBox.app/Contents/Library/LaunchServices/<label>
 /// Returns None in dev/unbundled layouts so the caller falls back to
 /// the ping branch rather than spuriously prompting for SMJobBless.
 fn bundled_helper_path() -> Option<std::path::PathBuf> {
@@ -131,7 +131,7 @@ fn bundled_helper_path() -> Option<std::path::PathBuf> {
     let p = contents
         .join("Library")
         .join("LaunchServices")
-        .join("cloud.oneoh.onebox.helper");
+        .join("com.guaixian.aurorabox.helper");
     if p.exists() {
         Some(p)
     } else {

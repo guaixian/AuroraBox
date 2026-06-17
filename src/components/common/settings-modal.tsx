@@ -47,7 +47,7 @@ export function SettingsModal({
     maxWidth = 310,
 }: SettingsModalProps) {
     const hasConfirm = !!onConfirm && !!confirmLabel;
-    const confirmColor = confirmDestructive ? "#FF3B30" : "var(--onebox-blue)";
+    const confirmColor = confirmDestructive ? "#FF3B30" : "var(--aurorabox-blue)";
 
     return (
         <Portal>
@@ -74,7 +74,7 @@ export function SettingsModal({
                             className="relative w-full rounded-[14px] overflow-hidden"
                             style={{
                                 maxWidth,
-                                background: 'var(--onebox-card)',
+                                background: 'var(--aurorabox-card)',
                                 boxShadow:
                                     "0 22px 48px -12px rgba(15, 23, 42, 0.3), 0 4px 14px rgba(15, 23, 42, 0.08)",
                             }}
@@ -89,7 +89,7 @@ export function SettingsModal({
                             <div className="pt-5 px-4">
                                 <h3
                                     className="text-[16px] font-semibold text-center tracking-[-0.01em] capitalize"
-                                    style={{ color: "var(--onebox-label)" }}
+                                    style={{ color: "var(--aurorabox-label)" }}
                                 >
                                     {title}
                                 </h3>
@@ -97,7 +97,7 @@ export function SettingsModal({
                                     <p
                                         className="text-[12px] text-center mt-1.5 leading-snug"
                                         style={{
-                                            color: "var(--onebox-label-secondary)",
+                                            color: "var(--aurorabox-label-secondary)",
                                         }}
                                     >
                                         {subtitle}
@@ -112,13 +112,13 @@ export function SettingsModal({
                                     className="grid grid-cols-2"
                                     style={{
                                         borderTop:
-                                            "0.5px solid var(--onebox-separator)",
+                                            "0.5px solid var(--aurorabox-separator)",
                                     }}
                                 >
                                     <button
                                         type="button"
                                         className="h-11 text-[14px] transition-colors active:bg-[rgba(60,60,67,0.05)]"
-                                        style={{ color: "var(--onebox-blue)" }}
+                                        style={{ color: "var(--aurorabox-blue)" }}
                                         onClick={onClose}
                                     >
                                         {cancelLabel ?? t("cancel")}
@@ -133,7 +133,7 @@ export function SettingsModal({
                                         style={{
                                             color: confirmColor,
                                             borderLeft:
-                                                "0.5px solid var(--onebox-separator)",
+                                                "0.5px solid var(--aurorabox-separator)",
                                         }}
                                     >
                                         {confirmLoading
@@ -146,9 +146,9 @@ export function SettingsModal({
                                     type="button"
                                     className="w-full h-11 text-[14px] font-semibold transition-colors active:bg-[rgba(0,122,255,0.08)]"
                                     style={{
-                                        color: "var(--onebox-blue)",
+                                        color: "var(--aurorabox-blue)",
                                         borderTop:
-                                            "0.5px solid var(--onebox-separator)",
+                                            "0.5px solid var(--aurorabox-separator)",
                                     }}
                                     onClick={onClose}
                                 >

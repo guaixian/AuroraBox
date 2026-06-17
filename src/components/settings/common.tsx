@@ -45,7 +45,7 @@ export function SettingItem({
             <div className="flex-1 min-w-0">
                 <div
                     className="text-[15px] tracking-[-0.005em] truncate capitalize"
-                    style={{ color: 'var(--onebox-label)' }}
+                    style={{ color: 'var(--aurorabox-label)' }}
                     title={title}
                 >
                     {title}
@@ -53,7 +53,7 @@ export function SettingItem({
                 {subTitle && (
                     <div
                         className="text-[12px] truncate mt-0.5"
-                        style={{ color: 'var(--onebox-label-secondary)' }}
+                        style={{ color: 'var(--aurorabox-label-secondary)' }}
                         title={subTitle}
                     >
                         {subTitle}
@@ -63,7 +63,7 @@ export function SettingItem({
             {badge && (
                 <div
                     className="text-[13px] tracking-[-0.005em] shrink-0"
-                    style={{ color: 'var(--onebox-label-secondary)' }}
+                    style={{ color: 'var(--aurorabox-label-secondary)' }}
                 >
                     {badge}
                 </div>
@@ -92,7 +92,7 @@ export function ToggleSetting({
             <div className="flex-1 min-w-0">
                 <div
                     className="text-[15px] tracking-[-0.005em] truncate capitalize"
-                    style={{ color: 'var(--onebox-label)' }}
+                    style={{ color: 'var(--aurorabox-label)' }}
                     title={title}
                 >
                     {title}
@@ -100,7 +100,7 @@ export function ToggleSetting({
                 {subTitle && (
                     <div
                         className="text-[12px] truncate mt-0.5"
-                        style={{ color: 'var(--onebox-label-secondary)' }}
+                        style={{ color: 'var(--aurorabox-label-secondary)' }}
                         title={subTitle}
                     >
                         {subTitle}
@@ -109,7 +109,7 @@ export function ToggleSetting({
             </div>
             <input
                 type="checkbox"
-                className="onebox-toggle"
+                className="aurorabox-toggle"
                 checked={isEnabled}
                 onChange={onToggle}
             />

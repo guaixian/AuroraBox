@@ -125,7 +125,7 @@ export default function UASettingsItem() {
                     )}
                     <p
                         className="text-[11px] ml-1 leading-snug"
-                        style={{ color: "var(--onebox-label-secondary)" }}
+                        style={{ color: "var(--aurorabox-label-secondary)" }}
                     >
                         {t(
                             "ua_hint",

@@ -337,6 +337,58 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "1505bd5d3d116872e7271a6d4e16d81d0c8570876c8de68093a09ac269d8aac0"
 
 [[package]]
+name = "aurora-box"
+version = "1.0.0"
+dependencies = [
+ "anyhow",
+ "cc",
+ "chrono",
+ "core-foundation 0.9.4",
+ "env_logger",
+ "filetime",
+ "flate2",
+ "gdk",
+ "gtk",
+ "lazy_static",
+ "libc",
+ "log",
+ "onebox-sysproxy-rs",
+ "onebox_lifecycle",
+ "png 0.18.1",
+ "rand 0.10.1",
+ "serde",
+ "serde_json",
+ "sha2",
+ "system-configuration",
+ "tauri",
+ "tauri-build",
+ "tauri-plugin-autostart",
+ "tauri-plugin-clipboard-manager",
+ "tauri-plugin-deep-link",
+ "tauri-plugin-dialog",
+ "tauri-plugin-fs",
+ "tauri-plugin-http",
+ "tauri-plugin-log",
+ "tauri-plugin-opener",
+ "tauri-plugin-os",
+ "tauri-plugin-process",
+ "tauri-plugin-shell",
+ "tauri-plugin-single-instance",
+ "tauri-plugin-sql",
+ "tauri-plugin-store",
+ "tauri-plugin-updater",
+ "tauri-plugin-window-state",
+ "tempfile",
+ "tokio",
+ "tun-service",
+ "url",
+ "uuid",
+ "webbrowser",
+ "winapi",
+ "windows 0.62.2",
+]
+
+[[package]]
 name = "auto-launch"
 version = "0.5.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3312,58 +3364,6 @@ name = "once_cell_polyfill"
 version = "1.70.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "384b8ab6d37215f3c5301a95a4accb5d64aa607f1fcb26a11b5303878451b4fe"
-
-[[package]]
-name = "one-box"
-version = "1.0.0"
-dependencies = [
- "anyhow",
- "cc",
- "chrono",
- "core-foundation 0.9.4",
- "env_logger",
- "filetime",
- "flate2",
- "gdk",
- "gtk",
- "lazy_static",
- "libc",
- "log",
- "onebox-sysproxy-rs",
- "onebox_lifecycle",
- "png 0.18.1",
- "rand 0.10.1",
- "serde",
- "serde_json",
- "sha2",
- "system-configuration",
- "tauri",
- "tauri-build",
- "tauri-plugin-autostart",
- "tauri-plugin-clipboard-manager",
- "tauri-plugin-deep-link",
- "tauri-plugin-dialog",
- "tauri-plugin-fs",
- "tauri-plugin-http",
- "tauri-plugin-log",
- "tauri-plugin-opener",
- "tauri-plugin-os",
- "tauri-plugin-process",
- "tauri-plugin-shell",
- "tauri-plugin-single-instance",
- "tauri-plugin-sql",
- "tauri-plugin-store",
- "tauri-plugin-updater",
- "tauri-plugin-window-state",
- "tempfile",
- "tokio",
- "tun-service",
- "url",
- "uuid",
- "webbrowser",
- "winapi",
- "windows 0.62.2",
-]
 
 [[package]]
 name = "onebox-sysproxy-rs"

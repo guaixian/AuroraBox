@@ -15,7 +15,7 @@
 
   <p>
     <a href="https://github.com/SagerNet/sing-box"><img alt="sing-box 最新版本" src="https://repology.org/badge/version-for-repo/homebrew/sing-box.svg?header=sing-box"></a>
-    <a href="https://github.com/OneOhCloud/OneBox/releases"><img alt="GitHub Release" src="https://img.shields.io/github/v/release/OneOhCloud/OneBox?display_name=tag&sort=semver"></a>
+    <a href="https://github.com/guaixian/AuroraBox/releases"><img alt="GitHub Release" src="https://img.shields.io/github/v/release/guaixian/AuroraBox?display_name=tag&sort=semver"></a>
     <a href="./LICENSE"><img alt="许可证" src="https://img.shields.io/badge/license-Apache--2.0-blue"></a>
   </p>
 
@@ -64,7 +64,7 @@ AuroraBox 是一个基于 Tauri、React、Rust 和 [sing-box](https://github.com
 
 ## 下载安装
 
-请从 [GitHub Releases](https://github.com/OneOhCloud/OneBox/releases) 获取最新桌面版本，或通过上方商店徽章安装移动端配套应用。
+请从 [GitHub Releases](https://github.com/guaixian/AuroraBox/releases) 获取最新桌面版本，或通过上方商店徽章安装移动端配套应用。
 
 macOS 版本已通过 Apple 公证，可直接安装，无需手动绕过系统安全限制。
 
@@ -112,4 +112,4 @@ cargo test -- --nocapture
 
 本软件采用 [Apache License 2.0](./LICENSE) 许可证。
 
-**OneBox** 名称、标志、图标和其他品牌资产是 OneOh Cloud LLC 的专有资产。Apache 许可证并未授予在衍生作品中使用这些品牌元素的权限。任何对这些资产或产品名称的使用均必须遵守 [NOTICE](./NOTICE) 政策。
+AuroraBox 是 OneOh Cloud LLC 旗下 OneBox 的一个分支。原始 **OneBox** 名称、标志、图标和其他品牌资产是 OneOh Cloud LLC 的专有资产。Apache 许可证并未授予在衍生作品中使用这些品牌元素的权限。任何对这些资产或产品名称的使用均必须遵守 [NOTICE](./NOTICE) 政策。

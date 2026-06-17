@@ -12,11 +12,11 @@ const VALID_PREFS: readonly ThemePref[] = ['light', 'dark', 'system'];
 // Within a single window: CustomEvent so sibling useTheme() consumers
 // re-resolve after a setPref() call (tauri-plugin-store doesn't emit a
 // JS-side change event for our own writes).
-const THEME_CHANGE_EVENT = 'onebox:theme-change';
+const THEME_CHANGE_EVENT = 'aurorabox:theme-change';
 // Across windows (main + log): Tauri event, since each Tauri window has
 // its own `document.documentElement` — a DOM CustomEvent only reaches
 // listeners inside the same WebView.
-const TAURI_THEME_EVENT = 'onebox:theme-change';
+const TAURI_THEME_EVENT = 'aurorabox:theme-change';
 
 // Tell the OS to use light/dark native chrome (macOS NSAppearance, Windows
 // dark title bar).
@@ -114,7 +114,7 @@ export function useTheme() {
     }, []);
 
     // When pref is 'system', re-resolve on OS theme change AND poke the
-    // native chrome. CSS media queries are live (so --onebox-* tokens
+    // native chrome. CSS media queries are live (so --aurorabox-* tokens
     // flip automatically), but:
     //   - `resolved` in React state needs updating for consumers that
     //     render based on it (e.g. the developer-page icon).

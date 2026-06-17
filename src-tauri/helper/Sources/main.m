@@ -1,12 +1,12 @@
-// OneBox privileged helper — launchd-spawned root daemon that exposes a
-// capability-limited XPC interface to the main OneBox app.
+// AuroraBox privileged helper — launchd-spawned root daemon that exposes a
+// capability-limited XPC interface to the main AuroraBox app.
 //
 // Every connection is validated against a hard-coded designated requirement
 // before any method is allowed to run: the caller's audit_token_t is resolved
 // to a SecCode and checked against the Developer ID signature of
-// `cloud.oneoh.onebox` by Team `GN2W3N34TM`. Any other local process —
+// `com.guaixian.aurorabox` by Team `GN2W3N34TM`. Any other local process —
 // including an unsigned binary, a different Team ID, or a stripped/tampered
-// copy of OneBox — is rejected at the listener level.
+// copy of AuroraBox — is rejected at the listener level.
 //
 // The Info.plist SMAuthorizedClients entry is the install-time gate
 // (SMJobBless refuses to bless a helper whose embedded SMAuthorizedClients
@@ -23,7 +23,7 @@
 //
 //   - startSingBox: config path must live under the caller's Application
 //     Support directory; log path must live under the caller's
-//     ~/Library/Logs/cloud.oneoh.onebox/ directory; the sing-box binary
+//     ~/Library/Logs/com.guaixian.aurorabox/ directory; the sing-box binary
 //     path is derived from the caller's SecCode bundle, never passed by
 //     the caller.
 //   - stopSingBox / reloadSingBox: operate only on the pid the helper
@@ -36,7 +36,7 @@
 //
 // Process exit notifications flow back to the client over the same
 // NSXPCConnection via a bidirectional XPC interface
-// (OneBoxHelperClientProtocol), so the main app can trigger its existing
+// (AuroraBoxHelperClientProtocol), so the main app can trigger its existing
 // process-termination handler without polling.
 
 #import <Foundation/Foundation.h>
@@ -57,11 +57,11 @@
 // since macOS 10.10. Apple's own EvenBetterAuthorizationSample relies on
 // exactly this access pattern; there is no public alternative that returns
 // the full audit_token_t needed by SecCodeCopyGuestWithAttributes.
-@interface NSXPCConnection (OneBoxPrivate)
+@interface NSXPCConnection (AuroraBoxPrivate)
 @property (nonatomic, readonly) audit_token_t auditToken;
 @end
 
-@protocol OneBoxHelperProtocol
+@protocol AuroraBoxHelperProtocol
 - (void)pingWithReply:(void (^)(NSString *reply))reply;
 
 - (void)startSingBoxWithConfigPath:(NSString *)configPath
@@ -87,7 +87,7 @@
 
 // Helper → Client direction. The main app exports an object conforming to
 // this protocol so the helper can push process-exit events without polling.
-@protocol OneBoxHelperClientProtocol
+@protocol AuroraBoxHelperClientProtocol
 - (void)singBoxDidExitWithPid:(int)pid exitCode:(int)exitCode;
 @end
 
@@ -100,7 +100,7 @@
 // the signing identity used by scripts/sign-helper.sh. Drift between
 // these three places fails closed (reject all connections).
 static NSString *const kClientRequirement =
-    @"identifier \"cloud.oneoh.onebox\" and anchor apple generic and "
+    @"identifier \"com.guaixian.aurorabox\" and anchor apple generic and "
     @"certificate 1[field.1.2.840.113635.100.6.2.6] /* exists */ and "
     @"certificate leaf[field.1.2.840.113635.100.6.1.13] /* exists */ and "
     @"certificate leaf[subject.OU] = \"GN2W3N34TM\"";
@@ -165,7 +165,7 @@ static BOOL validateClient(NSXPCConnection *connection) {
 }
 
 // Derive the absolute path to the caller's bundled sing-box binary from
-// their SecCode. The main app is always at <bundle>/Contents/MacOS/OneBox,
+// their SecCode. The main app is always at <bundle>/Contents/MacOS/AuroraBox,
 // so sing-box lives at <bundle>/Contents/MacOS/sing-box. Returning the
 // binary by caller lookup (instead of accepting a path parameter) eliminates
 // a whole class of "make helper run arbitrary binary" injection attacks.
@@ -214,8 +214,8 @@ static NSString *validateConfigPath(NSString *path) {
     if (![path isAbsolutePath]) return @"config path must be absolute";
     if (![path.pathExtension isEqualToString:@"json"]) return @"config path must end with .json";
     if ([path rangeOfString:@"/../"].location != NSNotFound) return @"config path must not contain /../";
-    if ([path rangeOfString:@"/Library/Application Support/cloud.oneoh.onebox/"].location == NSNotFound) {
-        return @"config path must be under ~/Library/Application Support/cloud.oneoh.onebox/";
+    if ([path rangeOfString:@"/Library/Application Support/com.guaixian.aurorabox/"].location == NSNotFound) {
+        return @"config path must be under ~/Library/Application Support/com.guaixian.aurorabox/";
     }
     BOOL isDir = NO;
     if (![[NSFileManager defaultManager] fileExistsAtPath:path isDirectory:&isDir] || isDir) {
@@ -226,7 +226,7 @@ static NSString *validateConfigPath(NSString *path) {
 
 // Log path must be absolute, end with .log, not traverse outside the
 // caller's per-user logs dir, and sit inside
-// ~/Library/Logs/cloud.oneoh.onebox/. We don't require the file to pre-
+// ~/Library/Logs/com.guaixian.aurorabox/. We don't require the file to pre-
 // exist — the helper will create it (mode 0644, root-owned, user-readable
 // because the user owns the parent dir and can unlink via Rust-side
 // rotation). The dir itself must already exist; the Rust caller runs
@@ -236,8 +236,8 @@ static NSString *validateLogPath(NSString *path) {
     if (![path isAbsolutePath]) return @"log path must be absolute";
     if (![path.pathExtension isEqualToString:@"log"]) return @"log path must end with .log";
     if ([path rangeOfString:@"/../"].location != NSNotFound) return @"log path must not contain /../";
-    if ([path rangeOfString:@"/Library/Logs/cloud.oneoh.onebox/"].location == NSNotFound) {
-        return @"log path must be under ~/Library/Logs/cloud.oneoh.onebox/";
+    if ([path rangeOfString:@"/Library/Logs/com.guaixian.aurorabox/"].location == NSNotFound) {
+        return @"log path must be under ~/Library/Logs/com.guaixian.aurorabox/";
     }
     NSString *parent = [path stringByDeletingLastPathComponent];
     BOOL isDir = NO;
@@ -329,7 +329,7 @@ static NSString *runTool(NSString *tool, NSArray<NSString *> *args) {
 // Service
 // ============================================================================
 
-@interface HelperService : NSObject <NSXPCListenerDelegate, OneBoxHelperProtocol>
+@interface HelperService : NSObject <NSXPCListenerDelegate, AuroraBoxHelperProtocol>
 @end
 
 @implementation HelperService {
@@ -344,7 +344,7 @@ static NSString *runTool(NSString *tool, NSArray<NSString *> *args) {
 - (instancetype)init {
     self = [super init];
     if (self) {
-        _stateQueue = dispatch_queue_create("cloud.oneoh.onebox.helper.state", DISPATCH_QUEUE_SERIAL);
+        _stateQueue = dispatch_queue_create("com.guaixian.aurorabox.helper.state", DISPATCH_QUEUE_SERIAL);
     }
     return self;
 }
@@ -358,15 +358,15 @@ static NSString *runTool(NSString *tool, NSArray<NSString *> *args) {
     NSLog(@"[helper] connection accepted pid=%d", newConnection.processIdentifier);
 
     newConnection.exportedInterface =
-        [NSXPCInterface interfaceWithProtocol:@protocol(OneBoxHelperProtocol)];
+        [NSXPCInterface interfaceWithProtocol:@protocol(AuroraBoxHelperProtocol)];
     newConnection.exportedObject = self;
 
-    // Bidirectional: client exports an OneBoxHelperClientProtocol object so
+    // Bidirectional: client exports an AuroraBoxHelperClientProtocol object so
     // the helper can push exit events. If the client doesn't bother setting
     // remoteObjectInterface, proxy calls silently no-op — which is fine for
     // callers that never use startSingBox.
     newConnection.remoteObjectInterface =
-        [NSXPCInterface interfaceWithProtocol:@protocol(OneBoxHelperClientProtocol)];
+        [NSXPCInterface interfaceWithProtocol:@protocol(AuroraBoxHelperClientProtocol)];
 
     [newConnection resume];
     return YES;
@@ -521,7 +521,7 @@ static NSString *runTool(NSString *tool, NSArray<NSString *> *args) {
 
             NSXPCConnection *notifyConn = strongSelf->_activeConnection;
             if (notifyConn) {
-                id<OneBoxHelperClientProtocol> client =
+                id<AuroraBoxHelperClientProtocol> client =
                     [notifyConn remoteObjectProxyWithErrorHandler:^(NSError *err) {
                         NSLog(@"[helper] failed to notify client of exit: %@", err);
                     }];
@@ -739,7 +739,7 @@ int main(int argc, const char *argv[]) {
     @autoreleasepool {
         HelperService *delegate = [[HelperService alloc] init];
         NSXPCListener *listener =
-            [[NSXPCListener alloc] initWithMachServiceName:@"cloud.oneoh.onebox.helper"];
+            [[NSXPCListener alloc] initWithMachServiceName:@"com.guaixian.aurorabox.helper"];
         listener.delegate = delegate;
         [listener resume];
         [[NSRunLoop currentRunLoop] run];
