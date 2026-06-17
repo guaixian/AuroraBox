@@ -98,10 +98,31 @@ export type ProxyServer = {
 
 export type ProxyType = 'ss' | 'socks5' | 'http' | 'vless' | 'trojan' | 'hysteria2';
 
+export type GroupType = 'fixed' | 'auto' | 'random' | 'chain';
+
+export type ProxyGroup = {
+    id: number
+    identifier: string
+    name: string
+    group_type: GroupType
+    is_active: number
+    created_at: number
+    updated_at: number
+}
+
+export type ProxyGroupMember = {
+    id: number
+    group_identifier: string
+    server_identifier: string
+    sort_order: number
+}
+
 // 获取订阅列表的 SWR 键
 export const GET_SUBSCRIPTIONS_LIST_SWR_KEY = 'get-subscriptions-list'
 // 获取代理服务器列表的 SWR 键
 export const GET_PROXY_SERVERS_SWR_KEY = 'get-proxy-servers-list'
+// 获取代理组列表的 SWR 键
+export const GET_PROXY_GROUPS_SWR_KEY = 'get-proxy-groups-list'
 
 export interface TerminatedPayload {
     code: number | null;

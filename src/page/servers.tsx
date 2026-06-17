@@ -1,9 +1,9 @@
 import { useEffect, useState } from "react";
 import useSWR from "swr";
 import { CloudPlus, Clipboard, Pencil, Server, Speedometer2, Trash3 } from "react-bootstrap-icons";
-import { deleteProxyServer, getProxyServers, setActiveProxyServer } from "../action/db";
-import { GET_PROXY_SERVERS_SWR_KEY } from "../types/definition";
-import type { ProxyServer } from "../types/definition";
+import { addGroupMember, deleteProxyGroup, deleteProxyServer, getGroupMembers, getProxyGroups, getProxyServers, insertProxyGroup, removeGroupMember, setActiveProxyGroup, setActiveProxyServer } from "../action/db";
+import { GET_PROXY_GROUPS_SWR_KEY, GET_PROXY_SERVERS_SWR_KEY } from "../types/definition";
+import type { ProxyGroup, ProxyServer } from "../types/definition";
 import { t } from "../utils/helper";
 import { AddServerModal } from "../components/servers/add-server-modal";
 import { ImportShareLinksModal } from "../components/servers/import-share-links-modal";
@@ -23,6 +23,13 @@ function ServersPage() {
   const [speedMap, setSpeedMap] = useState<SpeedMap>({});
   const [testingLatency, setTestingLatency] = useState<Set<string>>(new Set());
   const [testingSpeed, setTestingSpeed] = useState<Set<string>>(new Set());
+  // Group management
+  const { data: groups, mutate: mutateGroups } = useSWR(GET_PROXY_GROUPS_SWR_KEY, getProxyGroups, { fallbackData: [] });
+  const [showGroupForm, setShowGroupForm] = useState(false);
+  const [groupName, setGroupName] = useState("");
+  const [groupType, setGroupType] = useState<"fixed"|"auto"|"random"|"chain">("fixed");
+  const [expandedGroupId, setExpandedGroupId] = useState<string | null>(null);
+  const [groupMembers, setGroupMembers] = useState<Record<string, any[]>>({});
 
   const refresh = () => mutate();
 
@@ -98,6 +105,35 @@ function ServersPage() {
       toast.success(`已导出 ${servers.length} 个分享链接到剪贴板`);
     } catch { toast.error("复制失败"); }
   };
+
+  // ── Group management ──────────────────────────────────────────────
+  const handleCreateGroup = async () => {
+    if (!groupName.trim()) return;
+    try { await insertProxyGroup(groupName.trim(), groupType); mutateGroups(); setGroupName(""); setShowGroupForm(false); } catch (e: any) { toast.error(String(e)); }
+  };
+  const handleDeleteGroup = async (id: string) => { try { await deleteProxyGroup(id); mutateGroups(); } catch (e: any) { toast.error(String(e)); } };
+  const handleToggleGroup = async (g: ProxyGroup) => {
+    try { await setActiveProxyGroup(g.is_active ? null : g.identifier); mutateGroups(); } catch (e: any) { toast.error(String(e)); }
+  };
+  const handleLoadMembers = async (g: ProxyGroup) => {
+    if (expandedGroupId === g.identifier) { setExpandedGroupId(null); return; }
+    try {
+      const members = await getGroupMembers(g.identifier);
+      setGroupMembers(prev => ({ ...prev, [g.identifier]: members }));
+      setExpandedGroupId(g.identifier);
+    } catch (e: any) { toast.error(String(e)); }
+  };
+  const handleAddToGroup = async (g: ProxyGroup, s: ProxyServer) => {
+    try {
+      const members = await getGroupMembers(g.identifier);
+      await addGroupMember(g.identifier, s.identifier, members.length);
+      setGroupMembers(prev => ({ ...prev, [g.identifier]: [...(prev[g.identifier] || []), { server_identifier: s.identifier, sort_order: members.length }] }));
+    } catch (e: any) { toast.error(String(e)); }
+  };
+  const handleRemoveFromGroup = async (g: ProxyGroup, serverId: string) => {
+    try { await removeGroupMember(g.identifier, serverId); setGroupMembers(prev => ({ ...prev, [g.identifier]: (prev[g.identifier] || []).filter((m: any) => m.server_identifier !== serverId) })); } catch (e: any) { toast.error(String(e)); }
+  };
+  const GROUP_TYPE_LABELS: Record<string, string> = { fixed: "固定", auto: "自动", random: "随机", chain: "链路" };
 
   // ── Build outbound JSON ───────────────────────────────────────────
   const buildOutboundJSON = (s: ProxyServer): string => {
@@ -292,6 +328,67 @@ function ServersPage() {
               </div>
             );
           })}
+        </div>
+
+        {/* ── Groups Section ──────────────────────────────────── */}
+        <div className="mt-6">
+          <div className="flex items-center gap-2 mb-3">
+            <h3 className="text-lg font-semibold text-[var(--aurorabox-label)]">代理组</h3>
+            <button onClick={() => setShowGroupForm(!showGroupForm)}
+              className="text-xs px-2 py-1 rounded bg-[var(--aurorabox-fill)] text-[var(--aurorabox-label-secondary)] hover:brightness-95">
+              {showGroupForm ? "取消" : "+ 新建"}
+            </button>
+          </div>
+          {showGroupForm && (
+            <div className="flex gap-2 mb-3 flex-wrap items-center p-3 rounded-lg bg-[var(--aurorabox-fill)]">
+              <input value={groupName} onChange={e => setGroupName(e.target.value)} placeholder="组名称" className="px-3 py-1.5 text-sm rounded bg-[var(--aurorabox-card)] border border-[var(--aurorabox-separator)] text-[var(--aurorabox-label)] w-32" />
+              <select value={groupType} onChange={e => setGroupType(e.target.value as any)} className="px-3 py-1.5 text-sm rounded bg-[var(--aurorabox-card)] border border-[var(--aurorabox-separator)] text-[var(--aurorabox-label)]">
+                <option value="fixed">固定</option><option value="auto">自动</option><option value="random">随机</option><option value="chain">链路</option>
+              </select>
+              <button onClick={handleCreateGroup} className="px-3 py-1.5 text-sm rounded bg-[var(--aurorabox-blue)] text-white">创建</button>
+            </div>
+          )}
+          {(groups ?? []).map(g => (
+            <div key={g.identifier} className="mb-2 border border-[var(--aurorabox-separator)] rounded-lg bg-[var(--aurorabox-card)]">
+              <div className="flex items-center gap-3 px-4 py-2 cursor-pointer hover:bg-[var(--aurorabox-row-hover)]" onClick={() => handleLoadMembers(g)}>
+                <div className={`w-2.5 h-2.5 rounded-full ${g.is_active ? "bg-[var(--aurorabox-green)]" : "bg-[var(--aurorabox-fill-strong)]"}`} />
+                <span className="font-medium text-sm text-[var(--aurorabox-label)]">{g.name}</span>
+                <span className="text-[10px] px-1.5 py-0.5 rounded bg-[var(--aurorabox-blue)]/10 text-[var(--aurorabox-blue)]">{GROUP_TYPE_LABELS[g.group_type] || g.group_type}</span>
+                <div className="flex-1" />
+                <button onClick={(e) => { e.stopPropagation(); handleToggleGroup(g); }} className="text-[10px] px-2 py-1 rounded bg-[var(--aurorabox-fill)]">{g.is_active ? "取消" : "激活"}</button>
+                <button onClick={(e) => { e.stopPropagation(); handleDeleteGroup(g.identifier); }} className="text-[10px] px-2 py-1 rounded bg-[var(--aurorabox-red)]/10 text-[var(--aurorabox-red)]">删除</button>
+              </div>
+              {expandedGroupId === g.identifier && (
+                <div className="px-4 pb-3 border-t border-[var(--aurorabox-separator)] pt-2">
+                  <p className="text-xs text-[var(--aurorabox-label-secondary)] mb-2">
+                    {g.group_type === "fixed" && "固定使用组内第一个代理"}
+                    {g.group_type === "auto" && "自动选择延迟最低的代理"}
+                    {g.group_type === "random" && "每次随机选择一个代理"}
+                    {g.group_type === "chain" && "按顺序链路连接 1→2→3"}
+                  </p>
+                  {/* Members list */}
+                  <div className="text-xs text-[var(--aurorabox-label-secondary)] mb-1">成员：</div>
+                  {(groupMembers[g.identifier] || []).map((m: any) => {
+                    const svr = (servers || []).find(s => s.identifier === m.server_identifier);
+                    return svr ? (
+                      <div key={m.server_identifier} className="flex items-center gap-2 py-1 text-xs text-[var(--aurorabox-label)]">
+                        <span className="truncate flex-1">{svr.name} ({svr.server_address}:{svr.server_port})</span>
+                        <button onClick={() => handleRemoveFromGroup(g, m.server_identifier)} className="text-[var(--aurorabox-red)]">✕</button>
+                      </div>
+                    ) : null;
+                  })}
+                  {/* Add server to group */}
+                  <div className="mt-2 text-xs text-[var(--aurorabox-label-secondary)]">+ 添加服务器：</div>
+                  <div className="flex flex-wrap gap-1 mt-1">
+                    {(servers || []).filter(s => !(groupMembers[g.identifier] || []).some((m: any) => m.server_identifier === s.identifier)).slice(0, 8).map(s => (
+                      <button key={s.identifier} onClick={() => handleAddToGroup(g, s)}
+                        className="text-[10px] px-2 py-1 rounded bg-[var(--aurorabox-fill)] text-[var(--aurorabox-label)] hover:brightness-95">{s.name}</button>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          ))}
         </div>
       </div>
       <AddServerModal visible={addVisible} editServer={editServer} onClose={() => setAddVisible(false)} onSaved={refresh} />

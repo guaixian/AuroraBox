@@ -409,3 +409,98 @@ export async function mergeManualServersConfig(newConfig: any): Promise<void> {
         console.warn("[mergeManualServers] skipped — error:", e);
     }
 }
+
+/**
+ * Merge proxy groups into sing-box config. Each group becomes a sing-box
+ * outbound group (selector/urltest/chain) wired into ExitGateway.
+ *
+ * Group types:
+ *   fixed  → selector with first server as default
+ *   auto   → urltest with all member servers
+ *   random → selector (frontend randomly picks on start)
+ *   chain  → individual outbounds with detour linking 1→2→3
+ */
+export async function mergeProxyGroupsConfig(newConfig: any): Promise<void> {
+    try {
+        const { getProxyGroups, getServersByGroup } = await import("../../action/db");
+        const groups = await getProxyGroups();
+        if (!groups?.length) return;
+
+        const outbounds = newConfig.outbounds;
+        const exitGatewayIdx = outbounds.findIndex((g: any) => g.tag === "ExitGateway");
+        if (exitGatewayIdx === -1) return;
+
+        for (const group of groups) {
+            const servers = await getServersByGroup(group.identifier);
+            if (!servers.length) continue;
+
+            const prefix = `gp-${group.identifier.slice(0, 6)}`;
+
+            if (group.group_type === "chain") {
+                // Chain: create individual outbounds linked via detour
+                let prevTag = "";
+                for (let i = servers.length - 1; i >= 0; i--) {
+                    const s = servers[i];
+                    const tag = `${prefix}-${i}`;
+                    const outbound: any = buildGroupServerOutbound(s, tag);
+                    if (prevTag) outbound.detour = prevTag;
+                    outbounds.push(outbound);
+                    prevTag = tag;
+                }
+                // First server in the chain enters ExitGateway
+                const entryTag = `${prefix}-0`;
+                outbounds[exitGatewayIdx].outbounds.push(entryTag);
+                if (group.is_active) {
+                    const idx = outbounds[exitGatewayIdx].outbounds.indexOf(entryTag);
+                    if (idx > 0) { outbounds[exitGatewayIdx].outbounds.splice(idx, 1); outbounds[exitGatewayIdx].outbounds.unshift(entryTag); }
+                }
+            } else {
+                // fixed/auto/random → selector or urltest
+                const tags = servers.map((s, i) => {
+                    const tag = `${prefix}-${i}`;
+                    outbounds.push(buildGroupServerOutbound(s, tag));
+                    return tag;
+                });
+
+                if (group.group_type === "auto") {
+                    // urltest: auto-pick lowest latency
+                    const autoTag = `${prefix}-auto`;
+                    outbounds.push({
+                        tag: autoTag, type: "urltest",
+                        url: "https://www.google.com/generate_204",
+                        interval: "5m", outbounds: tags,
+                    });
+                    outbounds[exitGatewayIdx].outbounds.push(autoTag);
+                    if (group.is_active) outbounds[exitGatewayIdx].outbounds.unshift(autoTag);
+                } else {
+                    // fixed/random: selector
+                    const selTag = `${prefix}-sel`;
+                    outbounds.push({
+                        tag: selTag, type: "selector",
+                        outbounds: tags, default: tags[0],
+                    });
+                    outbounds[exitGatewayIdx].outbounds.push(selTag);
+                    if (group.is_active) outbounds[exitGatewayIdx].outbounds.unshift(selTag);
+                }
+            }
+        }
+
+        await writeConfigFile("config.json", new TextEncoder().encode(JSON.stringify(newConfig)));
+    } catch (e) {
+        console.warn("[mergeProxyGroups] skipped — error:", e);
+    }
+}
+
+function buildGroupServerOutbound(s: any, tag: string): any {
+    const ptype = s.proxy_type || "ss";
+    const base: any = { tag, server: s.server_address, server_port: s.server_port, domain_resolver: "system" };
+    switch (ptype) {
+        case "hysteria2": base.type = "hysteria2"; base.password = s.password; break;
+        case "vless": base.type = "vless"; base.uuid = s.vless_uuid || ""; break;
+        case "trojan": base.type = "trojan"; base.password = s.password; break;
+        case "socks5": base.type = "socks"; base.version = "5"; break;
+        case "http": base.type = "http"; break;
+        default: base.type = "shadowsocks"; base.method = s.encryption_method; base.password = s.password; break;
+    }
+    return base;
+}

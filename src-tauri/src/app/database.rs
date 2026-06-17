@@ -54,6 +54,27 @@ ALTER TABLE proxy_servers ADD COLUMN vless_uuid TEXT DEFAULT '';
 ALTER TABLE proxy_servers ADD COLUMN vless_opts TEXT DEFAULT '';
 "#;
 
+const SQL_5: &str = r#"
+CREATE TABLE proxy_groups (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    identifier TEXT NOT NULL UNIQUE,
+    name TEXT NOT NULL,
+    group_type TEXT NOT NULL DEFAULT 'fixed',
+    is_active INTEGER DEFAULT 0,
+    created_at INTEGER NOT NULL DEFAULT (strftime('%s', 'now')),
+    updated_at INTEGER NOT NULL DEFAULT (strftime('%s', 'now'))
+);
+CREATE TABLE proxy_group_members (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    group_identifier TEXT NOT NULL,
+    server_identifier TEXT NOT NULL,
+    sort_order INTEGER NOT NULL DEFAULT 0,
+    FOREIGN KEY (group_identifier) REFERENCES proxy_groups(identifier) ON DELETE CASCADE,
+    FOREIGN KEY (server_identifier) REFERENCES proxy_servers(identifier) ON DELETE CASCADE
+);
+CREATE UNIQUE INDEX idx_proxy_groups_active ON proxy_groups(is_active) WHERE is_active = 1;
+"#;
+
 pub fn get_migrations() -> Vec<Migration> {
     vec![
         Migration {
@@ -78,6 +99,12 @@ pub fn get_migrations() -> Vec<Migration> {
             version: 4,
             description: "add_vless_columns_to_proxy_servers",
             sql: SQL_4,
+            kind: MigrationKind::Up,
+        },
+        Migration {
+            version: 5,
+            description: "create_proxy_groups_tables",
+            sql: SQL_5,
             kind: MigrationKind::Up,
         },
     ]

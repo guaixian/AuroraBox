@@ -2,7 +2,7 @@ import * as path from '@tauri-apps/api/path';
 import { getSubscriptionConfig } from '../../action/db';
 import { getAllowLan, getClashApiSecret, getCustomRuleSet, getStoreValue, isBypassRouterEnabled, setStoreValue } from '../../single/store';
 import { STAGE_VERSION_STORE_KEY } from '../../types/definition';
-import { configureMixedInbound, configureTunInbound, mergeManualServersConfig, patchRuleSetCDN, updateDHCPSettings2Config, updateVPNServerConfigFromDB } from './helper';
+import { configureMixedInbound, configureTunInbound, mergeManualServersConfig, mergeProxyGroupsConfig, patchRuleSetCDN, updateDHCPSettings2Config, updateVPNServerConfigFromDB } from './helper';
 
 import { configType, getConfigTemplateCacheKey } from '../common';
 import { getBuiltInTemplate } from '../templates';
@@ -95,6 +95,7 @@ export async function setMixedConfig(identifier: string | null) {
         await updateVPNServerConfigFromDB('config.json', dbConfigData, newConfig);
     }
     await mergeManualServersConfig(newConfig);
+    await mergeProxyGroupsConfig(newConfig);
 
 }
 
@@ -152,6 +153,7 @@ export async function setTunConfig(identifier: string | null) {
         await updateVPNServerConfigFromDB('config.json', dbConfigData, newConfig);
     }
     await mergeManualServersConfig(newConfig);
+    await mergeProxyGroupsConfig(newConfig);
 }
 
 
@@ -179,6 +181,7 @@ export async function setGlobalMixedConfig(identifier: string | null) {
         await updateVPNServerConfigFromDB('config.json', dbConfigData, newConfig);
     }
     await mergeManualServersConfig(newConfig);
+    await mergeProxyGroupsConfig(newConfig);
 
 }
 
@@ -209,4 +212,5 @@ export default async function setGlobalTunConfig(identifier: string | null) {
         await updateVPNServerConfigFromDB('config.json', dbConfigData, newConfig);
     }
     await mergeManualServersConfig(newConfig);
+    await mergeProxyGroupsConfig(newConfig);
 }
