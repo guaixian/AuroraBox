@@ -49,7 +49,9 @@ export default function HomePage() {
     };
 
     const handleUpdate = async () => {
-        await restartService(isEmpty);
+        if (isLoading || isRunning) {
+            await restartService(isEmpty);
+        }
     };
 
     const statusText = useMemo(() => {

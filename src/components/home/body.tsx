@@ -1,8 +1,7 @@
-import { useSubscriptions } from "../../hooks/useDB";
 import { t, vpnServiceManager } from "../../utils/helper";
 import { AppleNetworkStatus, GoogleNetworkStatus } from "./network-check";
 import NetworkSpeed from "./network-speed";
-import SelectSub from "./select-config";
+import SelectGroup from "./select-group";
 import SelectNode from "./select-node";
 
 function SectionLabel({
@@ -34,14 +33,10 @@ export default function Body({
     isRunning: boolean;
     onUpdate: () => void;
 }) {
-    const { data, isLoading } = useSubscriptions();
-
-    const handleUpdate = async (_identifier: string, isUpdate: boolean) => {
+    const handleUpdate = async () => {
         try {
-            if (isUpdate && isRunning) {
-                await vpnServiceManager.syncConfig({});
-                onUpdate();
-            }
+            await vpnServiceManager.syncConfig({});
+            onUpdate();
         } catch (error) {
             console.error(t("update_config_failed") + ":", error);
         }
@@ -58,13 +53,9 @@ export default function Body({
                         </>
                     }
                 >
-                    {t("current_subscription")}
+                    {t("proxy_group") || "代理组"}
                 </SectionLabel>
-                <SelectSub
-                    onUpdate={handleUpdate}
-                    data={data}
-                    isLoading={isLoading}
-                />
+                <SelectGroup onUpdate={handleUpdate} />
             </section>
 
             <section className="w-full">
