@@ -63,8 +63,9 @@ function ServersPage() {
     }
   };
 
-  // ── Speed test (download test file through proxy) ──────────────────
-  const SPEED_DOWNLOAD_URL = "https://www.google.com/generate_204";
+  // ── Speed test (through running sing-box mixed inbound) ───────────
+  const SPEED_DOWNLOAD_URL = "http://www.gstatic.com/generate_204";
+  const PROXY_BASE = "http://127.0.0.1:6789";
   const handleTestSpeed = async () => {
     if (!servers?.length) return;
     setTestingSpeed(true);
@@ -73,13 +74,13 @@ function ServersPage() {
       const key = `${s.server_address}:${s.server_port}`;
       try {
         const start = performance.now();
-        // Use Tauri HTTP plugin fetch — can be configured with proxy
+        // Route through sing-box mixed inbound proxy
         const resp = await fetch(SPEED_DOWNLOAD_URL, {
           method: "GET",
-          connectTimeout: 5000,
+          proxy: { all: PROXY_BASE },
+          connectTimeout: 10000,
         });
         const elapsed = (performance.now() - start) / 1000;
-        // Read body to measure throughput
         const body = await resp.text();
         const bytes = new TextEncoder().encode(body).length;
         const kbps = bytes / 1024 / Math.max(elapsed, 0.1);

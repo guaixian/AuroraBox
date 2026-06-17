@@ -289,7 +289,7 @@ export function parseHysteria2Link(link: string): ParsedProxyServer | null {
   const trimmed = link.trim();
   if (!trimmed.startsWith("hysteria2://") && !trimmed.startsWith("hy2://")) return null;
 
-  const schemeLen = trimmed.startsWith("hysteria2://") ? 13 : 6;
+  const schemeLen = trimmed.startsWith("hysteria2://") ? 12 : 6;
   const rest = trimmed.slice(schemeLen);
   const atIdx = rest.lastIndexOf("@");
   if (atIdx === -1) return null;

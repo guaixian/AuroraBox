@@ -288,7 +288,7 @@ export async function mergeManualServersConfig(newConfig: any): Promise<void> {
                     // TLS
                     const tls: any = { enabled: true };
                     if (hops.sni) tls.server_name = hops.sni;
-                    if (hops.insecure === "1") tls.insecure = true;
+                    if (hops.insecure === "1" || hops.allowInsecure === "1") tls.insecure = true;
                     if (hops.alpn) tls.alpn = hops.alpn.split(",");
                     if (hops.pinSHA256) tls.pin_sha256 = hops.pinSHA256;
                     if (hops.fingerprint) tls.utls = { enabled: true, fingerprint: hops.fingerprint };
