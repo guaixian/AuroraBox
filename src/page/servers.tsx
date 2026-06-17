@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import useSWR from "swr";
 import { CloudPlus, Pencil, Server, Speedometer2, Trash3 } from "react-bootstrap-icons";
 import { deleteProxyServer, getProxyServers, setActiveProxyServer } from "../action/db";
@@ -9,6 +9,7 @@ import { AddServerModal } from "../components/servers/add-server-modal";
 import { ImportShareLinksModal } from "../components/servers/import-share-links-modal";
 import { toast } from "sonner";
 import { invoke } from "@tauri-apps/api/core";
+import { listen } from "@tauri-apps/api/event";
 
 type LatencyMap = Record<string, { ms: number | null; tcpMs?: number; error?: string }>;
 type SpeedMap = Record<string, { kbps: number | null; error?: string }>;
@@ -25,6 +26,29 @@ function ServersPage() {
   const [testingSpeed, setTestingSpeed] = useState<Set<string>>(new Set());
 
   const refresh = () => mutate();
+
+  // ── Real-time test event listener ────────────────────────────────
+  useEffect(() => {
+    const unlisten = listen<{
+      server: string; port: number;
+      tcp_ms: number | null; real_ms: number | null;
+      speed_kbps: number | null; error: string | null;
+    }>("proxy-test-result", (event) => {
+      const r = event.payload;
+      const key = `${r.server}:${r.port}`;
+      setLatencyMap(prev => ({
+        ...prev,
+        [key]: { ms: r.real_ms, tcpMs: r.tcp_ms ?? undefined, error: r.error ?? undefined }
+      }));
+      setSpeedMap(prev => ({
+        ...prev,
+        [key]: { kbps: r.speed_kbps ? Math.round(r.speed_kbps) : null, error: r.speed_kbps == null ? (r.error ?? undefined) : undefined }
+      }));
+      setTestingLatency(prev => { const n = new Set(prev); n.delete(key); return n; });
+      setTestingSpeed(prev => { const n = new Set(prev); n.delete(key); return n; });
+    });
+    return () => { unlisten.then(fn => fn()); };
+  }, []);
   const handleDelete = async (id: string) => { try { await deleteProxyServer(id); refresh(); } catch (e) { toast.error(String(e)); } };
   const handleSetActive = async (id: string) => { try { await setActiveProxyServer(id); refresh(); } catch (e) { toast.error(String(e)); } };
   const handleEdit = (s: ProxyServer) => { setEditServer(s); setAddVisible(true); };
