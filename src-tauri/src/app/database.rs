@@ -44,6 +44,11 @@ CREATE TABLE proxy_servers (
 CREATE UNIQUE INDEX idx_proxy_servers_active ON proxy_servers(is_active) WHERE is_active = 1;
 "#;
 
+const SQL_3: &str = r#"
+ALTER TABLE proxy_servers ADD COLUMN proxy_type TEXT NOT NULL DEFAULT 'ss';
+ALTER TABLE proxy_servers ADD COLUMN username TEXT DEFAULT '';
+"#;
+
 pub fn get_migrations() -> Vec<Migration> {
     vec![
         Migration {
@@ -56,6 +61,12 @@ pub fn get_migrations() -> Vec<Migration> {
             version: 2,
             description: "create_proxy_servers_table",
             sql: SQL_2,
+            kind: MigrationKind::Up,
+        },
+        Migration {
+            version: 3,
+            description: "add_proxy_type_and_username_to_proxy_servers",
+            sql: SQL_3,
             kind: MigrationKind::Up,
         },
     ]

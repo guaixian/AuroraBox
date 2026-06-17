@@ -40,6 +40,8 @@ export function ImportShareLinksModal({ visible, onClose, onImported }: ImportSh
           encryption_method: s.method,
           plugin: s.plugin,
           plugin_opts: s.pluginOpts,
+          proxy_type: s.proxyType || "ss",
+          username: s.username || "",
         }));
       await batchInsertProxyServers(selected);
       onImported();

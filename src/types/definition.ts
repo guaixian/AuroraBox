@@ -90,7 +90,11 @@ export type ProxyServer = {
     is_active: number
     created_at: number
     updated_at: number
+    proxy_type: string
+    username: string
 }
+
+export type ProxyType = 'ss' | 'socks5' | 'http';
 
 // 获取订阅列表的 SWR 键
 export const GET_SUBSCRIPTIONS_LIST_SWR_KEY = 'get-subscriptions-list'

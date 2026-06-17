@@ -186,20 +186,37 @@ export async function mergeManualServersConfig(newConfig: any): Promise<void> {
         let activeTag: string | null = null;
 
         for (const server of servers) {
-            const tag = `ss-${server.identifier.slice(0, 8)}`;
+            const ptype = (server as any).proxy_type || "ss";
+            const tag = `${ptype}-${server.identifier.slice(0, 8)}`;
 
             const outbound: any = {
                 tag,
-                type: "shadowsocks",
                 server: server.server_address,
                 server_port: server.server_port,
-                method: server.encryption_method,
-                password: server.password,
                 domain_resolver: "system",
             };
-            if (server.plugin) {
-                outbound.plugin = server.plugin;
-                outbound.plugin_opts = server.plugin_opts;
+
+            switch (ptype) {
+                case "socks5":
+                    outbound.type = "socks";
+                    outbound.version = "5";
+                    if ((server as any).username) outbound.username = (server as any).username;
+                    if (server.password) outbound.password = server.password;
+                    break;
+                case "http":
+                    outbound.type = "http";
+                    if ((server as any).username) outbound.username = (server as any).username;
+                    if (server.password) outbound.password = server.password;
+                    break;
+                default: // ss
+                    outbound.type = "shadowsocks";
+                    outbound.method = server.encryption_method;
+                    outbound.password = server.password;
+                    if (server.plugin) {
+                        outbound.plugin = server.plugin;
+                        outbound.plugin_opts = server.plugin_opts;
+                    }
+                    break;
             }
 
             // Avoid duplicate tags

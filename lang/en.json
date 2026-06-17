@@ -289,6 +289,8 @@
     "name_cannot_empty": "Name cannot be empty",
     "server_cannot_empty": "Server address cannot be empty",
     "invalid_port": "Invalid port (1-65535)",
+    "proxy_type": "Proxy Type",
+    "username_optional": "Username (optional)",
     "zzzzzeof": "Zzzzzeof",
     "prestart_repair_title": "Clean Up Orphan Processes",
     "prestart_detecting": "Orphan processes detected",

@@ -110,7 +110,7 @@ function ServersPage() {
                     {s.name}
                   </div>
                   <div className="text-xs text-[var(--aurorabox-label-secondary)] font-mono truncate">
-                    {s.server_address}:{s.server_port} · {s.encryption_method}
+                    {s.server_address}:{s.server_port} · {(s as any).proxy_type === 'socks5' ? 'SOCKS5' : (s as any).proxy_type === 'http' ? 'HTTP' : s.encryption_method}
                   </div>
                 </div>
 
