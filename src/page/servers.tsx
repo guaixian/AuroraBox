@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import useSWR from "swr";
 import { CloudPlus, Clipboard, Pencil, Server, Speedometer2, Trash3 } from "react-bootstrap-icons";
-import { addGroupMember, deleteProxyGroup, deleteProxyServer, getGroupMembers, getProxyGroups, getProxyServers, insertProxyGroup, removeGroupMember, setActiveProxyGroup, setActiveProxyServer } from "../action/db";
+import { addGroupMember, deleteProxyGroup, deleteProxyServer, getGroupMembers, getProxyGroups, getProxyServers, insertProxyGroup, removeGroupMember, setActiveProxyGroup } from "../action/db";
 import { GET_PROXY_GROUPS_SWR_KEY, GET_PROXY_SERVERS_SWR_KEY } from "../types/definition";
 import type { ProxyGroup, ProxyServer } from "../types/definition";
 import { t } from "../utils/helper";
@@ -62,7 +62,6 @@ function ServersPage() {
     return () => document.removeEventListener("paste", handler);
   }, []);
   const handleDelete = async (id: string) => { try { await deleteProxyServer(id); refresh(); } catch (e) { toast.error(String(e)); } };
-  const handleSetActive = async (id: string) => { try { await setActiveProxyServer(id); refresh(); } catch (e) { toast.error(String(e)); } };
   const handleEdit = (s: ProxyServer) => { setEditServer(s); setAddVisible(true); };
   const handleAdd = () => { setEditServer(null); setAddVisible(true); };
 
@@ -301,7 +300,6 @@ function ServersPage() {
               <div key={s.identifier} className="border-b border-[var(--aurorabox-separator)] last:border-b-0">
                 <button onClick={() => setExpandedId(expandedId === s.identifier ? null : s.identifier)}
                   className="w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-[var(--aurorabox-row-hover)] transition-colors">
-                  <div className={`w-2.5 h-2.5 rounded-full flex-shrink-0 ${s.is_active ? "bg-[var(--aurorabox-green)]" : "bg-[var(--aurorabox-fill-strong)]"}`} />
                   <div className="min-w-0 flex-1">
                     <div className="font-medium text-[var(--aurorabox-label)] text-sm truncate">{s.name}</div>
                     <div className="text-xs text-[var(--aurorabox-label-secondary)] font-mono truncate">
@@ -332,8 +330,6 @@ function ServersPage() {
 
                 {expandedId === s.identifier && (
                   <div className="flex gap-1 px-4 pb-3 flex-wrap">
-                    {!s.is_active && <button onClick={() => handleSetActive(s.identifier)} className="flex items-center gap-1 px-3 py-1.5 text-xs rounded-md bg-[var(--aurorabox-green)]/10 text-[var(--aurorabox-green)] hover:brightness-95">{t("set_active")}</button>}
-                    {s.is_active && <span className="flex items-center gap-1 px-3 py-1.5 text-xs rounded-md bg-[var(--aurorabox-green)]/10 text-[var(--aurorabox-green)]">{t("active")}</span>}
                     <button onClick={() => runTests(s, "latency")} disabled={isTesting(s, "latency")}
                       className="flex items-center gap-1 px-3 py-1.5 text-xs rounded-md bg-[var(--aurorabox-fill)] text-[var(--aurorabox-label)] hover:brightness-95 disabled:opacity-50">
                       ⏱ {isTesting(s, "latency") ? "..." : t("test_latency")}
