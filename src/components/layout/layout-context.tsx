@@ -10,8 +10,8 @@ interface LayoutContextType {
 }
 
 const LayoutContext = createContext<LayoutContextType>({
-  isCompact: true,
-  layout: "compact",
+  isCompact: false,
+  layout: "regular",
 });
 
 export function useLayout() {
@@ -21,25 +21,24 @@ export function useLayout() {
 const COMPACT_BREAKPOINT = 640;
 
 export function LayoutProvider({ children }: { children: React.ReactNode }) {
-  const [isCompact, setIsCompact] = useState(() => {
-    if (typeof window !== "undefined") {
-      return window.innerWidth < COMPACT_BREAKPOINT;
-    }
-    return true;
-  });
+  // Start with false (desktop) — on first render the Tauri window may not
+  // have reached its target size yet. We measure immediately after mount
+  // and switch to compact only if the window is genuinely narrow.
+  const [isCompact, setIsCompact] = useState(false);
 
   useEffect(() => {
     const check = () => {
       setIsCompact(window.innerWidth < COMPACT_BREAKPOINT);
     };
 
-    window.addEventListener("resize", check);
-    // The Tauri window may transition between sizes without a resize event
-    // during initial layout; check once more after a short delay.
-    const timer = setTimeout(check, 100);
+    // Check as soon as the frame paints, then again after layout stabilises
+    const raf = requestAnimationFrame(check);
+    const timer = setTimeout(check, 200);
 
+    window.addEventListener("resize", check);
     return () => {
       window.removeEventListener("resize", check);
+      cancelAnimationFrame(raf);
       clearTimeout(timer);
     };
   }, []);
