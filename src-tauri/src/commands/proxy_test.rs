@@ -2,14 +2,14 @@
 //!
 //! 3-layer model:
 //!   1. TCP  — raw socket connect latency (ms)
-//!   2. HTTP — real delay through proxy chain (ms), using gstatic.com/generate_204
-//!   3. Speed — download throughput through proxy (KB/s), using tele2.net test file
+//!   2. HTTP — real delay through proxy chain (ms)
+//!   3. Speed — download throughput through proxy (KB/s), using curl for accuracy
 //!
 //! Emits `proxy-test-result` events after each server test so the frontend
 //! can update the UI in real-time without waiting for all servers to finish.
 
-use std::io::{Read, Write};
 use std::net::{TcpStream, ToSocketAddrs};
+use std::process::Command;
 use std::time::{Duration, Instant};
 
 use serde::Serialize;
@@ -27,138 +27,6 @@ pub struct ProxyTestResult {
     pub real_ms: Option<u64>,
     pub speed_kbps: Option<f64>,
     pub error: Option<String>,
-}
-
-// ── Test URLs ──────────────────────────────────────────────────────
-
-/// Latency probe: tiny HTTP 204 response
-const LATENCY_URL: &str = "http://www.gstatic.com/generate_204";
-/// Speed test: reliable HTTP download (10 MB)
-const SPEED_URL: &str = "http://speedtest.tele2.net/10MB.zip";
-/// How long to wait for speed download
-const SPEED_TIMEOUT_SECS: u64 = 45;
-
-// ── Rust HTTP client through HTTP proxy ────────────────────────────
-
-struct ProxyHttpResponse {
-    status: u16,
-    body_len: usize,
-    elapsed_ms: u64,
-}
-
-/// Send HTTP GET through an HTTP proxy (e.g., sing-box mixed inbound)
-/// and return status + body length + elapsed time.
-fn http_get_via_proxy(
-    proxy_port: u16,
-    url: &str,
-    timeout: Duration,
-) -> Result<ProxyHttpResponse, String> {
-    let start = Instant::now();
-
-    // Parse URL
-    let (host, port, path) = parse_http_url(url)?;
-
-    let addr = format!("127.0.0.1:{}", proxy_port)
-        .to_socket_addrs()
-        .map_err(|e| format!("resolve proxy: {}", e))?
-        .next()
-        .ok_or("no proxy addr")?;
-
-    let mut sock = TcpStream::connect_timeout(&addr, timeout)
-        .map_err(|e| format!("connect proxy: {}", e))?;
-    sock.set_read_timeout(Some(timeout))
-        .map_err(|e| format!("timeout: {}", e))?;
-
-    // HTTP proxy: absolute URL in request line
-    let host_header = if port == 80 {
-        host.clone()
-    } else {
-        format!("{}:{}", host, port)
-    };
-    let abs_url = if port == 80 {
-        format!("http://{}{}", host, path)
-    } else {
-        format!("http://{}:{}{}", host, port, path)
-    };
-    let req = format!(
-        "GET {} HTTP/1.0\r\nHost: {}\r\nUser-Agent: AuroraBox/1.0\r\nConnection: close\r\n\r\n",
-        abs_url, host_header
-    );
-
-    sock.write_all(req.as_bytes())
-        .map_err(|e| format!("write: {}", e))?;
-
-    // Read response
-    let mut buf = vec![0u8; 32768];
-    let mut all = Vec::new();
-    loop {
-        match sock.read(&mut buf) {
-            Ok(0) => break,
-            Ok(n) => {
-                all.extend_from_slice(&buf[..n]);
-                if all.len() > 50 * 1024 * 1024 {
-                    break;
-                }
-            }
-            Err(ref e) if e.kind() == std::io::ErrorKind::WouldBlock => break,
-            Err(ref e) if e.kind() == std::io::ErrorKind::TimedOut => break,
-            Err(_) => break,
-        }
-    }
-
-    let elapsed_ms = start.elapsed().as_millis() as u64;
-
-    // Parse status code
-    let status = if let Some(body_start) = find_header_end(&all) {
-        let hdr = String::from_utf8_lossy(&all[..body_start]);
-        hdr.lines()
-            .next()
-            .and_then(|l| {
-                let parts: Vec<&str> = l.split_whitespace().collect();
-                if parts.len() >= 2 {
-                    parts[1].parse().ok()
-                } else {
-                    None
-                }
-            })
-            .unwrap_or(0)
-    } else {
-        0
-    };
-    let body_len = all.len().saturating_sub(
-        find_header_end(&all).unwrap_or(0)
-    );
-
-    // Accept 2xx and 3xx (redirect) — many test URLs redirect
-    if status < 200 || status >= 400 {
-        return Err(format!("HTTP {}", status));
-    }
-
-    Ok(ProxyHttpResponse { status, body_len, elapsed_ms })
-}
-
-fn parse_http_url(url: &str) -> Result<(String, u16, String), String> {
-    let s = url
-        .strip_prefix("http://")
-        .ok_or("only http:// supported")?;
-    let slash = s.find('/').unwrap_or(s.len());
-    let host_part = &s[..slash];
-    let path = if slash < s.len() { &s[slash..] } else { "/" };
-    let (host, port) = if let Some(c) = host_part.find(':') {
-        (host_part[..c].to_string(), host_part[c + 1..].parse::<u16>().unwrap_or(80))
-    } else {
-        (host_part.to_string(), 80u16)
-    };
-    Ok((host, port, path.to_string()))
-}
-
-fn find_header_end(data: &[u8]) -> Option<usize> {
-    for i in 0..data.len().saturating_sub(3) {
-        if &data[i..i + 4] == b"\r\n\r\n" {
-            return Some(i + 4);
-        }
-    }
-    None
 }
 
 // ── TCP ping ───────────────────────────────────────────────────────
@@ -258,26 +126,50 @@ pub async fn run_singbox_tests(
 
         sleep(Duration::from_millis(500)).await;
 
-        // ── Layer 2: Real HTTP latency ─────────────────────────────
-        let (real_ms, real_error) = match http_get_via_proxy(
-            test_port, LATENCY_URL, Duration::from_secs(10),
-        ) {
-            Ok(resp) => (Some(resp.elapsed_ms), None),
-            Err(e) => (None, Some(e)),
-        };
-
-        // ── Layer 3: Speed test ────────────────────────────────────
-        let (speed_kbps, speed_error) = match http_get_via_proxy(
-            test_port, SPEED_URL, Duration::from_secs(SPEED_TIMEOUT_SECS),
-        ) {
-            Ok(resp) if resp.body_len > 0 => {
-                let secs = (resp.elapsed_ms as f64) / 1000.0;
-                let kbps = (resp.body_len as f64) / 1024.0 / secs.max(0.5);
-                (Some(kbps), None)
+        // ── Layer 2: Real HTTP latency via curl ────────────────────
+        let real_ms = {
+            let proxy = format!("http://127.0.0.1:{}", test_port);
+            let out = Command::new("curl")
+                .args([
+                    "-x", &proxy,
+                    "-s", "-o", "/dev/null", "-w", "%{time_total}",
+                    "--connect-timeout", "5", "--max-time", "8",
+                    "http://www.gstatic.com/generate_204",
+                ])
+                .output();
+            match out {
+                Ok(o) if o.status.success() => {
+                    let secs: f64 = String::from_utf8_lossy(&o.stdout).trim().parse().unwrap_or(0.0);
+                    if secs > 0.0 { Some((secs * 1000.0) as u64) } else { None }
+                }
+                _ => None,
             }
-            Ok(_) => (None, Some("empty response".to_string())),
-            Err(e) => (None, Some(e)),
         };
+        let real_error = if real_ms.is_none() { Some("curl timeout".to_string()) } else { None };
+
+        // ── Layer 3: Speed test via curl (accurate, fast) ───────────
+        // curl provides accurate download throughput measurement.
+        let speed_kbps = {
+            let proxy = format!("http://127.0.0.1:{}", test_port);
+            let start = Instant::now();
+            let out = Command::new("curl")
+                .args([
+                    "-x", &proxy,
+                    "-s", "-o", "/dev/null", "-w", "%{speed_download}",
+                    "--connect-timeout", "5", "--max-time", "30",
+                    "http://cachefly.cachefly.net/10mb.test",
+                ])
+                .output();
+            let elapsed = start.elapsed().as_secs_f64().max(0.5);
+            match out {
+                Ok(o) if o.status.success() => {
+                    let bps: f64 = String::from_utf8_lossy(&o.stdout).trim().parse().unwrap_or(0.0);
+                    if bps > 0.0 { Some(bps / 1024.0) } else { None }
+                }
+                _ => None,
+            }
+        };
+        let speed_error = if speed_kbps.is_none() { Some("curl failed".to_string()) } else { None };
 
         let error = if real_ms.is_none() && speed_kbps.is_none() {
             let combined = [
