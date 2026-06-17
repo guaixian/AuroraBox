@@ -77,8 +77,25 @@ export type SubscriptionConfig = {
 }
 
 
+export type ProxyServer = {
+    id: number
+    identifier: string
+    name: string
+    server_address: string
+    server_port: number
+    password: string
+    encryption_method: string
+    plugin: string
+    plugin_opts: string
+    is_active: number
+    created_at: number
+    updated_at: number
+}
+
 // 获取订阅列表的 SWR 键
 export const GET_SUBSCRIPTIONS_LIST_SWR_KEY = 'get-subscriptions-list'
+// 获取代理服务器列表的 SWR 键
+export const GET_PROXY_SERVERS_SWR_KEY = 'get-proxy-servers-list'
 
 export interface TerminatedPayload {
     code: number | null;

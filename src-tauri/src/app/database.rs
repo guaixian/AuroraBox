@@ -26,11 +26,37 @@ CREATE TABLE subscription_configs (
 PRAGMA foreign_keys = ON;
 "#;
 
+const SQL_2: &str = r#"
+CREATE TABLE proxy_servers (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    identifier TEXT NOT NULL UNIQUE,
+    name TEXT NOT NULL,
+    server_address TEXT NOT NULL,
+    server_port INTEGER NOT NULL,
+    password TEXT NOT NULL,
+    encryption_method TEXT NOT NULL,
+    plugin TEXT DEFAULT '',
+    plugin_opts TEXT DEFAULT '',
+    is_active INTEGER DEFAULT 0,
+    created_at INTEGER NOT NULL DEFAULT (strftime('%s', 'now')),
+    updated_at INTEGER NOT NULL DEFAULT (strftime('%s', 'now'))
+);
+CREATE UNIQUE INDEX idx_proxy_servers_active ON proxy_servers(is_active) WHERE is_active = 1;
+"#;
+
 pub fn get_migrations() -> Vec<Migration> {
-    vec![Migration {
-        version: 1,
-        description: "create_initial_tables",
-        sql: SQL_1,
-        kind: MigrationKind::Up,
-    }]
+    vec![
+        Migration {
+            version: 1,
+            description: "create_initial_tables",
+            sql: SQL_1,
+            kind: MigrationKind::Up,
+        },
+        Migration {
+            version: 2,
+            description: "create_proxy_servers_table",
+            sql: SQL_2,
+            kind: MigrationKind::Up,
+        },
+    ]
 }

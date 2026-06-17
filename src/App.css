@@ -841,3 +841,92 @@ main.aurorabox-surface {
   padding: 0 2px;
   border-radius: 3px;
 }
+
+/* ── Desktop Shell ───────────────────────────────────────────── */
+
+.aurorabox-desktop-shell {
+  display: flex;
+  height: 100vh;
+  background: var(--aurorabox-bg);
+  color: var(--aurorabox-label);
+  font-family: ui-sans-serif, -apple-system, "SF Pro Text", system-ui, sans-serif;
+  overflow: hidden;
+}
+
+/* ── Sidebar ─────────────────────────────────────────────────── */
+
+.aurorabox-sidebar {
+  width: 220px;
+  min-width: 220px;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  background: var(--aurorabox-card);
+  border-right: 1px solid var(--aurorabox-separator);
+  padding: 12px 8px;
+}
+
+.aurorabox-sidebar-top,
+.aurorabox-sidebar-bottom {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.aurorabox-sidebar-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  height: 36px;
+  padding: 0 12px;
+  border-radius: 8px;
+  border: none;
+  background: transparent;
+  color: var(--aurorabox-label-secondary);
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 0.12s ease, color 0.12s ease;
+  text-align: left;
+  width: 100%;
+}
+
+.aurorabox-sidebar-item:hover {
+  background: var(--aurorabox-row-hover);
+  color: var(--aurorabox-label);
+}
+
+.aurorabox-sidebar-item[data-active="true"] {
+  background: rgba(10, 132, 255, 0.12);
+  color: var(--aurorabox-blue);
+}
+
+.aurorabox-sidebar-label {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* ── Desktop Content Area ────────────────────────────────────── */
+
+.aurorabox-desktop-content {
+  flex: 1;
+  min-width: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  background: var(--aurorabox-bg);
+}
+
+/* When in desktop mode, remove page width cap so content fills */
+.aurorabox-desktop-content .aurorabox-page-inner {
+  max-width: none;
+  margin: 0;
+}
+
+/* Desktop page: wider cards, more horizontal space */
+.aurorabox-desktop-content .aurorabox-grouped-card {
+  max-width: none;
+  margin-left: 16px;
+  margin-right: 16px;
+}

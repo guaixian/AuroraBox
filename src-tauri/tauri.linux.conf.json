@@ -6,12 +6,14 @@
     "windows": [
       {
         "devtools": true,
-        "maximizable": false,
+        "maximizable": true,
         "decorations": true,
-        "resizable": false,
+        "resizable": true,
         "title": "AuroraBox",
-        "width": 320,
-        "height": 600
+        "width": 900,
+        "height": 650,
+        "minWidth": 371,
+        "minHeight": 514
       }
     ],
     "security": {

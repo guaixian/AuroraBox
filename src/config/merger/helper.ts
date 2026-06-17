@@ -152,3 +152,84 @@ export async function configureMixedInbound(newConfig: any, allowLan: boolean, b
         mixedInbound.listen_port = await getProxyPort();
     }
 }
+
+/**
+ * Merge manually-configured proxy servers (Shadowsocks, etc.) into the
+ * sing-box config template. Appends each server as a sing-box outbound
+ * and wires them into the ExitGateway selector and auto urltest group.
+ *
+ * The template's outbounds array is expected to have:
+ *   [0] = direct
+ *   [1] = selector (ExitGateway) with an "outbounds" array of tags
+ *   [2] = urltest (auto) with an "outbounds" array of tags
+ */
+export async function mergeManualServersConfig(newConfig: any): Promise<void> {
+    try {
+        const { getProxyServers } = await import("../../action/db");
+        const servers = await getProxyServers();
+        if (!servers || servers.length === 0) return;
+
+        const outbound_groups = newConfig["outbounds"];
+        if (!outbound_groups || outbound_groups.length < 3) return;
+
+        const selectorIdx = outbound_groups.findIndex(
+            (g: any) => g.type === "selector" && g.tag === "ExitGateway"
+        );
+        const urltestIdx = outbound_groups.findIndex(
+            (g: any) => g.type === "urltest" && g.tag === "auto"
+        );
+        if (selectorIdx === -1 || urltestIdx === -1) return;
+
+        const outboundsSelector = outbound_groups[selectorIdx]["outbounds"];
+        const outboundsUrltest = outbound_groups[urltestIdx]["outbounds"];
+
+        let activeTag: string | null = null;
+
+        for (const server of servers) {
+            const tag = `ss-${server.identifier.slice(0, 8)}`;
+
+            const outbound: any = {
+                tag,
+                type: "shadowsocks",
+                server: server.server_address,
+                server_port: server.server_port,
+                method: server.encryption_method,
+                password: server.password,
+                domain_resolver: "system",
+            };
+            if (server.plugin) {
+                outbound.plugin = server.plugin;
+                outbound.plugin_opts = server.plugin_opts;
+            }
+
+            // Avoid duplicate tags
+            const existing = outbound_groups.find((g: any) => g.tag === tag);
+            if (existing) continue;
+
+            outboundsSelector.push(tag);
+            outboundsUrltest.push(tag);
+            outbound_groups.push(outbound);
+
+            if (server.is_active) {
+                activeTag = tag;
+            }
+        }
+
+        // If there is an active server, move its tag to the front of the
+        // selector so sing-box picks it as the default instead of "auto".
+        if (activeTag) {
+            const idx = outboundsSelector.indexOf(activeTag);
+            if (idx > 0) {
+                outboundsSelector.splice(idx, 1);
+                outboundsSelector.unshift(activeTag);
+            }
+        }
+
+        console.log(
+            `[mergeManualServers] merged ${servers.length} manual server(s)` +
+            (activeTag ? `, active=${activeTag}` : "")
+        );
+    } catch (e) {
+        console.warn("[mergeManualServers] skipped — error:", e);
+    }
+}

@@ -3,7 +3,7 @@ import { invoke } from '@tauri-apps/api/core';
 import { readTextFile } from '@tauri-apps/plugin-fs';
 import { toast } from 'sonner';
 import { getDataBaseInstance } from '../single/db';
-import { Subscription, SubscriptionConfig } from '../types/definition';
+import { ProxyServer, Subscription, SubscriptionConfig } from '../types/definition';
 import { getSingBoxUserAgent, t } from '../utils/helper';
 
 
@@ -339,4 +339,84 @@ export async function getSubscriptionConfig(identifier: string) {
         toast.error(t('get_subscription_config_failed'))
     }
 
+}
+
+// ── Proxy Server CRUD ────────────────────────────────────────────────
+
+function uuidHexNoDash(): string {
+    return crypto.randomUUID().replace(/-/g, "");
+}
+
+export async function getProxyServers(): Promise<ProxyServer[]> {
+    const db = await getDataBaseInstance();
+    return db.select('SELECT * FROM proxy_servers ORDER BY is_active DESC, name ASC');
+}
+
+export async function insertProxyServer(server: Omit<ProxyServer, "id" | "identifier" | "is_active" | "created_at" | "updated_at">): Promise<string> {
+    const db = await getDataBaseInstance();
+    const identifier = uuidHexNoDash();
+    const now = Math.floor(Date.now() / 1000);
+    await db.execute(
+        `INSERT INTO proxy_servers (identifier, name, server_address, server_port, password, encryption_method, plugin, plugin_opts, created_at, updated_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        [identifier, server.name, server.server_address, server.server_port, server.password, server.encryption_method, server.plugin || '', server.plugin_opts || '', now, now]
+    );
+    return identifier;
+}
+
+export async function updateProxyServer(identifier: string, server: Partial<Omit<ProxyServer, "id" | "identifier" | "created_at">>): Promise<void> {
+    const db = await getDataBaseInstance();
+    const now = Math.floor(Date.now() / 1000);
+    const sets: string[] = [];
+    const params: any[] = [];
+    const fields: (keyof typeof server)[] = ["name", "server_address", "server_port", "password", "encryption_method", "plugin", "plugin_opts"];
+    for (const f of fields) {
+        const v = server[f];
+        if (v !== undefined) {
+            sets.push(`${f} = ?`);
+            params.push(v);
+        }
+    }
+    if (sets.length === 0) return;
+    sets.push(`updated_at = ?`);
+    params.push(now);
+    params.push(identifier);
+    await db.execute(`UPDATE proxy_servers SET ${sets.join(', ')} WHERE identifier = ?`, params);
+}
+
+export async function deleteProxyServer(identifier: string): Promise<void> {
+    const db = await getDataBaseInstance();
+    await db.execute('DELETE FROM proxy_servers WHERE identifier = ?', [identifier]);
+}
+
+export async function setActiveProxyServer(identifier: string | null): Promise<void> {
+    const db = await getDataBaseInstance();
+    await db.execute('UPDATE proxy_servers SET is_active = 0 WHERE is_active = 1');
+    if (identifier) {
+        await db.execute('UPDATE proxy_servers SET is_active = 1 WHERE identifier = ?', [identifier]);
+    }
+}
+
+export async function batchInsertProxyServers(servers: Omit<ProxyServer, "id" | "identifier" | "is_active" | "created_at" | "updated_at">[]): Promise<string[]> {
+    const db = await getDataBaseInstance();
+    const identifiers: string[] = [];
+    const now = Math.floor(Date.now() / 1000);
+    // Use a transaction for batch inserts
+    await db.execute('BEGIN');
+    try {
+        for (const server of servers) {
+            const identifier = uuidHexNoDash();
+            await db.execute(
+                `INSERT INTO proxy_servers (identifier, name, server_address, server_port, password, encryption_method, plugin, plugin_opts, created_at, updated_at)
+                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+                [identifier, server.name, server.server_address, server.server_port, server.password, server.encryption_method, server.plugin || '', server.plugin_opts || '', now, now]
+            );
+            identifiers.push(identifier);
+        }
+        await db.execute('COMMIT');
+    } catch (e) {
+        await db.execute('ROLLBACK');
+        throw e;
+    }
+    return identifiers;
 }
