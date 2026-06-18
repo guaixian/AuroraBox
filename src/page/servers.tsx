@@ -30,6 +30,19 @@ function ServersPage() {
   const [groupType, setGroupType] = useState<"fixed"|"auto"|"random"|"chain">("fixed");
   const [expandedGroupId, setExpandedGroupId] = useState<string | null>(null);
   const [groupMembers, setGroupMembers] = useState<Record<string, any[]>>({});
+  const [memberCounts, setMemberCounts] = useState<Record<string, number>>({});
+
+  // Pre-load member counts for all groups (no need to expand)
+  useEffect(() => {
+    (async () => {
+      const counts: Record<string, number> = {};
+      for (const g of (groups || [])) {
+        const m = await getGroupMembers(g.identifier);
+        counts[g.identifier] = m.length;
+      }
+      setMemberCounts(counts);
+    })();
+  }, [groups]);
 
   const refresh = () => mutate();
 
@@ -125,6 +138,7 @@ function ServersPage() {
   const refreshGroupMembers = async (g: ProxyGroup) => {
     const members = await getGroupMembers(g.identifier);
     setGroupMembers(prev => ({ ...prev, [g.identifier]: members }));
+    setMemberCounts(prev => ({ ...prev, [g.identifier]: members.length }));
     window.dispatchEvent(new CustomEvent("group-members-changed"));
   };
 
@@ -381,6 +395,7 @@ function ServersPage() {
                 <div className={`w-2.5 h-2.5 rounded-full ${g.is_active ? "bg-[var(--aurorabox-green)]" : "bg-[var(--aurorabox-fill-strong)]"}`} />
                 <span className="font-medium text-sm text-[var(--aurorabox-label)]">{g.name}</span>
                 <span className="text-[10px] px-1.5 py-0.5 rounded bg-[var(--aurorabox-blue)]/10 text-[var(--aurorabox-blue)]">{GROUP_TYPE_LABELS[g.group_type] || g.group_type}</span>
+                <span className="text-[10px] text-[var(--aurorabox-label-tertiary)]">{memberCounts[g.identifier] ?? 0} 个节点</span>
                 <div className="flex-1" />
                 {g.is_active && <span className="text-[10px] px-2 py-0.5 rounded bg-[var(--aurorabox-green)]/10 text-[var(--aurorabox-green)]">活跃</span>}
                 <button onClick={(e) => { e.stopPropagation(); handleDeleteGroup(g.identifier); }} className="text-[10px] px-2 py-1 rounded bg-[var(--aurorabox-red)]/10 text-[var(--aurorabox-red)]">删除</button>
