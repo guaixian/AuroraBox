@@ -108,7 +108,7 @@ function ServersPage() {
   // ── Group management ──────────────────────────────────────────────
   const handleCreateGroup = async () => {
     if (!groupName.trim()) return;
-    try { await insertProxyGroup(groupName.trim(), groupType); mutateGroups(); setGroupName(""); setShowGroupForm(false); } catch (e: any) { toast.error(String(e)); }
+    try { await insertProxyGroup(groupName.trim(), groupType); mutateGroups(); notifyMembersChanged(); setGroupName(""); setShowGroupForm(false); } catch (e: any) { toast.error(String(e)); }
   };
   const handleDeleteGroup = async (id: string) => { try { await deleteProxyGroup(id); mutateGroups(); } catch (e: any) { toast.error(String(e)); } };
   // Group activation is handled on the home page
@@ -120,15 +120,22 @@ function ServersPage() {
       setExpandedGroupId(g.identifier);
     } catch (e: any) { toast.error(String(e)); }
   };
+  const notifyMembersChanged = () => window.dispatchEvent(new CustomEvent("group-members-changed"));
+
   const handleAddToGroup = async (g: ProxyGroup, s: ProxyServer) => {
     try {
       const members = await getGroupMembers(g.identifier);
       await addGroupMember(g.identifier, s.identifier, members.length);
       setGroupMembers(prev => ({ ...prev, [g.identifier]: [...(prev[g.identifier] || []), { server_identifier: s.identifier, sort_order: members.length }] }));
+      notifyMembersChanged();
     } catch (e: any) { toast.error(String(e)); }
   };
   const handleRemoveFromGroup = async (g: ProxyGroup, serverId: string) => {
-    try { await removeGroupMember(g.identifier, serverId); setGroupMembers(prev => ({ ...prev, [g.identifier]: (prev[g.identifier] || []).filter((m: any) => m.server_identifier !== serverId) })); } catch (e: any) { toast.error(String(e)); }
+    try {
+      await removeGroupMember(g.identifier, serverId);
+      setGroupMembers(prev => ({ ...prev, [g.identifier]: (prev[g.identifier] || []).filter((m: any) => m.server_identifier !== serverId) }));
+      notifyMembersChanged();
+    } catch (e: any) { toast.error(String(e)); }
   };
   const handleReorderMember = async (g: ProxyGroup, serverId: string, direction: "up" | "down") => {
     const members = groupMembers[g.identifier] || [];

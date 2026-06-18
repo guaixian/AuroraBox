@@ -36,18 +36,25 @@ export default function Body({ isRunning, onUpdate }: { isRunning: boolean; onUp
     getProxyServers().then(setAllServers);
   }, [groups]);
 
-  // When active group changes externally, load its members
-  useEffect(() => {
+  const reloadMembers = async () => {
     if (!active) {
       setAllNodesMode(true);
       setMembers([]);
       return;
     }
-    setAllNodesMode(false);
-    getGroupMembers(active.identifier).then(m => {
-      setMembers(m);
-      if (m.length > 0) setSelectedId(m[0].server_identifier);
-    });
+    const m = await getGroupMembers(active.identifier);
+    setMembers(m);
+    if (m.length > 0) setSelectedId(prev => prev && m.some((x: any) => x.server_identifier === prev) ? prev : m[0].server_identifier);
+  };
+
+  // When active group changes, reload members
+  useEffect(() => { reloadMembers(); }, [active?.identifier]);
+
+  // Listen for member changes from servers page
+  useEffect(() => {
+    const handler = () => reloadMembers();
+    window.addEventListener("group-members-changed", handler);
+    return () => window.removeEventListener("group-members-changed", handler);
   }, [active?.identifier]);
 
   // ── Switch to "全部节点" mode ─────────────────────────────────────
