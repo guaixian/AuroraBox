@@ -122,21 +122,23 @@ function ServersPage() {
   };
   const notifyMembersChanged = () => window.dispatchEvent(new CustomEvent("group-members-changed"));
 
+  const refreshGroupMembers = async (g: ProxyGroup) => {
+    const members = await getGroupMembers(g.identifier);
+    setGroupMembers(prev => ({ ...prev, [g.identifier]: members }));
+    window.dispatchEvent(new CustomEvent("group-members-changed"));
+  };
+
   const handleAddToGroup = async (g: ProxyGroup, s: ProxyServer) => {
     try {
       await addGroupMember(g.identifier, s.identifier, 0);
-      // Reload from DB for accurate state
-      const members = await getGroupMembers(g.identifier);
-      setGroupMembers(prev => ({ ...prev, [g.identifier]: members }));
-      notifyMembersChanged();
+      await refreshGroupMembers(g);
+      toast.success(`已添加 ${s.name}`);
     } catch (e: any) { toast.error(String(e)); }
   };
   const handleRemoveFromGroup = async (g: ProxyGroup, serverId: string) => {
     try {
       await removeGroupMember(g.identifier, serverId);
-      const members = await getGroupMembers(g.identifier);
-      setGroupMembers(prev => ({ ...prev, [g.identifier]: members }));
-      notifyMembersChanged();
+      await refreshGroupMembers(g);
     } catch (e: any) { toast.error(String(e)); }
   };
   const handleReorderMember = async (g: ProxyGroup, serverId: string, direction: "up" | "down") => {
@@ -152,9 +154,7 @@ function ServersPage() {
       for (let i = 0; i < reordered.length; i++) {
         await addGroupMember(g.identifier, reordered[i].server_identifier, i);
       }
-      const fresh = await getGroupMembers(g.identifier);
-      setGroupMembers(prev => ({ ...prev, [g.identifier]: fresh }));
-      notifyMembersChanged();
+      await refreshGroupMembers(g);
     } catch (e: any) { toast.error(String(e)); }
   };
   const GROUP_TYPE_LABELS: Record<string, string> = { fixed: "手动选择", auto: "自动最优", random: "随机切换", chain: "链路代理" };
