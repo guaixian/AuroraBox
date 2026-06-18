@@ -464,6 +464,8 @@ export async function getGroupMembers(groupId: string): Promise<ProxyGroupMember
 
 export async function addGroupMember(groupId: string, serverId: string, order: number): Promise<void> {
     const db = await getDataBaseInstance();
+    // Delete any existing entry first (upsert), then insert
+    await db.execute('DELETE FROM proxy_group_members WHERE group_identifier = ? AND server_identifier = ?', [groupId, serverId]);
     await db.execute(
         'INSERT INTO proxy_group_members (group_identifier, server_identifier, sort_order) VALUES (?, ?, ?)',
         [groupId, serverId, order]
