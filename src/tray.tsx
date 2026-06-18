@@ -80,13 +80,13 @@ async function createModeMenuItems(): Promise<NonNullable<MenuOptions['items']>>
 
     return [
         {
-            id: 'mode_item',
-            text: t("routing_mode") || "Routing Mode",
+            id: 'mode_label',
+            text: t("routing_mode") || "Mode",
             enabled: false,
         },
         {
             id: 'mode_rules',
-            text: t("rules_mode") || "Rules",
+            text: t("rules_mode"),
             checked: mode === 'rules' && !tunMode,
             action: async () => {
                 await setStoreValue(RULE_MODE_STORE_KEY, 'rules');
@@ -98,7 +98,7 @@ async function createModeMenuItems(): Promise<NonNullable<MenuOptions['items']>>
         },
         {
             id: 'mode_global',
-            text: t("global_mode") || "Global",
+            text: t("global_mode"),
             checked: mode === 'global' && !tunMode,
             action: async () => {
                 await setStoreValue(RULE_MODE_STORE_KEY, 'global');
@@ -110,7 +110,7 @@ async function createModeMenuItems(): Promise<NonNullable<MenuOptions['items']>>
         },
         {
             id: 'mode_tun',
-            text: "TUN",
+            text: t("tun_mode"),
             checked: tunMode,
             action: async () => {
                 await setStoreValue(ENABLE_TUN_STORE_KEY, true);
