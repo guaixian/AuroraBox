@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState } from "react";
 import useSWR from "swr";
 import { ChevronDown } from "react-bootstrap-icons";
 import { getProxyGroups, getGroupMembers, setActiveProxyGroup, getProxyServers, setActiveProxyServer } from "../../action/db";
@@ -31,46 +31,35 @@ export default function Body({ isRunning, onUpdate }: { isRunning: boolean; onUp
   const [allNodesMode, setAllNodesMode] = useState(true);
   const active = (groups || []).find(g => g.is_active);
 
-  // Load all servers on mount
+  // Load all servers on mount and refresh when groups change
   useEffect(() => {
     getProxyServers().then(setAllServers);
-  }, []);
+  }, [groups]);
 
-  // Load members when active group changes
-  const loadMembers = useCallback(async () => {
+  // When active group changes externally, load its members
+  useEffect(() => {
     if (!active) {
+      setAllNodesMode(true);
       setMembers([]);
-      // Refresh all servers list
-      const s = await getProxyServers();
-      setAllServers(s);
-      if (allNodesMode) {
-        // Find currently active server
-        const act = s.find((x: any) => x.is_active);
-        setSelectedId(act?.identifier || null);
-      } else {
-        setSelectedId(null);
-      }
       return;
     }
     setAllNodesMode(false);
-    const m = await getGroupMembers(active.identifier);
-    const s = await getProxyServers();
-    setAllServers(s);
-    setMembers(m);
-    if (m.length > 0) setSelectedId(m[0].server_identifier);
-    else setSelectedId(null);
+    getGroupMembers(active.identifier).then(m => {
+      setMembers(m);
+      if (m.length > 0) setSelectedId(m[0].server_identifier);
+    });
   }, [active?.identifier]);
-
-  useEffect(() => { loadMembers(); }, [loadMembers]);
 
   // ── Switch to "全部节点" mode ─────────────────────────────────────
   const handleSelectAllNodes = async () => {
     setOpen(false);
-    if (allNodesMode && !active) return; // already in this mode
+    if (allNodesMode && !active) return;
     setSwitching(true);
     try {
-      // Deactivate any active group
-      if (active) await setActiveProxyGroup(null);
+      if (active) {
+        await setActiveProxyGroup(null);
+        // useSWR + effect will pick up the change and set allNodesMode=true
+      }
       setAllNodesMode(true);
       setMembers([]);
       const s = await getProxyServers();
@@ -87,10 +76,12 @@ export default function Body({ isRunning, onUpdate }: { isRunning: boolean; onUp
     setSwitching(true);
     try {
       await setActiveProxyGroup(g.identifier);
-      setAllNodesMode(false);
+      // useEffect will pick up the active change and load members
+      // Pre-load immediately for responsiveness
       const m = await getGroupMembers(g.identifier);
       const s = await getProxyServers();
       setAllServers(s);
+      setAllNodesMode(false);
       setMembers(m);
       if (m.length > 0) setSelectedId(m[0].server_identifier);
       await vpnServiceManager.syncConfig({});
