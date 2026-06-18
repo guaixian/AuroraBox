@@ -448,6 +448,8 @@ export async function mergeProxyGroupsConfig(newConfig: any): Promise<void> {
 
             if (!tags.length) continue;
 
+            console.log(`[mergeProxyGroups] group=${group.name} type=${group.group_type} servers=${servers.length} tags=[${tags.join(",")}]`);
+
             const prefix = `gp-${group.identifier.slice(0, 6)}`;
             // Remove any previous entries from this group to avoid duplicates
             outbounds[gwIdx].outbounds = outbounds[gwIdx].outbounds.filter(
@@ -470,6 +472,7 @@ export async function mergeProxyGroupsConfig(newConfig: any): Promise<void> {
                     chainTags.unshift(chainTag);
                     prevTag = chainTag;
                 }
+                console.log(`[mergeProxyGroups] chain: entry=${chainTags[0]} order=[${chainTags.join("→")}] detours=[${chainTags.map(t => { const o = outbounds.find((x: any) => x.tag === t); return o?.detour || "none"; }).join(",")}]`);
                 if (chainTags.length > 0) {
                     outbounds[gwIdx].outbounds.push(chainTags[0]);
                     if (group.is_active) {

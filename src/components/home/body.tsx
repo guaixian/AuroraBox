@@ -4,6 +4,8 @@ import { ChevronDown } from "react-bootstrap-icons";
 import { getProxyGroups, getGroupMembers, setActiveProxyGroup, getProxyServers, setActiveProxyServer } from "../../action/db";
 import { GET_PROXY_GROUPS_SWR_KEY } from "../../types/definition";
 import type { ProxyGroup } from "../../types/definition";
+import { invoke } from "@tauri-apps/api/core";
+import { getCurrentWindow } from "@tauri-apps/api/window";
 import { vpnServiceManager } from "../../utils/helper";
 import { AppleNetworkStatus, GoogleNetworkStatus } from "./network-check";
 import NetworkSpeed from "./network-speed";
@@ -145,7 +147,12 @@ export default function Body({ isRunning, onUpdate }: { isRunning: boolean; onUp
     <div className="w-full space-y-4">
       {/* Group Selector */}
       <section className="w-full">
-        <SectionLabel trailing={<><AppleNetworkStatus /><GoogleNetworkStatus isRunning={isRunning} /></>}>
+        <SectionLabel trailing={<>
+            <button onClick={async () => {
+              await invoke('create_window', { app: getCurrentWindow(), title: "日志", label: "sing-box-log", windowTag: "sing-box-log" });
+            }} className="text-[10px] px-1.5 py-0.5 rounded hover:brightness-95" style={{background:"var(--aurorabox-fill)",color:"var(--aurorabox-label-secondary)"}}>📋 日志</button>
+            <AppleNetworkStatus /><GoogleNetworkStatus isRunning={isRunning} />
+          </>}>
           代理组
         </SectionLabel>
         <div className="relative">
