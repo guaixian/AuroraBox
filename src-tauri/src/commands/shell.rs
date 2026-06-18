@@ -128,15 +128,13 @@ pub fn open_devtools(app: AppHandle) {
 
 #[tauri::command]
 async fn quit(app: AppHandle) {
-    // 退出应用并清理资源
     log::info!("Quitting application...");
-    if let Err(e) = stop(app.clone()).await {
-        log::error!("Failed to stop proxy: {}", e);
-    } else {
-        log::info!("Proxy stopped successfully.");
-        log::info!("Application stopped successfully.");
-        app.exit(0);
+    match stop(app.clone()).await {
+        Ok(_) => log::info!("Proxy stopped successfully."),
+        Err(e) => log::error!("Failed to stop proxy: {}", e),
     }
+    // Always exit, even if stop fails
+    app.exit(0);
 }
 
 pub fn sync_quit(app: AppHandle) {

@@ -6,8 +6,8 @@ import { TrayIcon, TrayIconEvent } from '@tauri-apps/api/tray';
 import { getCurrentWindow } from '@tauri-apps/api/window';
 import { message } from '@tauri-apps/plugin-dialog';
 import { type } from '@tauri-apps/plugin-os';
-import { getClashApiSecret, getProxyPort, getStoreValue } from './single/store';
-import { DEVELOPER_TOGGLE_STORE_KEY } from './types/definition';
+import { getClashApiSecret, getEnableTun, getProxyPort, getStoreValue, setStoreValue } from './single/store';
+import { DEVELOPER_TOGGLE_STORE_KEY, RULE_MODE_STORE_KEY, ENABLE_TUN_STORE_KEY } from './types/definition';
 import { copyEnvToClipboard, initLanguage, t, vpnServiceManager } from './utils/helper';
 
 // 常量
@@ -69,6 +69,55 @@ async function createBaseMenuItems(status: boolean): Promise<NonNullable<MenuOpt
             id: 'copy_proxy',
             text: t("menu_copy_env"),
             action: () => copyEnvToClipboard(PROXY_HOST, proxyPort.toString()),
+        },
+    ];
+}
+
+// 创建模式选择菜单项（规则/全局/TUN）
+async function createModeMenuItems(): Promise<NonNullable<MenuOptions['items']>> {
+    const mode = await getStoreValue(RULE_MODE_STORE_KEY) || 'rules';
+    const tunMode = await getEnableTun();
+
+    return [
+        {
+            id: 'mode_item',
+            text: t("routing_mode") || "Routing Mode",
+            enabled: false,
+        },
+        {
+            id: 'mode_rules',
+            text: t("rules_mode") || "Rules",
+            checked: mode === 'rules' && !tunMode,
+            action: async () => {
+                await setStoreValue(RULE_MODE_STORE_KEY, 'rules');
+                await setStoreValue(ENABLE_TUN_STORE_KEY, false);
+                await vpnServiceManager.syncConfig({});
+                await vpnServiceManager.reload(1000);
+                await updateTrayMenu();
+            },
+        },
+        {
+            id: 'mode_global',
+            text: t("global_mode") || "Global",
+            checked: mode === 'global' && !tunMode,
+            action: async () => {
+                await setStoreValue(RULE_MODE_STORE_KEY, 'global');
+                await setStoreValue(ENABLE_TUN_STORE_KEY, false);
+                await vpnServiceManager.syncConfig({});
+                await vpnServiceManager.reload(1000);
+                await updateTrayMenu();
+            },
+        },
+        {
+            id: 'mode_tun',
+            text: "TUN",
+            checked: tunMode,
+            action: async () => {
+                await setStoreValue(ENABLE_TUN_STORE_KEY, true);
+                await vpnServiceManager.syncConfig({});
+                await vpnServiceManager.reload(1000);
+                await updateTrayMenu();
+            },
         },
     ];
 }
@@ -142,9 +191,12 @@ async function createTrayMenu() {
 
     const baseItems = await createBaseMenuItems(status);
     const developerMenu = await createDeveloperMenuItems();
+    const modeItems = await createModeMenuItems();
 
     const menuItems = [
         ...baseItems,
+        ...modeItems,
+        { item: "Separator" as any },
         ...(developerMenu ? [developerMenu] : []),
         {
             id: 'quit',
