@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import useSWR from "swr";
-import { Clipboard, Pencil, Speedometer2, Stopwatch, Trash3 } from "react-bootstrap-icons";
+import { Clipboard, Pencil, Speedometer2, Trash3 } from "react-bootstrap-icons";
 import { deleteProxyServer, getProxyServers } from "../action/db";
 import { GET_PROXY_SERVERS_SWR_KEY } from "../types/definition";
 import type { ProxyServer } from "../types/definition";
@@ -105,8 +105,7 @@ export default function ServersPage() {
         <button className="btn" onClick={() => setShowImport(true)}>Import</button>
         <button className="btn" onClick={handleExport}>Export</button>
         <div style={{flex:1}}/>
-        <button className="btn sm" onClick={testLatencyAll}><Stopwatch size={12}/> Latency</button>
-        <button className="btn sm" onClick={testSpeedAll}><Speedometer2 size={12}/> Speed</button>
+        <button className="btn sm" onClick={testLatencyAll}><Speedometer2 size={12}/> Test All</button>
       </div>
 
       <div className="grouped-list" style={{borderRadius:"var(--r-lg)",overflow:"hidden"}}>
@@ -135,8 +134,7 @@ export default function ServersPage() {
                   <td style={{fontFamily:"monospace",fontSize:12,color:l?.ms?l.ms<200?"var(--green)":l.ms<500?"var(--orange)":"var(--red)":"var(--text3)"}}>{tg?"...":l?.ms?l.ms+"ms":"—"}</td>
                   <td style={{fontFamily:"monospace",fontSize:12}}>{tg?"...":sp?.kbps?sp.kbps>=1024?(sp.kbps/1024).toFixed(1)+" MB/s":sp.kbps+" KB/s":"—"}</td>
                   <td>
-                    <button className="btn xs" style={{marginRight:2}} onClick={(e)=>{e.stopPropagation();testOne(s)}} disabled={tg}><Stopwatch size={10}/></button>
-                    <button className="btn xs" style={{marginRight:2}} onClick={(e)=>{e.stopPropagation();testOne(s)}} disabled={tg}><Speedometer2 size={10}/></button>
+                    <button className="btn xs" style={{marginRight:2}} onClick={(e)=>{e.stopPropagation();testOne(s)}} disabled={tg}><Speedometer2 size={10}/> Test</button>
                     <button className="btn xs" style={{marginRight:2}} onClick={(e)=>{e.stopPropagation();copyLink()}}><Clipboard size={10}/></button>
                     <button className="btn xs" style={{marginRight:2}} onClick={(e)=>{e.stopPropagation();setEditServer(s);setShowAdd(true)}}><Pencil size={10}/></button>
                     <button className="btn xs danger" onClick={(e)=>{e.stopPropagation();if(confirm("Delete?"))handleDelete(s.identifier)}}><Trash3 size={10}/></button>
