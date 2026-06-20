@@ -8,4 +8,5 @@ pub mod prestart;
 pub mod proxy_test;
 pub mod shell;
 pub mod theme;
+pub mod traffic;
 pub mod whitelist;

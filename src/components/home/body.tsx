@@ -96,27 +96,16 @@ export default function Body({ isRunning, isLoading, onUpdate, onToggle }: { isR
   const [netDown, setNetDown] = useState(0);
   const [netUp, setNetUp] = useState(0);
 
-  // Poll Clash API for network speed every 2 seconds
+  // Poll traffic via Rust command (avoids SSE streaming issue)
   useEffect(() => {
     if (!isRunning) { setNetDown(0); setNetUp(0); return; }
     let active = true;
     const poll = async () => {
       while (active) {
         try {
-          const { fetch: tauriFetch } = await import("@tauri-apps/plugin-http");
-          const { getClashApiSecret } = await import("../../single/store");
-          const s = await getClashApiSecret();
-          const r = await tauriFetch("http://127.0.0.1:9191/traffic", {
-            method: "GET",
-            headers: { Authorization: `Bearer ${s}` },
-            connectTimeout: 3000
-          });
-          const text = await r.text();
-          console.log("[traffic] raw:", text);
-          const d = JSON.parse(text);
-          console.log("[traffic] parsed:", d);
+          const d = await invoke<{up:number,down:number}>("get_traffic");
           if (active) { setNetDown(d.down||0); setNetUp(d.up||0); }
-        } catch(e){ console.log("[traffic] ERR:", e); }
+        } catch(e){}
         if (active) await new Promise(r => setTimeout(r, 2000));
       }
     };

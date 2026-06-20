@@ -74,6 +74,7 @@ pub fn run() {
             commands::prestart::prestart_check,
             commands::prestart::kill_orphans,
             commands::proxy_test::run_singbox_tests,
+            commands::traffic::get_traffic,
             commands::chain::start_chain,
             commands::chain::stop_chain,
         ])
