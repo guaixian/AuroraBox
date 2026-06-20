@@ -103,17 +103,14 @@ export default function Body({ isRunning, isLoading, onUpdate, onToggle }: { isR
     const poll = async () => {
       while (active) {
         try {
-          const { fetch: tauriFetch } = await import("@tauri-apps/plugin-http");
           const { getClashApiSecret } = await import("../../single/store");
           const s = await getClashApiSecret();
-          const res = await tauriFetch("http://127.0.0.1:9191/traffic", {
-            method: "GET",
-            headers: { Authorization: `Bearer ${s}` },
-            connectTimeout: 3000
+          const r = await fetch(`http://127.0.0.1:9191/traffic`, {
+            headers: { Authorization: `Bearer ${s}` }
           });
-          if (res.ok) {
-            const data: any = await res.json();
-            if (active) { setNetDown(data.down||0); setNetUp(data.up||0); }
+          if (r.ok) {
+            const d: any = await r.json();
+            if (active) { setNetDown(d.down||0); setNetUp(d.up||0); }
           }
         } catch(e){}
         if (active) await new Promise(r => setTimeout(r, 2000));
