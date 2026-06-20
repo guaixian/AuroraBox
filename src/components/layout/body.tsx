@@ -6,6 +6,7 @@ const DevPage = React.lazy(() => import("../../page/developer"));
 const SettingsPage = React.lazy(() => import("../../page/settings"));
 const RouterSettingsPage = React.lazy(() => import("../../page/router"));
 const ServersPage = React.lazy(() => import("../../page/servers"));
+const GroupsPage = React.lazy(() => import("../../page/groups"));
 
 const LoadingFallback = () => (
   <div className="flex flex-col items-center justify-center h-full space-y-4">
@@ -45,6 +46,12 @@ export function Body({ lang, activeScreen }: BodyProps) {
         return (
           <Suspense fallback={<LoadingFallback />}>
             <ServersPage />
+          </Suspense>
+        );
+      case "groups":
+        return (
+          <Suspense fallback={<LoadingFallback />}>
+            <GroupsPage />
           </Suspense>
         );
       default:

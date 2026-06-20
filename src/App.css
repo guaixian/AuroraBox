@@ -1,932 +1,310 @@
-
-
-
-
-
-/*  Window Customization CSS start
-https://v2.tauri.app/learn/window-customization/
-*/
-.titlebar {
-  height: 30px;
-  background: var(--aurorabox-titlebar);
-  user-select: none;
-  display: flex;
-  justify-content: flex-start;
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  padding-left: 12px; /* 添加左侧内边距 */
-  gap: 8px; /* 按钮之间的间距 */
-}
-
-.titlebar-button {
-  display: inline-flex;
-  justify-content: center;
-  align-items: center;
-  width: 12px;
-  height: 12px;
-  margin-top: 9px; /* 垂直居中 */
-  border-radius: 50%;
-  user-select: none;
-  -webkit-user-select: none;
-}
-
-#titlebar-close {
-  background-color: #ff5f57;
-}
-
-#titlebar-minimize {
-  background-color: #febc2e;
-}
-
-#titlebar-maximize {
-  color: #e3e3e3;
-  background: #e3e3e3;
-  background-color: #e3e3e3;
-
-}
-
-
-
-.titlebar-button svg {
-  width: 8px;
-  height: 8px;
-  opacity: 0;
-  transition: opacity 0.2s;
-}
-
-
-
-.titlebar-button:hover svg {
-  opacity: 1 !important;
-}
-/* Window Customization CSS end */
-
-
-/* 完全隐藏滚动条 - 所有浏览器兼容方案 */
-/* Webkit 浏览器 (Chrome, Safari, Edge) */
-::-webkit-scrollbar {
-  display: none !important;
-}
-
-/* Firefox */
-* {
-  scrollbar-width: none !important;
-}
-
-/* IE 和 Edge Legacy */
-* {
-  -ms-overflow-style: none !important;
-}
-
-/* 确保滚动功能仍然有效 */
-.overflow-auto,
-.overflow-scroll,
-.overflow-y-auto,
-.overflow-x-auto,
-.overflow-y-scroll,
-.overflow-x-scroll {
-  -webkit-overflow-scrolling: touch;
-}
-
-/* Apple 风格动画和样式 */
-.animate-fade-in {
-  animation: fadeIn 0.3s ease-out;
-}
-
-@keyframes fadeIn {
-  from {
-    opacity: 0;
-    transform: translateY(5px);
-  }
-
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-/*
-ZH: 禁止全局选中
-EN: Disable global text selection
-*/
-:root {
-  /*
-  ZH: 针对 Tauri 使用的 WebKit/WebView2 内核
-  EN: For Tauri's WebKit/WebView2 engine
-  */
-  -webkit-user-select: none;
-  user-select: none;
-}
-
-/*
-ZH: 允许输入框和可编辑内容被选中
-EN: Allow text selection in input fields and contenteditable elements
-*/
-input, textarea, [contenteditable="true"] {
-  -webkit-user-select: text;
-  user-select: text;
-}
-
-/*
-ZH: <pre> 默认可选中 —— 用于配置/日志/模版内容展示，方便复制调试。
-EN: <pre> is selectable by default — used for log / config / template
-content, users need to copy to a clipboard for debugging.
-
-显式标注 `.aurorabox-selectable` 的容器及其子元素也可选中；日志列表这类
-非 <pre> 的文本块用它。
-*/
-pre,
-.aurorabox-selectable,
-.aurorabox-selectable * {
-  -webkit-user-select: text;
-  user-select: text;
-}
-
-@import "tailwindcss";
-
-/* Enable class-based `dark:` variant driven by the [data-theme="dark"]
-   attribute we set on <html>. Without this, Tailwind v4 would default
-   to the `prefers-color-scheme: dark` media query and ignore the manual
-   toggle users flip on the Developer page. */
-@custom-variant dark (&:where([data-theme="dark"], [data-theme="dark"] *));
-
-/* ==========================================================================
- * Theme tokens.
- *
- * Source: Apple HIG light / dark system colors. Tailwind defaults skew
- * cooler/greener and read "off" next to native chrome.
- *
- * Three states:
- *   - [data-theme="light"] (or default)  → light
- *   - [data-theme="dark"]                 → dark
- *   - [data-theme="system"]               → follows @media (prefers-color-scheme)
- *
- * The system branch duplicates the dark token set — there is no CSS-level
- * way to alias one selector to another without wrapping every token in
- * another layer of indirection, and the dark payload is ~15 declarations.
- * ========================================================================== */
+/* ═══════════ AuroraBox v2 Design System ═══════════ */
 
 :root {
-  text-autospace: normal;
-  /* Signals the user-agent (WebKit in our case) which colour schemes the
-     page supports. Without this, WebKit renders form controls / scrollbars
-     in light-only mode AND — observed on macOS 26 — can pin the hosting
-     NSWindow.appearance to Aqua regardless of OS preference. Set per
-     theme below; keep the default here matching light. */
   color-scheme: light;
+  /* Light theme */
+  --bg-window: #f0f0f4;
+  --bg-sidebar: #e8e8ed;
+  --bg-content: #ffffff;
+  --bg-card: #ffffff;
+  --bg-fill: rgba(0,0,0,0.04);
+  --bg-hover: rgba(0,0,0,0.04);
+  --bg-selected: #3478f6;
+  --border: rgba(0,0,0,0.08);
+  --border-strong: rgba(0,0,0,0.12);
+  --text: #1d1d1f;
+  --text-secondary: rgba(0,0,0,0.5);
+  --text-tertiary: rgba(0,0,0,0.25);
+  --blue: #3478f6;
+  --green: #30b158;
+  --red: #ff3b30;
+  --orange: #ff9a03;
+  --purple: #a855f7;
+  --pink: #ec4899;
+  --gray: #8e8e93;
+  --font: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  --font-mono: "SF Mono", "JetBrains Mono", "Fira Code", monospace;
+  --radius: 7px;
+  --radius-sm: 5px;
+  --radius-lg: 10px;
 
-  /* Light (default) */
-  --aurorabox-bg: #F2F2F7;                 /* systemGroupedBackground (light) */
-  --aurorabox-card: #FFFFFF;               /* secondarySystemGroupedBackground (light) */
-  --aurorabox-card-muted: rgba(118, 118, 128, 0.08);   /* tertiarySystemFill-ish */
-  --aurorabox-titlebar: #F8F8F8;
-  --aurorabox-label: #1C1C1E;              /* label (primary) */
-  --aurorabox-label-secondary: rgba(60, 60, 67, 0.6);
-  --aurorabox-label-tertiary: rgba(60, 60, 67, 0.3);
-  --aurorabox-separator: rgba(60, 60, 67, 0.18);
-  --aurorabox-fill: rgba(118, 118, 128, 0.12);          /* tertiary fill — inputs, chips */
-  --aurorabox-fill-strong: rgba(118, 118, 128, 0.2);
-  --aurorabox-blue: #007AFF;               /* systemBlue (light) */
-  --aurorabox-blue-hover: #409CFF;
-  --aurorabox-blue-deep: #0062CC;
-  --aurorabox-red: #FF3B30;
-  --aurorabox-green: #34C759;
-  --aurorabox-orange: #FF9500;
-  --aurorabox-row-hover: rgba(60, 60, 67, 0.025);
-  --aurorabox-row-active: rgba(60, 60, 67, 0.06);
-  --aurorabox-shadow-card: 0 1px 2.5px rgba(15, 23, 42, 0.04);
-  /* Translucent popover surface for AppleSelectMenu; sits over a blurred
-     backdrop so a soft-white fill reads as glass. */
-  --aurorabox-menu-bg: rgba(255, 255, 255, 0.85);
-  /* macOS unified toolbar: translucent over window bg + vibrancy blur. */
-  --aurorabox-toolbar-bg: rgba(242, 242, 247, 0.72);
-  /* NSSegmentedControl active pill — lifted card with hairline shadow. */
-  --aurorabox-segctl-active-bg: #FFFFFF;
-  --aurorabox-segctl-active-shadow: 0 0 0 0.5px rgba(0, 0, 0, 0.04), 0 1px 2px rgba(15, 23, 42, 0.1);
+  /* Legacy alias — keep old code working */
+  --aurorabox-bg: var(--bg-window);
+  --aurorabox-card: var(--bg-card);
+  --aurorabox-label: var(--text);
+  --aurorabox-label-secondary: var(--text-secondary);
+  --aurorabox-label-tertiary: var(--text-tertiary);
+  --aurorabox-separator: var(--border);
+  --aurorabox-fill: var(--bg-fill);
+  --aurorabox-fill-strong: rgba(0,0,0,0.12);
+  --aurorabox-blue: var(--blue);
+  --aurorabox-green: var(--green);
+  --aurorabox-red: var(--red);
+  --aurorabox-orange: var(--orange);
+  --aurorabox-row-hover: var(--bg-hover);
 }
-
-/* Explicit dark override. Also applied when the user flips the toggle. */
-:root[data-theme="dark"] {
-  color-scheme: dark;
-  --aurorabox-bg: #000000;                 /* systemGroupedBackground (dark) */
-  --aurorabox-card: #1C1C1E;               /* secondarySystemGroupedBackground (dark) */
-  --aurorabox-card-muted: rgba(118, 118, 128, 0.24);
-  --aurorabox-titlebar: #1C1C1E;
-  --aurorabox-label: #FFFFFF;
-  --aurorabox-label-secondary: rgba(235, 235, 245, 0.6);
-  --aurorabox-label-tertiary: rgba(235, 235, 245, 0.3);
-  --aurorabox-separator: rgba(84, 84, 88, 0.5);
-  --aurorabox-fill: rgba(118, 118, 128, 0.24);
-  --aurorabox-fill-strong: rgba(118, 118, 128, 0.36);
-  --aurorabox-blue: #0A84FF;               /* systemBlue (dark) */
-  --aurorabox-blue-hover: #409CFF;
-  --aurorabox-blue-deep: #0051D5;
-  --aurorabox-red: #FF453A;
-  --aurorabox-green: #30D158;
-  --aurorabox-orange: #FF9F0A;
-  --aurorabox-row-hover: rgba(255, 255, 255, 0.04);
-  --aurorabox-row-active: rgba(255, 255, 255, 0.08);
-  --aurorabox-shadow-card: 0 1px 2.5px rgba(0, 0, 0, 0.45);
-  --aurorabox-menu-bg: rgba(44, 44, 46, 0.9);
-  --aurorabox-toolbar-bg: rgba(28, 28, 30, 0.72);
-  --aurorabox-segctl-active-bg: rgba(118, 118, 128, 0.45);
-  --aurorabox-segctl-active-shadow: 0 0 0 0.5px rgba(0, 0, 0, 0.3), 0 1px 2px rgba(0, 0, 0, 0.35);
-}
-
-/* Follow-the-OS branch: active only when user hasn't chosen an explicit
-   light/dark override. Payload mirrors [data-theme="dark"] above. */
 @media (prefers-color-scheme: dark) {
-  :root[data-theme="system"] {
+  :root {
     color-scheme: dark;
-    --aurorabox-bg: #000000;
-    --aurorabox-card: #1C1C1E;
-    --aurorabox-card-muted: rgba(118, 118, 128, 0.24);
-    --aurorabox-titlebar: #1C1C1E;
-    --aurorabox-label: #FFFFFF;
-    --aurorabox-label-secondary: rgba(235, 235, 245, 0.6);
-    --aurorabox-label-tertiary: rgba(235, 235, 245, 0.3);
-    --aurorabox-separator: rgba(84, 84, 88, 0.5);
-    --aurorabox-fill: rgba(118, 118, 128, 0.24);
-    --aurorabox-fill-strong: rgba(118, 118, 128, 0.36);
-    --aurorabox-blue: #0A84FF;
-    --aurorabox-blue-hover: #409CFF;
-    --aurorabox-blue-deep: #0051D5;
-    --aurorabox-red: #FF453A;
-    --aurorabox-green: #30D158;
-    --aurorabox-orange: #FF9F0A;
-    --aurorabox-row-hover: rgba(255, 255, 255, 0.04);
-    --aurorabox-row-active: rgba(255, 255, 255, 0.08);
-    --aurorabox-shadow-card: 0 1px 2.5px rgba(0, 0, 0, 0.45);
-    --aurorabox-menu-bg: rgba(44, 44, 46, 0.9);
-    --aurorabox-toolbar-bg: rgba(28, 28, 30, 0.72);
-    --aurorabox-segctl-active-bg: rgba(118, 118, 128, 0.45);
-    --aurorabox-segctl-active-shadow: 0 0 0 0.5px rgba(0, 0, 0, 0.3), 0 1px 2px rgba(0, 0, 0, 0.35);
+    --bg-window: #242428; --bg-sidebar: #1e1e22; --bg-content: #2c2c30;
+    --bg-card: #2c2c30; --bg-fill: rgba(255,255,255,0.06);
+    --bg-hover: rgba(255,255,255,0.05);
+    --border: rgba(255,255,255,0.08); --border-strong: rgba(255,255,255,0.12);
+    --text: #f5f5f7; --text-secondary: rgba(255,255,255,0.5);
+    --text-tertiary: rgba(255,255,255,0.2);
+    --bg-selected: #3478f6; --blue: #58a6ff; --green: #3fb950;
+    --red: #ff453a; --orange: #d29922; --purple: #a371f7; --gray: #6e6e73;
   }
 }
 
-/* AppleSelectMenu option hover. The hover/active tints follow the theme's
-   row-hover variable so dark mode reads as white-on-dim instead of
-   dark-on-darker. Applied only to non-selected options; selected uses
-   its own systemBlue/10 tint. */
-.aurorabox-menu-option:not(.bg-blue-500\/10):hover {
-  background: var(--aurorabox-row-hover);
-}
-.aurorabox-menu-option:not(.bg-blue-500\/10):active {
-  background: var(--aurorabox-row-active);
-}
-
-/* Whole-app chrome. Provides the page colour under every route. */
-main.aurorabox-surface {
-  background: var(--aurorabox-bg);
-  color: var(--aurorabox-label);
-}
-
-/* ==========================================================================
- * Apple iOS 26 grouped-list primitives.
- *
- * Use these across Settings / Configuration / Developer / Router pages so
- * every scrolling list page reads as one app, not one-off defaults.
- * ========================================================================== */
-
-/* A full-height scrolling page. Drop into any page root — no width caps,
-   no bg. The parent <main class="aurorabox-surface"> provides colour. */
-.aurorabox-scrollpage {
-  height: calc(100dvh - 56px); /* matches dock height; same calc as home */
-  width: 100%;
-  overflow-y: auto;
-  overflow-x: hidden;
-}
-
-/* A card that holds one group of rows. Shadow is at Apple "ambient" level
-   — elevation is suggested by the colour contrast between the card fill
-   and grouped background, not by a heavy drop. */
-.aurorabox-grouped-card {
-  background: var(--aurorabox-card);
-  border-radius: 14px;
+/* ═══════════ RESET ═══════════ */
+*, *::before, *::after { box-sizing: border-box; }
+body {
+  margin: 0; padding: 0;
+  font-family: var(--font);
+  font-size: 13px; color: var(--text);
+  background: var(--bg-window);
   overflow: hidden;
-  box-shadow: var(--aurorabox-shadow-card);
 }
 
-/* Same surface as a grouped card but WITHOUT the automatic inset separator
-   between children. Use for free-form content (empty states, info blocks,
-   composite forms). Using .aurorabox-grouped-card for these leaks a 0.5px
-   hairline wherever you have multiple children — that's a bug, not a
-   "iOS" feature. Apple does not draw lines between free-form blocks. */
-.aurorabox-plain-card {
-  background: var(--aurorabox-card);
-  border-radius: 14px;
-  overflow: hidden;
-  box-shadow: var(--aurorabox-shadow-card);
+/* ═══════════ SHELL ═══════════ */
+.aurorabox-surface {
+  display: flex; flex-direction: column; height: 100vh;
+  background: var(--bg-window); color: var(--text);
 }
 
-/* Separator between rows inside a grouped card. Apple uses 0.5px hairlines
-   at very low alpha — invisible on dark mode, a whisper on light. Applied
-   as a ::before on each child except the first so we can rely on child
-   composition rather than fiddling with divide-y utilities.
-   Shared with `.aurorabox-grouped-list`, which keeps the same row-divider
-   treatment without the outer card chrome — used inside modals / other
-   already-elevated surfaces where a nested card reads as two layers of
-   visual elevation. */
-.aurorabox-grouped-card > * + *,
-.aurorabox-grouped-list > * + * {
-  position: relative;
-}
-
-.aurorabox-grouped-card > * + *::before,
-.aurorabox-grouped-list > * + *::before {
-  content: "";
-  position: absolute;
-  top: 0;
-  left: 16px; /* inset separator — starts after the leading icon column */
-  right: 0;
-  height: 0.5px;
-  background: var(--aurorabox-separator);
-  pointer-events: none;
-}
-
-/* Uppercase section label above a grouped card. Matches UITableView
-   section headers. */
-.aurorabox-section-label {
-  font-size: 11px;
-  font-weight: 500;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-  color: var(--aurorabox-label-secondary);
-  padding: 0 16px 6px 16px;
-}
-
-/* Page-wide content width cap. */
-.aurorabox-page-inner {
-  max-width: 28rem; /* 448px */
-  margin: 0 auto;
-  padding: 16px;
-}
-
-/* ==========================================================================
- * iOS-style switch.
- *
- * Standalone — the previous version layered our tokens on top of daisyUI's
- * .toggle utility, which is now gone. Based on native UISwitch: 51×31 pt
- * (scaled for `sm` to 36×22 px), systemGreen track when on, neutral fill
- * track when off. Knob is white with a light shadow to fake depth.
- * ========================================================================== */
-.aurorabox-toggle {
-  appearance: none;
-  -webkit-appearance: none;
-  width: 36px;
-  height: 22px;
-  border-radius: 999px;
-  background: var(--aurorabox-fill-strong);
-  position: relative;
-  cursor: pointer;
-  transition: background-color 0.2s ease;
-  flex-shrink: 0;
-}
-
-.aurorabox-toggle::before {
-  content: "";
-  position: absolute;
-  top: 2px;
-  left: 2px;
-  width: 18px;
-  height: 18px;
-  border-radius: 50%;
-  background: #FFFFFF;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.15), 0 1px 3px rgba(0, 0, 0, 0.08);
-  transition: transform 0.2s ease;
-}
-
-.aurorabox-toggle:checked {
-  background: var(--aurorabox-green);
-}
-
-.aurorabox-toggle:checked::before {
-  transform: translateX(14px);
-}
-
-.aurorabox-toggle:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
-/* ==========================================================================
- * iOS-style bottom dock. Replaces daisyUI's .dock, which we used to set
- * a base colour on and fight its default shadow.
- *
- * Three equal-weight tab buttons; 56px tall (matches the calc in
- * .aurorabox-scrollpage). Active tab uses --aurorabox-blue, others
- * --aurorabox-label-tertiary so they fade into the dock chrome.
- * ========================================================================== */
-.aurorabox-dock {
-  height: 56px;
-  display: grid;
-  grid-auto-flow: column;
-  grid-auto-columns: 1fr;
-  align-items: stretch;
-  background: var(--aurorabox-bg);
-  border-top: 0.5px solid var(--aurorabox-separator);
-}
-
-.aurorabox-dock button {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 2px;
-  padding: 4px 0 6px;
-  color: var(--aurorabox-label-tertiary);
-  transition: color 0.15s ease;
-  background: transparent;
-  border: 0;
-  cursor: pointer;
-}
-
-.aurorabox-dock button[data-active="true"] {
-  color: var(--aurorabox-blue);
-}
-
-/* ==========================================================================
- * iOS-style spinner.
- *
- * Replaces daisyUI's .loading utilities. Three-dot variant (`dots`) and
- * circular variant (`ring`). Sizes: sm (14px), md (22px), lg (32px).
- * ========================================================================== */
-.aurorabox-spinner {
-  display: inline-block;
-  vertical-align: middle;
-  color: var(--aurorabox-label-secondary);
-}
-
-.aurorabox-spinner-ring {
-  width: 22px;
-  height: 22px;
-  border: 2.5px solid var(--aurorabox-fill-strong);
-  border-top-color: var(--aurorabox-blue);
-  border-radius: 50%;
-  animation: aurorabox-spin 0.8s linear infinite;
-}
-
-.aurorabox-spinner-ring.aurorabox-spinner-sm { width: 14px; height: 14px; border-width: 2px; }
-.aurorabox-spinner-ring.aurorabox-spinner-lg { width: 32px; height: 32px; border-width: 3px; }
-
-.aurorabox-spinner-dots {
-  display: inline-flex;
-  gap: 4px;
-  align-items: center;
-}
-
-.aurorabox-spinner-dots > span {
-  width: 5px;
-  height: 5px;
-  border-radius: 50%;
-  background: currentColor;
-  animation: aurorabox-dot 1.2s ease-in-out infinite;
-}
-
-.aurorabox-spinner-dots > span:nth-child(2) { animation-delay: 0.15s; }
-.aurorabox-spinner-dots > span:nth-child(3) { animation-delay: 0.3s; }
-
-.aurorabox-spinner-dots.aurorabox-spinner-sm > span { width: 3px; height: 3px; }
-.aurorabox-spinner-dots.aurorabox-spinner-lg > span { width: 7px; height: 7px; }
-
-@keyframes aurorabox-spin {
-  to { transform: rotate(360deg); }
-}
-
-@keyframes aurorabox-dot {
-  0%, 80%, 100% { opacity: 0.3; transform: scale(0.7); }
-  40% { opacity: 1; transform: scale(1); }
-}
-
-/* ==========================================================================
- * iOS-style buttons (inline, small). Replaces daisyUI .btn variants.
- *
- * .aurorabox-btn   — base: flex row, rounded-8, small padding, medium weight.
- * .aurorabox-btn-primary / -danger / -info / -ghost — colour variants.
- * ========================================================================== */
-.aurorabox-btn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 4px;
-  height: 26px;
-  padding: 0 10px;
-  border-radius: 8px;
-  font-size: 12px;
-  font-weight: 500;
-  border: 0;
-  cursor: pointer;
-  transition: background-color 0.15s ease, opacity 0.15s ease;
-  white-space: nowrap;
-}
-
-.aurorabox-btn:disabled {
-  opacity: 0.4;
-  cursor: not-allowed;
-}
-
-.aurorabox-btn-primary {
-  background: var(--aurorabox-blue);
-  color: #FFFFFF;
-}
-.aurorabox-btn-primary:hover:not(:disabled) { background: var(--aurorabox-blue-hover); }
-.aurorabox-btn-primary:active:not(:disabled) { background: var(--aurorabox-blue-deep); }
-
-.aurorabox-btn-danger {
-  background: var(--aurorabox-red);
-  color: #FFFFFF;
-}
-.aurorabox-btn-danger:hover:not(:disabled) { opacity: 0.9; }
-
-.aurorabox-btn-info {
-  background: var(--aurorabox-blue);
-  color: #FFFFFF;
-  opacity: 0.85;
-}
-.aurorabox-btn-info:hover:not(:disabled) { opacity: 1; }
-
-.aurorabox-btn-ghost {
-  background: var(--aurorabox-card);
-  color: var(--aurorabox-blue);
-  border: 0.5px solid var(--aurorabox-separator);
-}
-.aurorabox-btn-ghost:hover:not(:disabled) {
-  background: var(--aurorabox-fill);
-}
-
-/* ==========================================================================
- * Inputs + selects. Pure utilities; callers compose with Tailwind for layout.
- * ========================================================================== */
-.aurorabox-input {
-  height: 26px;
-  padding: 0 10px;
-  border-radius: 8px;
-  border: 0.5px solid var(--aurorabox-separator);
-  background: var(--aurorabox-card);
-  color: var(--aurorabox-label);
-  font-size: 12px;
-  outline: none;
-  transition: border-color 0.15s ease, box-shadow 0.15s ease;
-}
-
-.aurorabox-input:focus {
-  border-color: var(--aurorabox-blue);
-  box-shadow: 0 0 0 3px rgba(10, 132, 255, 0.15);
-}
-
-.aurorabox-input::placeholder { color: var(--aurorabox-label-tertiary); }
-
-.aurorabox-select {
-  height: 26px;
-  padding: 0 22px 0 8px;
-  border-radius: 8px;
-  border: 0.5px solid var(--aurorabox-separator);
-  background-color: var(--aurorabox-card);
-  color: var(--aurorabox-label);
-  font-size: 12px;
-  appearance: none;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='%23888'%3E%3Cpath d='M4 6l4 4 4-4'/%3E%3C/svg%3E");
-  background-repeat: no-repeat;
-  background-position: right 6px center;
-  background-size: 12px;
-  cursor: pointer;
-  outline: none;
-}
-
-.aurorabox-select:focus { border-color: var(--aurorabox-blue); }
-
-/* ==========================================================================
- * Tab bar. iOS-style rounded pills — not an underline strip. Active tab
- * gets a systemBlue-tinted fill; inactive tabs are transparent with a
- * hover fill. Container is a flat flex row (no bottom border) so it
- * reads as a button cluster rather than a document tab strip.
- * ========================================================================== */
-.aurorabox-tabs {
-  display: flex;
-  align-items: center;
-  gap: 2px;
-  padding: 4px 0;
-}
-
-.aurorabox-tab {
-  padding: 0 12px;
-  height: 28px;
-  font-size: 13px;
-  font-weight: 500;
-  line-height: 1;
-  color: var(--aurorabox-label-secondary);
-  cursor: pointer;
-  border-radius: 8px;
-  transition: background-color 0.15s ease, color 0.15s ease;
-  background: transparent;
-  border: 0;
-  white-space: nowrap;
-  display: inline-flex;
-  align-items: center;
-}
-
-.aurorabox-tab:hover:not([data-active="true"]) {
-  color: var(--aurorabox-label);
-  background: var(--aurorabox-row-hover);
-}
-
-.aurorabox-tab[data-active="true"] {
-  color: var(--aurorabox-blue);
-  background: rgba(10, 132, 255, 0.12);
-  font-weight: 600;
-}
-
-/* ==========================================================================
- * macOS window shell — for the advanced-settings (log) window.
- *
- * Aesthetic commitment: Console.app / Xcode debug-console hybrid.
- * Unified translucent toolbar, dense SF Mono log rows, minimal chrome.
- * This language is distinct from the iOS-flavoured `.aurorabox-tabs` /
- * `.aurorabox-segmented` pills used on the main 371×600 window.
- * ========================================================================== */
-
-.aurorabox-mac-window {
-  display: flex;
-  flex-direction: column;
-  height: 100vh;
-  background: var(--aurorabox-card);
-  color: var(--aurorabox-label);
-  font-family: ui-sans-serif, -apple-system, "SF Pro Text", system-ui, sans-serif;
-}
-
-.aurorabox-mac-toolbar {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  height: 44px;
-  padding: 0 12px;
-  background: var(--aurorabox-toolbar-bg);
-  backdrop-filter: blur(24px) saturate(180%);
-  -webkit-backdrop-filter: blur(24px) saturate(180%);
-  border-bottom: 0.5px solid var(--aurorabox-separator);
-  position: sticky;
-  top: 0;
-  z-index: 10;
-}
-
-.aurorabox-mac-content {
-  flex: 1;
-  min-height: 0;
-  overflow-y: auto;
-  overflow-x: hidden;
-}
-
-.aurorabox-mac-statusbar {
-  display: flex;
-  align-items: center;
-  justify-content: flex-end;
-  gap: 16px;
-  height: 24px;
-  padding: 0 12px;
-  background: var(--aurorabox-toolbar-bg);
-  backdrop-filter: blur(24px) saturate(180%);
-  -webkit-backdrop-filter: blur(24px) saturate(180%);
-  border-top: 0.5px solid var(--aurorabox-separator);
-  font-size: 11px;
-  color: var(--aurorabox-label-secondary);
-  font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
-  font-variant-numeric: tabular-nums;
-}
-
-/* NSSegmentedControl look — track + lifted active pill. */
-.aurorabox-segctl {
-  display: inline-flex;
-  align-items: center;
-  padding: 2px;
-  border-radius: 7px;
-  background: var(--aurorabox-fill);
-  height: 26px;
-}
-
-.aurorabox-segctl-item {
-  height: 22px;
-  padding: 0 12px;
-  font-size: 12px;
-  font-weight: 500;
-  letter-spacing: -0.005em;
-  color: var(--aurorabox-label-secondary);
-  background: transparent;
-  border: 0;
-  border-radius: 5px;
-  cursor: pointer;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  white-space: nowrap;
-  transition: background-color 0.12s ease, color 0.12s ease, box-shadow 0.12s ease;
-}
-
-.aurorabox-segctl-item:hover:not([data-active="true"]) {
-  color: var(--aurorabox-label);
-}
-
-.aurorabox-segctl-item[data-active="true"] {
-  color: var(--aurorabox-label);
-  background: var(--aurorabox-segctl-active-bg);
-  box-shadow: var(--aurorabox-segctl-active-shadow);
-  font-weight: 600;
-}
-
-/* Compact toolbar search field. Default width 200px; callers that want
-   the field to fill available space (config-template URL row) add Tailwind
-   `flex-1` which overrides the width because `flex: 1 1 0%` sets basis to
-   0 and takes over sizing. */
-.aurorabox-search {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  height: 24px;
-  padding: 0 8px;
-  border-radius: 6px;
-  background: var(--aurorabox-fill);
-  width: 200px;
-  min-width: 0;
-  transition: box-shadow 0.15s ease;
-}
-
-.aurorabox-search:focus-within {
-  box-shadow: 0 0 0 3px rgba(10, 132, 255, 0.18);
-}
-
-.aurorabox-search > svg {
-  width: 11px;
-  height: 11px;
-  color: var(--aurorabox-label-tertiary);
-  flex-shrink: 0;
-}
-
-.aurorabox-search > input {
-  flex: 1;
-  background: transparent;
-  border: 0;
-  outline: none;
-  font-size: 12px;
-  color: var(--aurorabox-label);
-  min-width: 0;
-}
-
-.aurorabox-search > input::placeholder { color: var(--aurorabox-label-tertiary); }
-
-/* Toolbar icon+label button. Inactive is muted; data-active paints it
-   systemBlue with a matching tint. Used for the logs-tab auto-scroll
-   toggle. */
-.aurorabox-toolbar-btn {
-  height: 24px;
-  min-width: 24px;
-  padding: 0 8px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 4px;
-  font-size: 12px;
-  font-weight: 500;
-  color: var(--aurorabox-label-secondary);
-  background: transparent;
-  border: 0;
-  border-radius: 5px;
-  cursor: pointer;
-  transition: background-color 0.12s ease, color 0.12s ease;
-}
-
-.aurorabox-toolbar-btn:hover:not([data-active="true"]) {
-  background: var(--aurorabox-row-hover);
-  color: var(--aurorabox-label);
-}
-
-.aurorabox-toolbar-btn[data-active="true"] {
-  color: var(--aurorabox-blue);
-  background: rgba(10, 132, 255, 0.12);
-}
-
-/* SF Mono log row. Dense by default (3px vertical padding, 1.55
-   line-height); hover tint surfaces the row under the cursor without
-   competing with the selection highlight. */
-.aurorabox-logrow {
-  display: flex;
-  align-items: baseline;
-  gap: 12px;
-  padding: 3px 16px;
-  font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
-  font-size: 11px;
-  line-height: 1.55;
-  color: var(--aurorabox-label);
-  transition: background-color 0.08s ease;
-  word-break: break-word;
-  white-space: pre-wrap;
-}
-
-.aurorabox-logrow:hover {
-  background: var(--aurorabox-row-hover);
-}
-
-.aurorabox-logrow-time {
-  flex-shrink: 0;
-  min-width: 72px;
-  color: var(--aurorabox-label-tertiary);
-  font-variant-numeric: tabular-nums;
-}
-
-/* Search-term highlight mark. systemYellow tint, a touch of padding.
-   Works on both themes because the tint is transparent over --label. */
-.aurorabox-highlight {
-  background: rgba(255, 204, 0, 0.32);
-  color: inherit;
-  padding: 0 2px;
-  border-radius: 3px;
-}
-
-/* ── Desktop Shell ───────────────────────────────────────────── */
-
+/* ═══════════ DESKTOP SHELL ═══════════ */
 .aurorabox-desktop-shell {
-  display: flex;
-  height: 100vh;
-  background: var(--aurorabox-bg);
-  color: var(--aurorabox-label);
-  font-family: ui-sans-serif, -apple-system, "SF Pro Text", system-ui, sans-serif;
-  overflow: hidden;
+  display: flex; height: 100vh; background: var(--bg-window); overflow: hidden;
 }
-
-/* ── Sidebar ─────────────────────────────────────────────────── */
-
-.aurorabox-sidebar {
-  width: 220px;
-  min-width: 220px;
-  height: 100vh;
-  display: flex;
-  flex-direction: column;
-  justify-content: space-between;
-  background: var(--aurorabox-card);
-  border-right: 1px solid var(--aurorabox-separator);
-  padding: 12px 8px;
-}
-
-.aurorabox-sidebar-top,
-.aurorabox-sidebar-bottom {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-}
-
-.aurorabox-sidebar-item {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  height: 36px;
-  padding: 0 12px;
-  border-radius: 8px;
-  border: none;
-  background: transparent;
-  color: var(--aurorabox-label-secondary);
-  font-size: 13px;
-  font-weight: 500;
-  cursor: pointer;
-  transition: background-color 0.12s ease, color 0.12s ease;
-  text-align: left;
-  width: 100%;
-}
-
-.aurorabox-sidebar-item:hover {
-  background: var(--aurorabox-row-hover);
-  color: var(--aurorabox-label);
-}
-
-.aurorabox-sidebar-item[data-active="true"] {
-  background: rgba(10, 132, 255, 0.12);
-  color: var(--aurorabox-blue);
-}
-
-.aurorabox-sidebar-label {
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-/* ── Desktop Content Area ────────────────────────────────────── */
-
 .aurorabox-desktop-content {
-  flex: 1;
-  min-width: 0;
-  overflow-y: auto;
-  overflow-x: hidden;
-  background: var(--aurorabox-bg);
+  flex: 1; min-width: 0; overflow-y: auto; overflow-x: hidden;
+  background: var(--bg-content);
 }
 
-/* When in desktop mode, remove page width cap so content fills */
-.aurorabox-desktop-content .aurorabox-page-inner {
-  max-width: none;
-  margin: 0;
+/* ═══════════ SIDEBAR ═══════════ */
+.aurorabox-sidebar {
+  width: 210px; min-width: 210px; height: 100vh;
+  display: flex; flex-direction: column;
+  background: var(--bg-sidebar); padding: 8px 0;
+  border-right: 0.5px solid var(--border);
 }
+.aurorabox-sidebar-top, .aurorabox-sidebar-bottom { display: flex; flex-direction: column; padding: 4px 8px; }
+.sidebar-section-label {
+  font-size: 10px; font-weight: 700; color: var(--text-secondary);
+  text-transform: uppercase; letter-spacing: 0.5px; padding: 6px 10px 2px;
+}
+.aurorabox-sidebar-item {
+  display: flex; align-items: center; gap: 8px; padding: 6px 10px;
+  border-radius: var(--radius-sm); color: var(--text); font-size: 13px;
+  cursor: pointer; margin: 1px 0; user-select: none;
+  border: none; background: none; width: 100%; text-align: left;
+  font-family: var(--font);
+}
+.aurorabox-sidebar-item:hover { background: var(--bg-hover); }
+.aurorabox-sidebar-item[data-active="true"] { background: var(--bg-selected); color: #fff; }
+.aurorabox-sidebar-badge {
+  font-size: 10px; background: rgba(255,255,255,0.25); color: #fff;
+  padding: 0 5px; border-radius: 8px; margin-left: auto; min-width: 16px; text-align: center;
+}
+.aurorabox-sidebar-label { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.sidebar-spacer { flex: 1; }
 
-/* Desktop page: wider cards, more horizontal space */
-.aurorabox-desktop-content .aurorabox-grouped-card {
-  max-width: none;
-  margin-left: 16px;
-  margin-right: 16px;
+/* ═══════════ DOCK (compact mode) ═══════════ */
+.aurorabox-dock {
+  display: grid; grid-auto-flow: column; justify-content: center; gap: 0;
+  height: 48px; background: var(--bg-sidebar);
+  border-top: 0.5px solid var(--border);
 }
+.aurorabox-dock button {
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: 2px; padding: 4px 16px 6px; border: none; background: none;
+  color: var(--text-tertiary); cursor: pointer; font-family: var(--font);
+}
+.aurorabox-dock button[data-active="true"] { color: var(--blue); }
+
+/* ═══════════ POWER BUTTON ═══════════ */
+.power-section { display: flex; flex-direction: column; align-items: center; padding: 12px 0 8px; }
+.power-btn {
+  width: 88px; height: 88px; border-radius: 50%;
+  border: 2.5px solid var(--border-strong); background: var(--bg-card);
+  cursor: pointer; display: flex; align-items: center; justify-content: center;
+  transition: all 0.3s; font-size: 28px; color: var(--text-tertiary);
+  box-shadow: 0 4px 16px rgba(0,0,0,0.06);
+}
+.power-btn:hover { border-color: var(--blue); color: var(--blue); box-shadow: 0 6px 24px rgba(52,120,246,0.12); transform: scale(1.05); }
+.power-btn.on { background: var(--blue); border-color: var(--blue); color: #fff; box-shadow: 0 6px 28px rgba(52,120,246,0.3); }
+.power-label { font-size: 13px; font-weight: 600; margin-top: 8px; color: var(--text); }
+.power-sub { font-size: 11px; color: var(--text-secondary); margin-top: 2px; }
+
+/* ═══════════ MODE SWITCHER ═══════════ */
+.mode-bar { display: inline-flex; background: var(--bg-fill); border-radius: var(--radius); padding: 2px; margin-top: 10px; }
+.mode-btn {
+  padding: 4px 12px; border: none; background: none; font-size: 11px; font-weight: 500;
+  color: var(--text-secondary); cursor: pointer; border-radius: 5px; transition: all 0.15s;
+  font-family: var(--font);
+}
+.mode-btn.active { background: var(--bg-card); color: var(--text); box-shadow: 0 1px 2px rgba(0,0,0,0.05); }
+.mode-btn.tun { color: var(--purple); }
+.mode-btn.tun.active { background: var(--purple); color: #fff; }
+
+/* ═══════════ COMPACT STATS ═══════════ */
+.compact-stats { display: flex; gap: 8px; margin-top: 10px; justify-content: center; }
+.compact-stat { text-align: center; padding: 3px 14px; border-right: 0.5px solid var(--border); }
+.compact-stat:last-child { border-right: none; }
+.compact-stat-val { font-size: 13px; font-weight: 600; font-family: var(--font-mono); }
+.compact-stat-label { font-size: 9px; font-weight: 600; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.5px; }
+
+/* ═══════════ SECTION ═══════════ */
+.page-section { margin-bottom: 6px; }
+.section-title {
+  font-size: 11px; font-weight: 600; color: var(--text-secondary);
+  text-transform: uppercase; letter-spacing: 0.3px;
+  padding: 4px 0 6px; display: flex; align-items: center; gap: 8px;
+}
+.page-body { padding: 20px 24px; }
+
+/* ═══════════ GROUPED LIST ═══════════ */
+.grouped-list {
+  border-radius: var(--radius-lg); overflow: hidden;
+  border: 0.5px solid var(--border); background: var(--bg-card);
+}
+.list-row {
+  display: flex; align-items: center; gap: 10px; padding: 8px 14px;
+  border-bottom: 0.5px solid var(--border); cursor: pointer;
+  font-size: 13px;
+}
+.list-row:last-child { border-bottom: none; }
+.list-row:hover { background: var(--bg-hover); }
+.list-row.selected { background: rgba(52,120,246,0.06); color: var(--blue); }
+.list-row.selected .list-radio {
+  border-color: var(--blue); background: var(--blue);
+  box-shadow: inset 0 0 0 3px var(--bg-card);
+}
+.list-radio {
+  width: 14px; height: 14px; border-radius: 50%;
+  border: 2px solid var(--text-tertiary); flex-shrink: 0;
+}
+.list-name { flex: 1; font-size: 13px; font-weight: 500; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.list-addr { font-size: 11px; color: var(--text-secondary); font-family: var(--font-mono); }
+.list-test { font-size: 11px; font-family: var(--font-mono); width: 50px; text-align: right; }
+
+/* ═══════════ PROTOCOL BADGES ═══════════ */
+.badge {
+  font-size: 10px; font-weight: 600; padding: 1px 5px; border-radius: 8px;
+  text-transform: uppercase; letter-spacing: 0.3px; flex-shrink: 0;
+}
+.badge-hy2 { background: rgba(168,85,247,0.12); color: var(--purple); }
+.badge-vl { background: rgba(52,120,246,0.12); color: var(--blue); }
+.badge-tj { background: rgba(236,72,153,0.12); color: var(--pink); }
+.badge-ss { background: rgba(48,177,88,0.12); color: var(--green); }
+.badge-s5 { background: rgba(255,154,3,0.12); color: var(--orange); }
+.badge-ht { background: rgba(0,0,0,0.06); color: var(--text-secondary); }
+
+/* ═══════════ TABLE ═══════════ */
+.data-table { width: 100%; font-size: 13px; border-collapse: collapse; }
+.data-table th {
+  text-align: left; padding: 6px 14px; font-size: 10px; font-weight: 600;
+  color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.5px;
+  border-bottom: 0.5px solid var(--border);
+}
+.data-table td { padding: 8px 14px; border-bottom: 0.5px solid var(--border); }
+.data-table tbody tr:hover td { background: var(--bg-hover); }
+
+/* ═══════════ GROUPS PAGE LAYOUT ═══════════ */
+.groups-layout { display: flex; gap: 16px; }
+.groups-left { width: 250px; min-width: 250px; display: flex; flex-direction: column; gap: 4px; }
+.groups-right {
+  flex: 1; border: 0.5px solid var(--border); border-radius: var(--radius-lg);
+  background: var(--bg-card); overflow-y: auto; padding: 14px;
+}
+.group-item {
+  display: flex; align-items: center; gap: 8px; padding: 8px 12px;
+  border-radius: var(--radius); border: 0.5px solid var(--border);
+  background: var(--bg-card); cursor: pointer; font-size: 13px;
+}
+.group-item:hover { border-color: var(--border-strong); }
+.group-item.active { border-color: var(--blue); background: rgba(52,120,246,0.04); }
+.group-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--text-tertiary); flex-shrink: 0; }
+.group-item.active .group-dot { background: var(--blue); }
+.group-name { flex: 1; font-weight: 500; }
+.group-type-tag { font-size: 10px; color: var(--text-secondary); background: var(--bg-fill); padding: 2px 6px; border-radius: 4px; }
+.group-node-count { font-size: 10px; color: var(--text-tertiary); }
+.member-row {
+  display: flex; align-items: center; gap: 8px; padding: 6px 0;
+  border-bottom: 0.5px solid var(--border); font-size: 13px;
+}
+.member-idx { width: 20px; font-size: 10px; color: var(--text-tertiary); font-family: var(--font-mono); text-align: center; }
+
+/* ═══════════ BUTTONS ═══════════ */
+.btn {
+  display: inline-flex; align-items: center; gap: 5px; padding: 5px 12px;
+  border-radius: var(--radius-sm); font-size: 12px; font-weight: 500;
+  cursor: pointer; border: 0.5px solid var(--border-strong);
+  background: var(--bg-card); color: var(--text);
+  font-family: var(--font); user-select: none;
+}
+.btn:hover { background: var(--bg-fill); }
+.btn.primary { background: var(--blue); color: #fff; border-color: var(--blue); }
+.btn.primary:hover { opacity: 0.9; }
+.btn.danger { color: var(--red); }
+.btn.sm { padding: 3px 8px; font-size: 10px; }
+.btn.xs { padding: 2px 6px; font-size: 10px; }
+
+/* ═══════════ TOOLBAR ═══════════ */
+.toolbar { display: flex; align-items: center; gap: 8px; margin-bottom: 14px; }
+
+/* ═══════════ SETTINGS ═══════════ */
+.settings-group { margin-bottom: 20px; }
+.settings-group-title {
+  font-size: 10px; font-weight: 700; color: var(--text-secondary);
+  text-transform: uppercase; letter-spacing: 0.5px; padding: 0 14px 4px;
+}
+.setting-row {
+  display: flex; align-items: center; padding: 10px 14px;
+  border-bottom: 0.5px solid var(--border); background: var(--bg-card); gap: 12px;
+}
+.setting-row:first-of-type { border-radius: var(--radius-lg) var(--radius-lg) 0 0; }
+.setting-row:last-of-type { border-radius: 0 0 var(--radius-lg) var(--radius-lg); border-bottom: none; }
+.setting-row:only-of-type { border-radius: var(--radius-lg); }
+.setting-row:hover { background: var(--bg-hover); }
+.setting-icon { width: 26px; height: 26px; border-radius: var(--radius-sm); display: flex; align-items: center; justify-content: center; font-size: 13px; flex-shrink: 0; }
+.setting-label { flex: 1; font-size: 13px; }
+.setting-desc { font-size: 11px; color: var(--text-secondary); }
+.setting-value { font-size: 11px; color: var(--text-secondary); text-align: right; }
+.setting-arrow { color: var(--text-tertiary); font-size: 12px; }
+
+/* ═══════════ TOGGLE ═══════════ */
+.toggle {
+  width: 36px; height: 20px; border-radius: 10px; background: var(--text-tertiary);
+  cursor: pointer; position: relative; transition: background 0.2s; flex-shrink: 0;
+}
+.toggle.on { background: var(--blue); }
+.toggle::after {
+  content: ''; position: absolute; width: 16px; height: 16px; border-radius: 50%;
+  background: #fff; top: 2px; left: 2px; transition: left 0.2s;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.15);
+}
+.toggle.on::after { left: 18px; }
+
+/* ═══════════ SCROLLBAR ═══════════ */
+.aurorabox-desktop-content::-webkit-scrollbar,
+.groups-right::-webkit-scrollbar { width: 6px; }
+.aurorabox-desktop-content::-webkit-scrollbar-track,
+.groups-right::-webkit-scrollbar-track { background: transparent; }
+.aurorabox-desktop-content::-webkit-scrollbar-thumb,
+.groups-right::-webkit-scrollbar-thumb { background: var(--text-tertiary); border-radius: 3px; }
+
+/* ═══════════ EMPTY STATE ═══════════ */
+.empty-state { text-align: center; padding: 32px; color: var(--text-tertiary); }
+
+/* ═══════════ PLACEHOLDER TEXT ═══════════ */
+.text-muted { color: var(--text-tertiary); }
+
+/* ═══════════ ANIMATIONS ═══════════ */
+.animate-spin { animation: spin 1s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+.animate-pulse { animation: pulse 1.5s ease-in-out infinite; }
+@keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.4; } }
+.animate-fade-in { animation: fadeIn 0.2s ease; }
+@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
