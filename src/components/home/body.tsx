@@ -1,12 +1,12 @@
 import { useEffect, useState } from "react";
 import useSWR from "swr";
-import { ChevronDown } from "react-bootstrap-icons";
+import { ChevronDown, ClipboardData } from "react-bootstrap-icons";
 import { getProxyGroups, getGroupMembers, setActiveProxyGroup, getProxyServers, setActiveProxyServer } from "../../action/db";
 import { GET_PROXY_GROUPS_SWR_KEY } from "../../types/definition";
 import type { ProxyGroup } from "../../types/definition";
 import { invoke } from "@tauri-apps/api/core";
 import { getCurrentWindow } from "@tauri-apps/api/window";
-import { vpnServiceManager } from "../../utils/helper";
+import { t, vpnServiceManager } from "../../utils/helper";
 import { AppleNetworkStatus, GoogleNetworkStatus } from "./network-check";
 import NetworkSpeed from "./network-speed";
 
@@ -55,7 +55,7 @@ export default function Body({ isRunning, onUpdate }: { isRunning: boolean; onUp
     return () => window.removeEventListener("group-members-changed", handler);
   }, [active?.identifier]);
 
-  // ── Switch to "全部节点" mode ─────────────────────────────────────
+  // ── Switch to all nodes mode ────────────────────────────────────────
   const handleSelectAllNodes = async () => {
     setOpen(false);
     if (allNodesMode) return; // already in this mode
@@ -129,7 +129,7 @@ export default function Body({ isRunning, onUpdate }: { isRunning: boolean; onUp
     : members.map(m => allServers.find(s => s.identifier === m.server_identifier)).filter(Boolean);
 
   const canPickNode = allNodesMode || active?.group_type === "fixed";
-  const groupLabel = allNodesMode ? "全部节点" : (active ? active.name : "全部节点");
+  const groupLabel = allNodesMode ? t("all_nodes") : (active ? active.name : t("all_nodes"));
   const groupTypeLabel = allNodesMode ? "自由选择" : (active ? (GROUP_LABELS[active.group_type] || active.group_type) : "");
 
   return (
@@ -139,7 +139,7 @@ export default function Body({ isRunning, onUpdate }: { isRunning: boolean; onUp
         <SectionLabel trailing={<>
             <button onClick={async () => {
               await invoke('create_window', { app: getCurrentWindow(), title: "日志", label: "sing-box-log", windowTag: "sing-box-log" });
-            }} className="text-[10px] px-1.5 py-0.5 rounded hover:brightness-95" style={{background:"var(--aurorabox-fill)",color:"var(--aurorabox-label-secondary)"}}>📋 日志</button>
+            }} className="flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded hover:brightness-95" style={{background:"var(--aurorabox-fill)",color:"var(--aurorabox-label-secondary)"}}><ClipboardData size={12}/> {t("log_viewer")}</button>
             <AppleNetworkStatus /><GoogleNetworkStatus isRunning={isRunning} />
           </>}>
           代理组
@@ -162,7 +162,7 @@ export default function Body({ isRunning, onUpdate }: { isRunning: boolean; onUp
                 className="w-full flex items-center gap-2 px-3 py-2 text-sm hover:bg-[var(--aurorabox-row-hover)] border-b border-[var(--aurorabox-separator)]"
                 style={{ color: (allNodesMode && !active) ? "var(--aurorabox-blue)" : "var(--aurorabox-label)" }}>
                 <span className="flex-1 text-left">全部节点</span>
-                <span className="text-[10px] px-1.5 py-0.5 rounded" style={{ background: "var(--aurorabox-fill)" }}>默认</span>
+                <span className="text-[10px] px-1.5 py-0.5 rounded" style={{ background: "var(--aurorabox-fill)" }}>{t("all_nodes_default")}</span>
                 {(allNodesMode && !active) && <span className="w-2 h-2 rounded-full bg-[var(--aurorabox-green)]" />}
               </button>
               {/* Custom groups */}
@@ -185,7 +185,7 @@ export default function Body({ isRunning, onUpdate }: { isRunning: boolean; onUp
         <SectionLabel>
           节点
           <span className="text-[10px] font-normal text-[var(--aurorabox-label-tertiary)] ml-1">
-            {allNodesMode ? "— 自由选择任意节点" : active ? `— ${GROUP_LABELS[active.group_type] || ""}` : ""}
+            {allNodesMode ? `— ${t("all_nodes_desc")}` : active ? `— ${GROUP_LABELS[active.group_type] || ""}` : ""}
           </span>
         </SectionLabel>
 
@@ -209,7 +209,7 @@ export default function Body({ isRunning, onUpdate }: { isRunning: boolean; onUp
             })}
             {displayedNodes.length === 0 && (
               <p className="text-xs text-[var(--aurorabox-label-tertiary)] px-1 py-2 text-center">
-                {allNodesMode ? "还没有服务器，去 Servers 页面添加" : "组内暂无成员"}
+                {allNodesMode ? t("no_servers_hint") : t("group_no_members")}
               </p>
             )}
           </div>

@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import useSWR from "swr";
-import { CloudPlus, Clipboard, Pencil, Server, Speedometer2, Trash3 } from "react-bootstrap-icons";
+import { CloudPlus, Clipboard, Pencil, Server, Speedometer2, Stopwatch, Trash3 } from "react-bootstrap-icons";
 import { addGroupMember, deleteProxyGroup, deleteProxyServer, getGroupMembers, getProxyGroups, getProxyServers, insertProxyGroup, removeGroupMember } from "../action/db";
 import { GET_PROXY_GROUPS_SWR_KEY, GET_PROXY_SERVERS_SWR_KEY } from "../types/definition";
 import type { ProxyGroup, ProxyServer } from "../types/definition";
@@ -85,7 +85,7 @@ function ServersPage() {
           proxy_type: s.proxyType || "ss", username: s.username || "",
           vless_uuid: (s as any).vlessUUID || "", vless_opts: s.vlessOpts ? JSON.stringify(s.vlessOpts) : "",
         })));
-        toast.success(`已导入 ${valid.length} 个服务器`);
+        toast.success(t("imported_n_servers", { count: valid.length.toString() }) || `已导入 ${valid.length} 个服务器`);
         refresh();
       } catch (err: any) { toast.error(String(err)); }
     };
@@ -305,7 +305,7 @@ function ServersPage() {
           </button>
           <button onClick={() => runTestsBatch("latency")} disabled={testingLatency.size > 0 || !servers?.length}
             className="flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg bg-[var(--aurorabox-fill)] text-[var(--aurorabox-label)] hover:brightness-95 disabled:opacity-50">
-            <span className={testingLatency.size > 0 ? "animate-pulse" : ""}>⏱</span>
+            <Stopwatch size={16} className={testingLatency.size > 0 ? "animate-pulse" : ""} />
             {testingLatency.size > 0 ? t("testing") : t("test_latency")}
           </button>
           <button onClick={() => runTestsBatch("speed")} disabled={testingSpeed.size > 0 || !servers?.length}
@@ -340,7 +340,7 @@ function ServersPage() {
                     </div>
                   </div>
                   <div className="flex items-center gap-1.5 flex-shrink-0">
-                    {lTesting && <span className="text-xs animate-pulse">⏳</span>}
+                    {lTesting && <Speedometer2 size={14} className="animate-pulse" />}
                     {latency && !lTesting && latency.tcpMs != null && (
                       <span className="text-[10px] font-mono px-1.5 py-0.5 rounded" style={{ color: "var(--aurorabox-label-tertiary)", background: "var(--aurorabox-fill)" }}>TCP {latency.tcpMs}ms</span>
                     )}
@@ -350,7 +350,7 @@ function ServersPage() {
                     {latency && !lTesting && latency.ms == null && latency.error && (
                       <span className="text-[10px] font-mono px-1 py-0.5 rounded" style={{ color: "var(--aurorabox-red)", background: "var(--aurorabox-fill)" }}>FAIL</span>
                     )}
-                    {sTesting && <span className="text-xs animate-pulse">⏳</span>}
+                    {sTesting && <Speedometer2 size={14} className="animate-pulse" />}
                     {speed && !sTesting && speed.kbps != null && (
                       <span className="text-xs font-mono font-medium px-2 py-0.5 rounded" style={{ color: "var(--aurorabox-blue)", background: "var(--aurorabox-fill)" }}>{speedText(speed.kbps)}</span>
                     )}
@@ -365,7 +365,7 @@ function ServersPage() {
                   <div className="flex gap-1 px-4 pb-3 flex-wrap">
                     <button onClick={() => runTests(s, "latency")} disabled={isTesting(s, "latency")}
                       className="flex items-center gap-1 px-3 py-1.5 text-xs rounded-md bg-[var(--aurorabox-fill)] text-[var(--aurorabox-label)] hover:brightness-95 disabled:opacity-50">
-                      ⏱ {isTesting(s, "latency") ? "..." : t("test_latency")}
+                      <Stopwatch size={12} /> {isTesting(s, "latency") ? "..." : t("test_latency")}
                     </button>
                     <button onClick={() => runTests(s, "speed")} disabled={isTesting(s, "speed")}
                       className="flex items-center gap-1 px-3 py-1.5 text-xs rounded-md bg-[var(--aurorabox-fill)] text-[var(--aurorabox-label)] hover:brightness-95 disabled:opacity-50">
