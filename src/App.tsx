@@ -141,16 +141,26 @@ function App() {
   }, []);
 
 
-  const isDeveloperMode = React.useRef(false);
+  const isDevRef = React.useRef(false);
   useEffect(() => {
     getStoreValue(DEVELOPER_TOGGLE_STORE_KEY, false).then((val) => {
-      isDeveloperMode.current = val;
+      isDevRef.current = val;
     });
     const handler = (e: MouseEvent) => {
-      if (!isDeveloperMode.current) e.preventDefault();
+      if (!isDevRef.current) e.preventDefault();
     };
     document.addEventListener('contextmenu', handler);
-    return () => document.removeEventListener('contextmenu', handler);
+    // Also handle Ctrl+Shift+I keyboard shortcut
+    const keyHandler = (e: KeyboardEvent) => {
+      if (e.ctrlKey && e.shiftKey && e.key === 'I') {
+        invoke('open_devtools').catch(()=>{});
+      }
+    };
+    document.addEventListener('keydown', keyHandler);
+    return () => {
+      document.removeEventListener('contextmenu', handler);
+      document.removeEventListener('keydown', keyHandler);
+    };
   }, []);
 
   useEffect(() => {
