@@ -209,7 +209,7 @@ export const vpnServiceManager = {
                                 break;
                             }
                             case "socks5": base.type = "socks"; base.version = "5"; if (s.username) base.username = s.username; break;
-                            case "http": base.type = "http"; if (s.username) base.username = s.username; break;
+                            case "http": base.type = "http"; if (s.username) base.username = s.username; if (s.password) base.password = s.password; break;
                             default: base.type = "shadowsocks"; base.method = s.encryption_method; base.password = s.password; break;
                         }
                         return JSON.stringify(base);

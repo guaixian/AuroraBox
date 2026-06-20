@@ -210,8 +210,8 @@ function ServersPage() {
         const vopts = (() => { try { return JSON.parse((s as any).vless_opts || "{}"); } catch { return {}; } })();
         base.tls = { enabled: vopts.security !== "none", server_name: vopts.sni || "" };
         break;
-      case "socks5": base.type = "socks"; base.version = "5"; break;
-      case "http": base.type = "http"; break;
+      case "socks5": base.type = "socks"; base.version = "5"; if (s.username) base.username = s.username; if (s.password) base.password = s.password; break;
+      case "http": base.type = "http"; if (s.username) base.username = s.username; if (s.password) base.password = s.password; break;
       default: base.type = "shadowsocks"; base.method = s.encryption_method; base.password = s.password; break;
     }
     return JSON.stringify(base);
