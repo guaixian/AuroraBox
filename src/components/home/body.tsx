@@ -99,16 +99,22 @@ export default function Body({ isRunning, isLoading, onUpdate, onToggle }: { isR
   // Poll Clash API for network speed every 2 seconds
   useEffect(() => {
     if (!isRunning) { setNetDown(0); setNetUp(0); return; }
-    const interval = setInterval(async () => {
-      try {
-        const secret = (await import("../../single/store")).getClashApiSecret;
-        const s = await secret();
-        const res = await fetch(`http://127.0.0.1:9191/traffic`, { headers: { Authorization: `Bearer ${s}` } });
-        const data = await res.json();
-        setNetDown(data.down || 0); setNetUp(data.up || 0);
-      } catch(e){}
-    }, 2000);
-    return () => clearInterval(interval);
+    let active = true;
+    const poll = async () => {
+      while (active) {
+        try {
+          const { getClashApiSecret } = await import("../../single/store");
+          const s = await getClashApiSecret();
+          const { fetch: tauriFetch } = await import("@tauri-apps/plugin-http");
+          const res = await tauriFetch("http://127.0.0.1:9191/traffic", { headers: { Authorization: `Bearer ${s}` } });
+          const data = await res.json();
+          if (active) { setNetDown(data.down||0); setNetUp(data.up||0); }
+        } catch(e){}
+        await new Promise(r => setTimeout(r, 2000));
+      }
+    };
+    poll();
+    return () => { active = false; };
   }, [isRunning]);
 
   const canPick = allNodesMode || active?.group_type === "fixed";

@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import useSWR from "swr";
-import { Speedometer2, Stopwatch, Trash3 } from "react-bootstrap-icons";
+import { Clipboard, Pencil, Speedometer2, Stopwatch, Trash3 } from "react-bootstrap-icons";
 import { deleteProxyServer, getProxyServers } from "../action/db";
 import { GET_PROXY_SERVERS_SWR_KEY } from "../types/definition";
 import type { ProxyServer } from "../types/definition";
@@ -111,14 +111,24 @@ export default function ServersPage() {
 
       <div className="grouped-list" style={{borderRadius:"var(--r-lg)",overflow:"hidden"}}>
         <table className="data-table">
-          <thead><tr><th style={{width:24}}/><th>Name</th><th style={{width:60}}>Type</th><th>Server</th><th style={{width:65}}>Latency</th><th style={{width:75}}>Speed</th><th style={{width:80}}/></tr></thead>
+          <thead><tr><th>Name</th><th style={{width:60}}>Type</th><th>Server</th><th style={{width:65}}>Latency</th><th style={{width:75}}>Speed</th><th style={{width:120}}>Actions</th></tr></thead>
           <tbody>
             {(servers||[]).map(s=>{
               const k=`${s.server_address}:${s.server_port}`;
               const l=latency[k]; const sp=speed[k]; const tg=testing.has(k);
+              const copyLink = () => {
+                const h=`${s.server_address}:${s.server_port}`;const p=s.proxy_type||"ss";
+                let link=null;
+                if(p==="ss") link=`ss://${btoa(`${s.encryption_method}:${s.password}`)}@${h}#${encodeURIComponent(s.name)}`;
+                else if(p==="trojan") link=`trojan://${encodeURIComponent(s.password)}@${h}?security=tls#${encodeURIComponent(s.name)}`;
+                else if(p==="vless") link=`vless://${(s as any).vless_uuid||""}@${h}?security=tls#${encodeURIComponent(s.name)}`;
+                else if(p==="hysteria2") link=`hysteria2://${s.password}@${h}?sni=${s.server_address}&insecure=1#${encodeURIComponent(s.name)}`;
+                else if(p==="socks5") link=`socks5://${s.username?s.username+":"+s.password:""}@${h}#${encodeURIComponent(s.name)}`;
+                else if(p==="http") link=`http://${s.username?s.username+":"+s.password:""}@${h}#${encodeURIComponent(s.name)}`;
+                if(link) navigator.clipboard.writeText(link).then(()=>toast.success("Copied")).catch(()=>toast.error("Failed"));
+              };
               return (
-                <tr key={s.identifier} style={{cursor:"pointer"}}>
-                  <td><div className="list-radio" style={{display:"inline-block"}}/></td>
+                <tr key={s.identifier}>
                   <td style={{fontWeight:500}}>{s.name}</td>
                   <td><span className={`badge ${getBadge(s.proxy_type||"ss")}`}>{getLabel(s.proxy_type||"ss")}</span></td>
                   <td style={{fontFamily:"monospace",fontSize:12,color:"var(--text2)"}}>{s.server_address}:{s.server_port}</td>
@@ -127,6 +137,8 @@ export default function ServersPage() {
                   <td>
                     <button className="btn xs" style={{marginRight:2}} onClick={(e)=>{e.stopPropagation();testOne(s)}} disabled={tg}><Stopwatch size={10}/></button>
                     <button className="btn xs" style={{marginRight:2}} onClick={(e)=>{e.stopPropagation();testOne(s)}} disabled={tg}><Speedometer2 size={10}/></button>
+                    <button className="btn xs" style={{marginRight:2}} onClick={(e)=>{e.stopPropagation();copyLink()}}><Clipboard size={10}/></button>
+                    <button className="btn xs" style={{marginRight:2}} onClick={(e)=>{e.stopPropagation();setEditServer(s);setShowAdd(true)}}><Pencil size={10}/></button>
                     <button className="btn xs danger" onClick={(e)=>{e.stopPropagation();if(confirm("Delete?"))handleDelete(s.identifier)}}><Trash3 size={10}/></button>
                   </td>
                 </tr>
