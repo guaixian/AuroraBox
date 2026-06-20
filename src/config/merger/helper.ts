@@ -361,15 +361,17 @@ export async function mergeManualServersConfig(newConfig: any): Promise<void> {
 
                     break;
                 }
-                default: // ss
+                default: { // ss
                     outbound.type = "shadowsocks";
                     outbound.method = server.encryption_method;
                     outbound.password = server.password;
-                    if (server.plugin) {
+                    // Only set plugin for non-2022 SS (2022 uses uPSK not plugin)
+                    if (server.plugin && !server.encryption_method?.startsWith("2022-")) {
                         outbound.plugin = server.plugin;
                         outbound.plugin_opts = server.plugin_opts;
                     }
                     break;
+                }
             }
 
             // Avoid duplicate tags
