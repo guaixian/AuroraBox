@@ -42,14 +42,12 @@ export default function Body({ isRunning, isLoading, onUpdate, onToggle }: { isR
     try { await vpnServiceManager.syncConfig({}); if (isRunning) onUpdate(); } catch(e){}
   };
 
-  useEffect(() => {
-    getProxyServers().then(s => {
-      setAllServers(s);
-      if (allNodesMode) setSelectedId(s.find((x: any) => x.is_active)?.identifier || null);
-    });
-  }, [groups]);
+  // Load all servers on every groups change AND on mount
+  useEffect(() => { getProxyServers().then(s => { setAllServers(s); }); }, [groups]);
 
+  // Load group members + all servers when active group changes or on mount
   useEffect(() => {
+    getProxyServers().then(s => setAllServers(s));
     if (!active) { setMembers([]); return; }
     getGroupMembers(active.identifier).then(m => {
       setMembers(m);

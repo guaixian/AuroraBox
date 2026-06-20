@@ -1,9 +1,9 @@
 import { useEffect, useState } from "react";
 import useSWR from "swr";
 import { Plus } from "react-bootstrap-icons";
-import { addGroupMember, deleteProxyGroup, getGroupMembers, getProxyGroups, getProxyServers, insertProxyGroup, removeGroupMember, setActiveProxyGroup } from "../action/db";
+import { addGroupMember, deleteProxyGroup, getGroupMembers, getProxyGroups, getProxyServers, insertProxyGroup, removeGroupMember } from "../action/db";
 import { GET_PROXY_GROUPS_SWR_KEY, GET_PROXY_SERVERS_SWR_KEY } from "../types/definition";
-import type { ProxyGroup, ProxyServer } from "../types/definition";
+import type { ProxyServer } from "../types/definition";
 import { toast } from "sonner";
 
 const TYPE_LABEL: Record<string, string> = { fixed: "Fixed", auto: "Auto", random: "Random", chain: "Chain" };
@@ -32,10 +32,6 @@ export default function GroupsPage() {
   const handleDelete = async () => {
     if (!selected) return;
     try { await deleteProxyGroup(selected.identifier); setSelectedId(null); mutateGroups(); } catch (e: any) { toast.error(String(e)); }
-  };
-
-  const handleToggleActive = async (g: ProxyGroup) => {
-    try { await setActiveProxyGroup(g.is_active ? null : g.identifier); mutateGroups(); } catch (e: any) { toast.error(String(e)); }
   };
 
   const handleAddMember = async (s: ProxyServer) => {
@@ -104,8 +100,7 @@ export default function GroupsPage() {
           {(!groups || groups.length === 0) && <div className="empty-state">No groups yet</div>}
           {selected && (
             <div style={{marginTop:8}}>
-              <button className="btn sm" onClick={() => handleToggleActive(selected)}>{selected.is_active ? "Deactivate" : "Set Active"}</button>
-              <button className="btn sm danger" style={{marginLeft:8}} onClick={handleDelete}>Delete</button>
+              <button className="btn sm danger" onClick={handleDelete}>Delete Group</button>
             </div>
           )}
         </div>
