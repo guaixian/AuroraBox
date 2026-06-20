@@ -4,7 +4,7 @@ import { ChevronDown, ClipboardData } from "react-bootstrap-icons";
 import { getProxyGroups, getGroupMembers, setActiveProxyGroup, getProxyServers, setActiveProxyServer } from "../../action/db";
 import { GET_PROXY_GROUPS_SWR_KEY } from "../../types/definition";
 import type { ProxyGroup } from "../../types/definition";
-import { vpnServiceManager } from "../../utils/helper";
+import { vpnServiceManager } from "../../utils/helper"; // used for syncConfig + node selection
 import { AppleNetworkStatus, GoogleNetworkStatus } from "./network-check";
 import NetworkSpeed from "./network-speed";
 import { invoke } from "@tauri-apps/api/core";
@@ -12,7 +12,7 @@ import { getCurrentWindow } from "@tauri-apps/api/window";
 
 const GROUP_LABELS: Record<string, string> = { fixed: "Fixed", auto: "Auto", random: "Random", chain: "Chain" };
 
-export default function Body({ isRunning, onUpdate }: { isRunning: boolean; onUpdate: () => void }) {
+export default function Body({ isRunning, isLoading, onUpdate, onToggle }: { isRunning: boolean; isLoading?: boolean; onUpdate: () => void; onToggle: () => void }) {
   const { data: groups } = useSWR(GET_PROXY_GROUPS_SWR_KEY, getProxyGroups, { fallbackData: [] });
   const [open, setOpen] = useState(false);
   const [allServers, setAllServers] = useState<any[]>([]);
@@ -76,12 +76,8 @@ export default function Body({ isRunning, onUpdate }: { isRunning: boolean; onUp
     <div>
       {/* Power + Mode */}
       <div className="power-section">
-        <div className={`power-btn ${isRunning ? "on" : ""}`} onClick={async () => {
-          if (isRunning) await vpnServiceManager.stop();
-          else { await vpnServiceManager.syncConfig({}); await vpnServiceManager.start(); }
-          onUpdate();
-        }}>⏻</div>
-        <div className="power-label">{isRunning ? "Connected" : "Disconnected"}</div>
+        <div className={`power-btn ${isRunning ? "on" : ""}`} onClick={onToggle} style={isLoading ? {opacity:0.6,pointerEvents:"none"} : {}}>⏻</div>
+        <div className="power-label">{isLoading ? "Switching..." : isRunning ? "Connected" : "Disconnected"}</div>
         <div className="power-sub">{selectedId ? allServers.find(s => s.identifier === selectedId)?.server_address + " · " + getTypeLabel(allServers.find(s => s.identifier === selectedId)?.proxy_type || "ss") : "—"}</div>
 
         <div className="mode-bar">
