@@ -176,7 +176,7 @@ function ServersPage() {
     fixed: "选择一个固定的代理使用",
     auto: "自动选择延迟最低的代理",
     random: "每次启动随机选择一个代理",
-    chain: "detour链：最后一个代理为出口IP。⚠ QUIC代理不能通过HTTP代理转发"
+    chain: "代理链路 1→2→3。仅支持 HTTP/SOCKS5，最后一个代理的 IP 为出口 IP"
   };
 
   // ── Build outbound JSON ───────────────────────────────────────────
@@ -440,14 +440,29 @@ function ServersPage() {
                       <p className="text-xs text-[var(--aurorabox-label-tertiary)] py-2 text-center">暂无成员，从下方添加</p>
                     )}
                   </div>
-                  {/* Add server buttons */}
+                  {/* Add server buttons — chain mode only shows TCP-compatible proxies */}
                   <div className="mt-3 flex flex-wrap gap-1">
-                    {(servers || []).filter(s => !(groupMembers[g.identifier] || []).some((m: any) => m.server_identifier === s.identifier)).map(s => (
+                    {(servers || []).filter(s => {
+                      if (groupMembers[g.identifier]?.some((m: any) => m.server_identifier === s.identifier)) return false;
+                      // Chain mode: only HTTP and SOCKS5 (TCP proxies can forward each other)
+                      if (g.group_type === "chain") {
+                        const pt = (s as any).proxy_type || "ss";
+                        return pt === "http" || pt === "socks5";
+                      }
+                      return true;
+                    }).map(s => (
                       <button key={s.identifier} onClick={() => handleAddToGroup(g, s)}
                         className="text-[10px] px-2 py-1 rounded bg-[var(--aurorabox-fill)] text-[var(--aurorabox-label-secondary)] hover:brightness-95">+ {s.name}</button>
                     ))}
-                    {(servers || []).filter(s => !(groupMembers[g.identifier] || []).some((m: any) => m.server_identifier === s.identifier)).length === 0 && (
-                      <span className="text-[10px] text-[var(--aurorabox-label-tertiary)]">所有服务器已加入此组</span>
+                    {(servers || []).filter(s => {
+                      if (groupMembers[g.identifier]?.some((m: any) => m.server_identifier === s.identifier)) return false;
+                      if (g.group_type === "chain") {
+                        const pt = (s as any).proxy_type || "ss";
+                        return pt === "http" || pt === "socks5";
+                      }
+                      return true;
+                    }).length === 0 && (
+                      <span className="text-[10px] text-[var(--aurorabox-label-tertiary)]">{g.group_type === "chain" ? "仅支持 HTTP/SOCKS5 代理 — 无可用服务器" : "所有服务器已加入此组"}</span>
                     )}
                   </div>
                 </div>
