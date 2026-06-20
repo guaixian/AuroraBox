@@ -165,6 +165,36 @@ async function syncConfig(props: SyncConfigProps) {
 export const vpnServiceManager = {
     start: async () => {
         try {
+            // Start chain cascade instances BEFORE main sing-box
+            const { getProxyGroups, getGroupMembers } = await import("../action/db");
+            const groups = await getProxyGroups();
+            const activeChain = groups.find(g => g.is_active && g.group_type === "chain");
+            if (activeChain) {
+                const members = await getGroupMembers(activeChain.identifier);
+                const { getProxyServers } = await import("../action/db");
+                const allServers = await getProxyServers();
+                const servers = members.map((m: any) => allServers.find(s => s.identifier === m.server_identifier)).filter(Boolean);
+                if (servers.length >= 2) {
+                    const outbounds = servers.map((s: any) => {
+                        const ptype = s.proxy_type || "ss";
+                        const tag = `${ptype}-${s.identifier.slice(0, 8)}`;
+                        const base: any = { tag, server: s.server_address, server_port: s.server_port, domain_resolver: "system" };
+                        switch (ptype) {
+                            case "hysteria2": base.type = "hysteria2"; base.password = s.password; break;
+                            case "vless": base.type = "vless"; base.uuid = s.vless_uuid || ""; break;
+                            case "trojan": base.type = "trojan"; base.password = s.password; break;
+                            case "socks5": base.type = "socks"; base.version = "5"; break;
+                            case "http": base.type = "http"; break;
+                            default: base.type = "shadowsocks"; base.method = s.encryption_method; base.password = s.password; break;
+                        }
+                        return JSON.stringify(base);
+                    });
+                    console.log("[chain] starting cascade with", servers.length, "hops");
+                    const port = await invoke<number>("start_chain", { groupId: activeChain.identifier, servers: outbounds });
+                    console.log("[chain] cascade ready, entry port:", port);
+                }
+            }
+
             const configPath = await getSingBoxConfigPath();
             const tunMode: boolean | undefined = await getEnableTun();
             const skipSystemProxy = !tunMode && await getSkipSystemProxy();
@@ -206,7 +236,9 @@ export const vpnServiceManager = {
      * 
      */
     stop: async () => {
-        await invoke("stop", { app: appWindow })
+        await invoke("stop", { app: appWindow });
+        // Always clean up chain cascade instances
+        try { await invoke("stop_chain"); } catch (_) {}
     },
 
 
@@ -219,6 +251,7 @@ export const vpnServiceManager = {
             if (type() === 'windows' && !useTun) {
                 // Windows 下的系统代理模式需要重启服务
                 await invoke("stop", { app: appWindow });
+                try { await invoke("stop_chain"); } catch (_) {}
                 await new Promise(resolve => setTimeout(resolve, 1000)); // 等待1秒确保服务完全停止
                 await vpnServiceManager.start();
             } else {
