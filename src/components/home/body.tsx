@@ -7,7 +7,7 @@ import { getStoreValue, setStoreValue } from "../../single/store";
 import type { ProxyGroup } from "../../types/definition";
 import { vpnServiceManager } from "../../utils/helper"; // used for syncConfig + node selection
 import { AppleNetworkStatus, GoogleNetworkStatus } from "./network-check";
-import NetworkSpeed from "./network-speed";
+import { useNetworkSpeed } from "../../utils/clash-api";
 import { invoke } from "@tauri-apps/api/core";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 
@@ -102,6 +102,7 @@ export default function Body({ isRunning, isLoading, onUpdate, onToggle }: { isR
   useEffect(() => { if (!open) return; const h = () => setOpen(false); document.addEventListener("click", h); return () => document.removeEventListener("click", h); }, [open]);
 
   const canPick = allNodesMode || active?.group_type === "fixed";
+  const netSpeed = useNetworkSpeed(isRunning);
   const displayedNodes = allNodesMode ? allServers : members.map(m => allServers.find(s => s.identifier === m.server_identifier)).filter(Boolean);
   if (canPick) console.log("[sel] mode:", allNodesMode?"all":"group", "servers:", allServers.length, "members:", members.length, "displayed:", displayedNodes.length, "selectedId:", selectedId);
   const getBadge = (t: string) => ({ hysteria2: "badge-hy2", vless: "badge-vl", trojan: "badge-tj", socks5: "badge-s5", http: "badge-ht", ss: "badge-ss" })[t] || "badge-ht";
@@ -123,8 +124,8 @@ export default function Body({ isRunning, isLoading, onUpdate, onToggle }: { isR
 
         <div className="compact-stats">
           <div className="compact-stat"><div className="compact-stat-val" style={{color:"var(--green)"}}>—</div><div className="compact-stat-label">Ping</div></div>
-          <div className="compact-stat"><div className="compact-stat-val">—</div><div className="compact-stat-label">Down</div></div>
-          <div className="compact-stat"><div className="compact-stat-val">—</div><div className="compact-stat-label">Up</div></div>
+          <div className="compact-stat"><div className="compact-stat-val">{netSpeed ? (netSpeed.download / 1024).toFixed(1) : "—"} KB/s</div><div className="compact-stat-label">Down</div></div>
+          <div className="compact-stat"><div className="compact-stat-val">{netSpeed ? (netSpeed.upload / 1024).toFixed(1) : "—"} KB/s</div><div className="compact-stat-label">Up</div></div>
         </div>
       </div>
 
@@ -179,7 +180,6 @@ export default function Body({ isRunning, isLoading, onUpdate, onToggle }: { isR
         )}
       </div>
 
-      <NetworkSpeed isRunning={isRunning} />
     </div>
   );
 }
