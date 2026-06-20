@@ -59,7 +59,15 @@ export default function Body({ isRunning, isLoading, onUpdate, onToggle }: { isR
     setOpen(false);
     if (g.is_active && !allNodesMode) return;
     setSwitching(true);
-    try { await setActiveProxyGroup(g.identifier); await vpnServiceManager.syncConfig({}); onUpdate(); } catch (e) { console.error(e); } finally { setSwitching(false); }
+    const t0 = performance.now();
+    try {
+      await setActiveProxyGroup(g.identifier);
+      console.log("[perf] setActiveProxyGroup:", (performance.now()-t0).toFixed(0), "ms");
+      await vpnServiceManager.syncConfig({});
+      console.log("[perf] syncConfig done:", (performance.now()-t0).toFixed(0), "ms");
+      onUpdate();
+      console.log("[perf] total handleSelectGroup:", (performance.now()-t0).toFixed(0), "ms");
+    } catch (e) { console.error(e); } finally { setSwitching(false); }
   };
   const handleSelectAllNodes = async () => {
     setOpen(false); if (allNodesMode) return;
@@ -80,7 +88,10 @@ export default function Body({ isRunning, isLoading, onUpdate, onToggle }: { isR
         for (let i = 0; i < reordered.length; i++) await addGroupMember(active.identifier, reordered[i].server_identifier, i);
         setMembers(reordered);
       }
-      await vpnServiceManager.syncConfig({}); if (isRunning) onUpdate();
+      const t1 = performance.now();
+      await vpnServiceManager.syncConfig({});
+      console.log("[perf] node syncConfig:", (performance.now()-t1).toFixed(0), "ms");
+      if (isRunning) onUpdate();
     } catch (e) { console.error(e); setSelectedId(prev); }
   };
   useEffect(() => { if (!open) return; const h = () => setOpen(false); document.addEventListener("click", h); return () => document.removeEventListener("click", h); }, [open]);
