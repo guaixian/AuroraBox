@@ -9,6 +9,7 @@ import { AddServerModal } from "../components/servers/add-server-modal";
 import { ImportShareLinksModal } from "../components/servers/import-share-links-modal";
 import { toast } from "sonner";
 import { invoke } from "@tauri-apps/api/core";
+import { listen } from "@tauri-apps/api/event";
 
 type LatencyMap = Record<string, { ms: number | null; tcpMs?: number; error?: string }>;
 type SpeedMap = Record<string, { kbps: number | null; error?: string }>;
@@ -45,6 +46,22 @@ function ServersPage() {
   }, [groups]);
 
   const refresh = () => mutate();
+
+  // Real-time test results — update as each server finishes
+  useEffect(() => {
+    const unlisten = listen<{
+      server: string; port: number; tcp_ms: number | null;
+      real_ms: number | null; speed_kbps: number | null; error: string | null;
+    }>("proxy-test-result", (e) => {
+      const r = e.payload;
+      const key = `${r.server}:${r.port}`;
+      setLatencyMap(prev => ({ ...prev, [key]: { ms: r.real_ms, tcpMs: r.tcp_ms ?? undefined, error: r.error ?? undefined } }));
+      setSpeedMap(prev => ({ ...prev, [key]: { kbps: r.speed_kbps ? Math.round(r.speed_kbps) : null, error: !r.speed_kbps ? (r.error ?? undefined) : undefined } }));
+      setTestingLatency(prev => { const n = new Set(prev); n.delete(key); return n; });
+      setTestingSpeed(prev => { const n = new Set(prev); n.delete(key); return n; });
+    });
+    return () => { unlisten.then(f => f()); };
+  }, []);
 
   // ── v2rayN-style paste-to-import ──────────────────────────────────
   useEffect(() => {

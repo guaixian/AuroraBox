@@ -152,23 +152,34 @@ pub async fn run_singbox_tests(
         // measures average throughput. Does NOT download the whole file.
         let speed_kbps = {
             let proxy = format!("http://127.0.0.1:{}", test_port);
-            let out = Command::new("curl")
-                .args([
-                    "-x", &proxy,
-                    "-s", "-o", "/dev/null", "-w", "%{speed_download}",
-                    "--connect-timeout", "5", "--max-time", "10",
-                    "http://cachefly.cachefly.net/100mb.test",
-                ])
-                .output();
-            match out {
-                Ok(o) if o.status.success() => {
-                    let bps: f64 = String::from_utf8_lossy(&o.stdout).trim().parse().unwrap_or(0.0);
-                    if bps > 0.0 { Some(bps / 1024.0) } else { None }
+            let urls = [
+                "http://cachefly.cachefly.net/10mb.test",
+                "http://speedtest.tele2.net/10MB.zip",
+                "http://ipv4.download.thinkbroadband.com/10MB.zip",
+            ];
+            let mut result = None;
+            for url in &urls {
+                let out = Command::new("curl")
+                    .args([
+                        "-x", &proxy,
+                        "-s", "-o", "/dev/null", "-w", "%{speed_download}",
+                        "--connect-timeout", "5", "--max-time", "10",
+                        url,
+                    ])
+                    .output();
+                if let Ok(o) = out {
+                    if o.status.success() {
+                        let bps: f64 = String::from_utf8_lossy(&o.stdout).trim().parse().unwrap_or(0.0);
+                        if bps > 0.0 {
+                            result = Some(bps / 1024.0);
+                            break;
+                        }
+                    }
                 }
-                _ => None,
             }
+            result
         };
-        let speed_error = if speed_kbps.is_none() { Some("curl failed".to_string()) } else { None };
+        let speed_error = if speed_kbps.is_none() { Some("speed test failed".to_string()) } else { None };
 
         let error = if real_ms.is_none() && speed_kbps.is_none() {
             let combined = [
