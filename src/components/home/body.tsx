@@ -106,19 +106,16 @@ export default function Body({ isRunning, isLoading, onUpdate, onToggle }: { isR
           const { fetch: tauriFetch } = await import("@tauri-apps/plugin-http");
           const { getClashApiSecret } = await import("../../single/store");
           const s = await getClashApiSecret();
-          console.log("[traffic] secret:", s ? s.slice(0,8)+"..." : "NULL", "starting poll...");
           const r = await tauriFetch("http://127.0.0.1:9191/traffic", {
             method: "GET",
             headers: { Authorization: `Bearer ${s}` },
             connectTimeout: 3000
           });
-          console.log("[traffic] response:", r.status, r.ok);
           if (r.ok) {
             const d: any = await r.json();
-            console.log("[traffic] data:", JSON.stringify(d));
             if (active) { setNetDown(d.down||0); setNetUp(d.up||0); }
           }
-        } catch(e){ console.log("[traffic] error:", e); }
+        } catch(e){}
         if (active) await new Promise(r => setTimeout(r, 2000));
       }
     };
@@ -147,8 +144,8 @@ export default function Body({ isRunning, isLoading, onUpdate, onToggle }: { isR
 
         <div className="compact-stats">
           <div className="compact-stat"><div className="compact-stat-val" style={{color:"var(--green)"}}>—</div><div className="compact-stat-label">Ping</div></div>
-          <div className="compact-stat"><div className="compact-stat-val">{netDown > 0 ? (netDown / 1024).toFixed(1) + " KB/s" : isRunning ? "..." : "—"}</div><div className="compact-stat-label">Down</div></div>
-          <div className="compact-stat"><div className="compact-stat-val">{netUp > 0 ? (netUp / 1024).toFixed(1) + " KB/s" : isRunning ? "..." : "—"}</div><div className="compact-stat-label">Up</div></div>
+          <div className="compact-stat"><div className="compact-stat-val">{isRunning ? (netDown / 1024).toFixed(1) + " KB/s" : "—"}</div><div className="compact-stat-label">Down</div></div>
+          <div className="compact-stat"><div className="compact-stat-val">{isRunning ? (netUp / 1024).toFixed(1) + " KB/s" : "—"}</div><div className="compact-stat-label">Up</div></div>
         </div>
       </div>
 
