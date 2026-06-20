@@ -112,7 +112,8 @@ export default function Body({ isRunning, isLoading, onUpdate, onToggle }: { isR
             connectTimeout: 3000
           });
           if (r.ok) {
-            const d: any = await r.json();
+            const text = await r.text();
+            const d = JSON.parse(text);
             if (active) { setNetDown(d.down||0); setNetUp(d.up||0); }
           }
         } catch(e){}
