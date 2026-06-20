@@ -1,12 +1,10 @@
 import { useEffect, useState } from "react";
-import { getStoreValue, setStoreValue } from "../single/store";
+import { getStoreValue, setStoreValue, getProxyPort } from "../single/store";
 import { ENABLE_TUN_STORE_KEY } from "../types/definition";
+import { NavContext } from "../single/context";
+import { useContext } from "react";
 import { toast } from "sonner";
 import { useVersion } from "../hooks/useVersion";
-import UpdaterItem from "../components/settings/updater";
-import AboutItem from "../components/settings/about";
-import RouterSettingsItem from "../components/settings/router-settings";
-import ProxyPortSetting from "../components/settings/proxy-port";
 import { t } from "../utils/helper";
 
 function ToggleRow({ label, desc, value, onChange }: { label: string; desc?: string; value: boolean; onChange: (v: boolean) => void }) {
@@ -18,18 +16,23 @@ function ToggleRow({ label, desc, value, onChange }: { label: string; desc?: str
   );
 }
 
-export default function Settings() {
+export default function SettingsPage() {
   const [tun, setTun] = useState(false);
   const [lan, setLan] = useState(false);
   const [autoStart, setAutoStart] = useState(false);
   const [lang, setLang] = useState("");
+  const [port, setPort] = useState(0);
+  const [devMode, setDevMode] = useState(false);
   const version = useVersion();
+  const { setActiveScreen } = useContext(NavContext);
 
   useEffect(() => {
     getStoreValue(ENABLE_TUN_STORE_KEY, false).then(setTun);
     getStoreValue("allow_lan", false).then(setLan);
     getStoreValue("auto_start", false).then(setAutoStart);
     getStoreValue("language", "en").then(setLang);
+    getProxyPort().then(setPort);
+    getStoreValue("developer_toggle", false).then(setDevMode);
   }, []);
 
   const handleTun = async (v: boolean) => { setTun(v); await setStoreValue(ENABLE_TUN_STORE_KEY, v); };
@@ -46,30 +49,39 @@ export default function Settings() {
       <div className="settings-group">
         <div className="settings-group-title">{t("network") || "Network"}</div>
         <div className="grouped-list" style={{borderRadius:"var(--r-lg)",overflow:"hidden"}}>
-          <ProxyPortSetting />
-          <ToggleRow label={t("allow_lan_connection")} desc={t("allow_lan_connection")} value={lan} onChange={handleLan} />
+          <div className="setting-row">
+            <div className="setting-label">{t("proxy_port")}<div className="setting-desc">{t("proxy_port_desc")}</div></div>
+            <div className="setting-value">{port}</div>
+            <div className="setting-arrow" style={{cursor:"pointer"}} onClick={() => {
+              const p = prompt(t("proxy_port"), String(port));
+              if (p && !isNaN(+p) && +p > 0 && +p < 65536) { setPort(+p); setStoreValue("proxy_port", +p); }
+            }}>›</div>
+          </div>
+          <ToggleRow label={t("allow_lan_connection")} desc={t("cannot_open_lan_connection")} value={lan} onChange={handleLan} />
           <ToggleRow label={t("tun_mode")} desc={t("tun_mode_desc")} value={tun} onChange={handleTun} />
         </div>
       </div>
 
       <div className="settings-group">
-        <div className="settings-group-title">{t("general") || "General"}</div>
+        <div className="settings-group-title">General</div>
         <div className="grouped-list" style={{borderRadius:"var(--r-lg)",overflow:"hidden"}}>
           <div className="setting-row" onClick={handleLang} style={{cursor:"pointer"}}>
-            <div className="setting-label">{t("language")}</div>
+            <div className="setting-label">{t("language")}<div className="setting-desc">{t("language_description")}</div></div>
             <div className="setting-value">{lang === "zh" ? "中文" : "English"}</div>
             <div className="setting-arrow">›</div>
           </div>
           <ToggleRow label={t("auto_start")} desc={t("auto_start_failed_1")} value={autoStart} onChange={handleAutoStart} />
-          <RouterSettingsItem />
-          <UpdaterItem />
+          <div className="setting-row" onClick={() => setActiveScreen("router_settings")} style={{cursor:"pointer"}}>
+            <div className="setting-label">{t("router_settings")}<div className="setting-desc">{t("custom_router_rules")}</div></div>
+            <div className="setting-arrow">›</div>
+          </div>
         </div>
       </div>
 
       <div className="settings-group">
-        <div className="settings-group-title">{t("about") || "About"}</div>
+        <div className="settings-group-title">Developer</div>
         <div className="grouped-list" style={{borderRadius:"var(--r-lg)",overflow:"hidden"}}>
-          <AboutItem />
+          <ToggleRow label={t("developer_toggle")} desc={t("developer_toggle_desc")} value={devMode} onChange={async (v) => { setDevMode(v); await setStoreValue("developer_toggle", v); }} />
         </div>
       </div>
 
