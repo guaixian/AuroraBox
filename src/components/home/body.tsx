@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import useSWR from "swr";
+import useSWR, { mutate as swrMutate } from "swr";
 import { ChevronDown, ClipboardData } from "react-bootstrap-icons";
 import { getProxyGroups, getGroupMembers, setActiveProxyGroup, getProxyServers, setActiveProxyServer } from "../../action/db";
 import { GET_PROXY_GROUPS_SWR_KEY, RULE_MODE_STORE_KEY, ENABLE_TUN_STORE_KEY } from "../../types/definition";
@@ -62,6 +62,7 @@ export default function Body({ isRunning, isLoading, onUpdate, onToggle }: { isR
     const t0 = performance.now();
     try {
       await setActiveProxyGroup(g.identifier);
+      await swrMutate(GET_PROXY_GROUPS_SWR_KEY);
       console.log("[perf] setActiveProxyGroup:", (performance.now()-t0).toFixed(0), "ms");
       await vpnServiceManager.syncConfig({});
       console.log("[perf] syncConfig done:", (performance.now()-t0).toFixed(0), "ms");
@@ -72,21 +73,25 @@ export default function Body({ isRunning, isLoading, onUpdate, onToggle }: { isR
   const handleSelectAllNodes = async () => {
     setOpen(false); if (allNodesMode) return;
     setSwitching(true);
-    try { if (active) await setActiveProxyGroup(null); setMembers([]); const s = await getProxyServers(); setAllServers(s); setSelectedId(s.find((x: any) => x.is_active)?.identifier || null); } catch (e) { console.error(e); } finally { setSwitching(false); }
+    try { if (active) { await setActiveProxyGroup(null); await swrMutate(GET_PROXY_GROUPS_SWR_KEY); } setMembers([]); const s = await getProxyServers(); setAllServers(s); setSelectedId(s.find((x: any) => x.is_active)?.identifier || null); } catch (e) { console.error(e); } finally { setSwitching(false); }
   };
   const handleSelectNode = async (serverId: string) => {
     if (switching || serverId === selectedId) return;
-    const prev = selectedId; setSelectedId(serverId);
+    // Optimistic UI update - show selection immediately
+    setSelectedId(serverId);
+    const prev = selectedId;
     try {
-      if (allNodesMode) await setActiveProxyServer(serverId);
-      else if (active && active.group_type === "fixed") {
+      if (allNodesMode) {
+        await setActiveProxyServer(serverId);
+      } else if (active && active.group_type === "fixed") {
         const idx = members.findIndex(m => m.server_identifier === serverId);
-        if (idx <= 0) return;
-        const reordered = [...members]; [reordered[0], reordered[idx]] = [reordered[idx], reordered[0]];
-        const { removeGroupMember, addGroupMember } = await import("../../action/db");
-        for (const m of members) await removeGroupMember(active.identifier, m.server_identifier);
-        for (let i = 0; i < reordered.length; i++) await addGroupMember(active.identifier, reordered[i].server_identifier, i);
-        setMembers(reordered);
+        if (idx > 0) {
+          const reordered = [...members]; [reordered[0], reordered[idx]] = [reordered[idx], reordered[0]];
+          const { removeGroupMember, addGroupMember } = await import("../../action/db");
+          for (const m of members) await removeGroupMember(active.identifier, m.server_identifier);
+          for (let i = 0; i < reordered.length; i++) await addGroupMember(active.identifier, reordered[i].server_identifier, i);
+          setMembers(reordered);
+        }
       }
       const t1 = performance.now();
       await vpnServiceManager.syncConfig({});

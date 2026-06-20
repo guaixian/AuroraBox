@@ -11,7 +11,7 @@
   "app": {
     "windows": [
       {
-        "devtools": false,
+        "devtools": true,
         "maximizable": true,
         "decorations": true,
         "resizable": true,
