@@ -1,4 +1,4 @@
-import { GearWideConnected, House, Layers, Server, Wrench } from "react-bootstrap-icons";
+import { Gear, HouseDoor, Plug, Puzzle, Wrench } from "react-bootstrap-icons";
 import { ActiveScreenType, NavContext } from "../../single/context";
 import { DEVELOPER_TOGGLE_STORE_KEY } from "../../types/definition";
 import { getStoreValue } from "../../single/store";
@@ -10,19 +10,14 @@ interface NavItem { screen: ActiveScreenType; icon: React.ReactNode; label: stri
 export function Sidebar() {
   const { activeScreen, setActiveScreen } = useContext(NavContext);
   const [isDev, setIsDev] = useState(false);
-
   useEffect(() => { getStoreValue(DEVELOPER_TOGGLE_STORE_KEY, false).then(setIsDev); }, []);
 
   const mainItems: NavItem[] = [
-    { screen: "home", icon: <House size={18} />, label: t("home") },
-    { screen: "servers", icon: <Server size={18} />, label: t("servers") },
+    { screen: "home", icon: <HouseDoor size={16} />, label: t("home") },
+    { screen: "servers", icon: <Plug size={16} />, label: t("servers") },
   ];
   const proxyItems: NavItem[] = [
-    { screen: "groups" as ActiveScreenType, icon: <Layers size={18} />, label: t("proxy_group") },
-  ];
-  const bottomItems: NavItem[] = [
-    { screen: "settings", icon: <GearWideConnected size={18} />, label: t("settings") },
-    ...(isDev ? [{ screen: "developer_options" as ActiveScreenType, icon: <Wrench size={18} />, label: t("developer_options") }] : []),
+    { screen: "groups" as ActiveScreenType, icon: <Puzzle size={16} />, label: t("proxy_group") },
   ];
 
   const renderItem = (item: NavItem) => (
@@ -42,7 +37,13 @@ export function Sidebar() {
         {proxyItems.map(renderItem)}
       </div>
       <div className="sidebar-spacer" />
-      <div className="aurorabox-sidebar-bottom">{bottomItems.map(renderItem)}</div>
+      <div className="aurorabox-sidebar-bottom">
+        <div className="sidebar-section-label">System</div>
+        <button data-active={activeScreen === "settings"} onClick={() => setActiveScreen("settings")}
+          className="aurorabox-sidebar-item"><Gear size={16}/><span className="aurorabox-sidebar-label">{t("settings")}</span></button>
+        {isDev && <button data-active={activeScreen === "developer_options"} onClick={() => setActiveScreen("developer_options")}
+          className="aurorabox-sidebar-item"><Wrench size={16}/><span className="aurorabox-sidebar-label">{t("developer_options")}</span></button>}
+      </div>
     </aside>
   );
 }

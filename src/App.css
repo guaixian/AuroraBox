@@ -128,6 +128,8 @@ body{margin:0;padding:0;font-family:inherit;font-size:13px;color:var(--text);bac
 .toggle::after{content:'';position:absolute;width:16px;height:16px;border-radius:50%;background:#fff;top:2px;left:2px;transition:left .2s;box-shadow:0 1px 3px rgba(0,0,0,0.15)}
 .toggle.on::after{left:18px}
 
+/* Legacy component aliases */
+.aurorabox-grouped-card{}.aurorabox-page-inner{}.aurorabox-scrollpage{}.aurorabox-form-field{margin-bottom:8px}.aurorabox-form-label{font-size:11px;color:var(--text2);margin-bottom:3px;display:block}.aurorabox-select{width:100%;padding:5px 8px;border-radius:var(--r-sm);border:0.5px solid var(--border);background:var(--bg-card);color:var(--text);font-size:12px;font-family:inherit}
 /* MISC */
 .text-muted{color:var(--text3)}.empty-state{text-align:center;padding:32px;color:var(--text3)}
 .animate-spin{animation:spin 1s linear infinite}@keyframes spin{to{transform:rotate(360deg)}}
