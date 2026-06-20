@@ -59,15 +59,11 @@ export default function Body({ isRunning, isLoading, onUpdate, onToggle }: { isR
     setOpen(false);
     if (g.is_active && !allNodesMode) return;
     setSwitching(true);
-    const t0 = performance.now();
     try {
       await setActiveProxyGroup(g.identifier);
       await swrMutate(GET_PROXY_GROUPS_SWR_KEY);
-      console.log("[perf] setActiveProxyGroup:", (performance.now()-t0).toFixed(0), "ms");
       await vpnServiceManager.syncConfig({});
-      console.log("[perf] syncConfig done:", (performance.now()-t0).toFixed(0), "ms");
       onUpdate();
-      console.log("[perf] total handleSelectGroup:", (performance.now()-t0).toFixed(0), "ms");
     } catch (e) { console.error(e); } finally { setSwitching(false); }
   };
   const handleSelectAllNodes = async () => {
@@ -78,7 +74,6 @@ export default function Body({ isRunning, isLoading, onUpdate, onToggle }: { isR
   const handleSelectNode = async (serverId: string) => {
     if (switching || serverId === selectedId) return;
     setSelectedId(serverId);
-    console.log("[sel] clicked:", serverId, "prev:", selectedId);
     const prev = selectedId;
     try {
       if (allNodesMode) {
@@ -93,9 +88,7 @@ export default function Body({ isRunning, isLoading, onUpdate, onToggle }: { isR
           setMembers(reordered);
         }
       }
-      const t1 = performance.now();
       await vpnServiceManager.syncConfig({});
-      console.log("[perf] node syncConfig:", (performance.now()-t1).toFixed(0), "ms");
       if (isRunning) onUpdate();
     } catch (e) { console.error(e); setSelectedId(prev); }
   };
@@ -104,7 +97,6 @@ export default function Body({ isRunning, isLoading, onUpdate, onToggle }: { isR
   const canPick = allNodesMode || active?.group_type === "fixed";
   const netSpeed = useNetworkSpeed(isRunning);
   const displayedNodes = allNodesMode ? allServers : members.map(m => allServers.find(s => s.identifier === m.server_identifier)).filter(Boolean);
-  if (canPick) console.log("[sel] mode:", allNodesMode?"all":"group", "servers:", allServers.length, "members:", members.length, "displayed:", displayedNodes.length, "selectedId:", selectedId);
   const getBadge = (t: string) => ({ hysteria2: "badge-hy2", vless: "badge-vl", trojan: "badge-tj", socks5: "badge-s5", http: "badge-ht", ss: "badge-ss" })[t] || "badge-ht";
   const getTypeLabel = (t: string) => ({ hysteria2: "HY2", vless: "VL", trojan: "TJ", socks5: "S5", http: "HTTP", ss: "SS" })[t] || t.toUpperCase();
 
