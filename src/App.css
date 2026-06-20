@@ -1,3 +1,4 @@
+@import "tailwindcss";
 /* ═══════════ AuroraBox v2 Design ═══════════ */
 :root {
   --bg-window:#f0f0f4;--bg-sidebar:#e8e8ed;--bg-content:#fff;--bg-card:#fff;
