@@ -167,10 +167,10 @@ export function AddServerModal({ visible, editServer, onClose, onSaved }: AddSer
       >
         <div className="absolute inset-0 bg-black/30" onClick={onClose} />
         <motion.div
-          className="relative bg-[var(--aurorabox-card)] rounded-2xl w-full max-w-md mx-4 p-6 shadow-lg"
+          className="relative bg-aurorabox-card rounded-2xl w-full max-w-md mx-4 p-6 shadow-lg"
           initial={{ y: 40, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ y: 40, opacity: 0 }}
         >
-          <h2 className="text-lg font-semibold mb-4 text-[var(--aurorabox-label)]">
+          <h2 className="text-lg font-semibold mb-4 text-aurorabox-label">
             {isEdit ? t("edit_server") : t("add_server")}
           </h2>
 
@@ -185,8 +185,8 @@ export function AddServerModal({ visible, editServer, onClose, onSaved }: AddSer
                     onClick={() => setProxyType(pt.value)}
                     className={`flex-1 py-2 text-sm rounded-lg font-medium transition-colors ${
                       proxyType === pt.value
-                        ? "bg-[var(--aurorabox-blue)] text-white"
-                        : "bg-[var(--aurorabox-fill)] text-[var(--aurorabox-label-secondary)]"
+                        ? "bg-aurorabox-blue text-white"
+                        : "bg-aurorabox-fill text-aurorabox-secondary"
                     }`}
                   >
                     {pt.label}
@@ -217,7 +217,7 @@ export function AddServerModal({ visible, editServer, onClose, onSaved }: AddSer
                     {VLESS_SECURITIES.map((s) => (
                       <button key={s} onClick={() => setVlessSecurity(s)}
                         className={`flex-1 py-1.5 text-xs rounded-lg font-medium ${
-                          vlessSecurity === s ? "bg-[var(--aurorabox-blue)] text-white" : "bg-[var(--aurorabox-fill)] text-[var(--aurorabox-label-secondary)]"
+                          vlessSecurity === s ? "bg-aurorabox-blue text-white" : "bg-aurorabox-fill text-aurorabox-secondary"
                         }`}>{s}</button>
                     ))}
                   </div>
@@ -232,14 +232,14 @@ export function AddServerModal({ visible, editServer, onClose, onSaved }: AddSer
                   </>
                 )}
                 <div className="flex gap-2 items-center">
-                  <span className="text-xs text-[var(--aurorabox-label-secondary)]">Flow:</span>
+                  <span className="text-xs text-aurorabox-secondary">Flow:</span>
                   <select value={vlessFlow} onChange={(e) => setVlessFlow(e.target.value)}
                     className="aurorabox-select flex-1 text-xs">
                     {VLESS_FLOWS.map((f) => <option key={f} value={f}>{f || "none"}</option>)}
                   </select>
                 </div>
                 <div className="flex gap-2 items-center">
-                  <span className="text-xs text-[var(--aurorabox-label-secondary)]">Transport:</span>
+                  <span className="text-xs text-aurorabox-secondary">Transport:</span>
                   <select value={vlessTransport} onChange={(e) => setVlessTransport(e.target.value)}
                     className="aurorabox-select flex-1 text-xs">
                     {VLESS_TRANSPORTS.map((t) => <option key={t} value={t}>{t}</option>)}
@@ -273,13 +273,13 @@ export function AddServerModal({ visible, editServer, onClose, onSaved }: AddSer
             )}
           </div>
 
-          {error && <p className="mt-3 text-sm text-[var(--aurorabox-red)]">{error}</p>}
+          {error && <p className="mt-3 text-sm text-aurorabox-red">{error}</p>}
 
           <div className="flex justify-end gap-3 mt-5">
-            <button onClick={onClose} className="px-4 py-2 text-sm rounded-lg bg-[var(--aurorabox-fill)] text-[var(--aurorabox-label)] hover:brightness-95">
+            <button onClick={onClose} className="px-4 py-2 text-sm rounded-lg bg-aurorabox-fill text-aurorabox-label hover:brightness-95">
               {t("cancel")}
             </button>
-            <button onClick={handleSave} disabled={saving} className="px-4 py-2 text-sm rounded-lg bg-[var(--aurorabox-blue)] text-white disabled:opacity-50">
+            <button onClick={handleSave} disabled={saving} className="px-4 py-2 text-sm rounded-lg bg-aurorabox-blue text-white disabled:opacity-50">
               {saving ? t("saving") : t("save")}
             </button>
           </div>

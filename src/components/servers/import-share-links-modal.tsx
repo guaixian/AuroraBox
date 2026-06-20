@@ -74,12 +74,12 @@ export function ImportShareLinksModal({ visible, onClose, onImported }: ImportSh
       >
         <div className="absolute inset-0 bg-black/30" onClick={onClose} />
         <motion.div
-          className="relative bg-[var(--aurorabox-card)] rounded-2xl w-full max-w-lg mx-4 p-6 shadow-lg max-h-[80vh] flex flex-col"
+          className="relative bg-aurorabox-card rounded-2xl w-full max-w-lg mx-4 p-6 shadow-lg max-h-[80vh] flex flex-col"
           initial={{ y: 40, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
           exit={{ y: 40, opacity: 0 }}
         >
-          <h2 className="text-lg font-semibold mb-4 text-[var(--aurorabox-label)]">
+          <h2 className="text-lg font-semibold mb-4 text-aurorabox-label">
             {t("batch_import_share_links")}
           </h2>
 
@@ -87,21 +87,21 @@ export function ImportShareLinksModal({ visible, onClose, onImported }: ImportSh
             value={text}
             onChange={(e) => setText(e.target.value)}
             placeholder={t("paste_links_placeholder")}
-            className="w-full h-28 rounded-lg border border-[var(--aurorabox-separator)] bg-[var(--aurorabox-fill)] text-[var(--aurorabox-label)] text-sm p-3 resize-none outline-none focus:ring-2 focus:ring-[var(--aurorabox-blue)]/30"
+            className="w-full h-28 rounded-lg border border-aurorabox bg-aurorabox-fill text-aurorabox-label text-sm p-3 resize-none outline-none focus:ring-2 focus:ring-aurorabox-blue/30"
           />
 
           <button
             onClick={handleParse}
             disabled={!text.trim()}
-            className="mt-3 px-4 py-2 text-sm rounded-lg bg-[var(--aurorabox-fill)] text-[var(--aurorabox-label)] hover:brightness-95 disabled:opacity-50 self-start"
+            className="mt-3 px-4 py-2 text-sm rounded-lg bg-aurorabox-fill text-aurorabox-label hover:brightness-95 disabled:opacity-50 self-start"
           >
             {t("parse")}
           </button>
 
           {parsed.length > 0 && (
-            <div className="mt-3 flex-1 overflow-y-auto border border-[var(--aurorabox-separator)] rounded-lg">
-              <table className="w-full text-sm text-[var(--aurorabox-label)]">
-                <thead className="sticky top-0 bg-[var(--aurorabox-card-muted)] text-[var(--aurorabox-label-secondary)] text-xs">
+            <div className="mt-3 flex-1 overflow-y-auto border border-aurorabox rounded-lg">
+              <table className="w-full text-sm text-aurorabox-label">
+                <thead className="sticky top-0 bg-aurorabox-card-muted text-aurorabox-secondary text-xs">
                   <tr>
                     <th className="p-2 text-left w-8">✓</th>
                     <th className="p-2 text-left">{t("name")}</th>
@@ -114,7 +114,7 @@ export function ImportShareLinksModal({ visible, onClose, onImported }: ImportSh
                   {parsed.map((s, i) => (
                     <tr
                       key={i}
-                      className="border-t border-[var(--aurorabox-separator)] hover:bg-[var(--aurorabox-row-hover)] cursor-pointer"
+                      className="border-t border-aurorabox hover:bg-aurorabox-hover cursor-pointer"
                       onClick={() => toggleCheck(i)}
                     >
                       <td className="p-2">
@@ -137,20 +137,20 @@ export function ImportShareLinksModal({ visible, onClose, onImported }: ImportSh
           )}
 
           {error && (
-            <p className="mt-3 text-sm text-[var(--aurorabox-red)]">{error}</p>
+            <p className="mt-3 text-sm text-aurorabox-red">{error}</p>
           )}
 
           <div className="flex justify-end gap-3 mt-4">
             <button
               onClick={onClose}
-              className="px-4 py-2 text-sm rounded-lg bg-[var(--aurorabox-fill)] text-[var(--aurorabox-label)] hover:brightness-95"
+              className="px-4 py-2 text-sm rounded-lg bg-aurorabox-fill text-aurorabox-label hover:brightness-95"
             >
               {t("cancel")}
             </button>
             <button
               onClick={handleImport}
               disabled={checked.size === 0 || importing}
-              className="px-4 py-2 text-sm rounded-lg bg-[var(--aurorabox-blue)] text-white disabled:opacity-50"
+              className="px-4 py-2 text-sm rounded-lg bg-aurorabox-blue text-white disabled:opacity-50"
             >
               {importing
                 ? t("importing")
