@@ -208,7 +208,7 @@ export const vpnServiceManager = {
                                 if (topts.security && topts.security !== "none") base.tls = { enabled: true, server_name: topts.sni || s.server_address };
                                 break;
                             }
-                            case "socks5": base.type = "socks"; base.version = "5"; if (s.username) base.username = s.username; break;
+                            case "socks5": base.type = "socks"; base.version = "5"; if (s.username) base.username = s.username; if (s.password) base.password = s.password; break;
                             case "http": base.type = "http"; if (s.username) base.username = s.username; if (s.password) base.password = s.password; break;
                             default: base.type = "shadowsocks"; base.method = s.encryption_method; base.password = s.password; break;
                         }
