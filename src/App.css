@@ -143,6 +143,10 @@ body{margin:0;padding:0;font-family:inherit;font-size:13px;color:var(--text);bac
 }
 /* Legacy component aliases */
 .aurorabox-grouped-card{}.aurorabox-page-inner{}.aurorabox-scrollpage{}.aurorabox-form-field{margin-bottom:8px}.aurorabox-form-label{font-size:11px;color:var(--text2);margin-bottom:3px;display:block}.aurorabox-select{width:100%;padding:5px 8px;border-radius:var(--r-sm);border:0.5px solid var(--border);background:var(--bg-card);color:var(--text);font-size:12px;font-family:inherit}
+/* Fix: Tailwind purges bg-[var(--aurorabox-*)] — provide explicit classes */
+.bg-aurorabox-card{background:var(--bg-card)}.bg-aurorabox-blue{background:var(--blue)}.bg-aurorabox-fill{background:var(--bg-fill)}.bg-aurorabox-red{background:var(--red)}.bg-aurorabox-green{background:var(--green)}
+.text-aurorabox-label{color:var(--text)}.text-aurorabox-secondary{color:var(--text2)}.text-aurorabox-blue{color:var(--blue)}.text-aurorabox-red{color:var(--red)}
+.border-aurorabox{border-color:var(--border)}.bg-black-30{background:rgba(0,0,0,0.3)}
 /* MISC */
 .text-muted{color:var(--text3)}.empty-state{text-align:center;padding:32px;color:var(--text3)}
 .animate-spin{animation:spin 1s linear infinite}@keyframes spin{to{transform:rotate(360deg)}}
