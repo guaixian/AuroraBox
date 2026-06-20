@@ -74,6 +74,8 @@ pub fn run() {
             commands::prestart::prestart_check,
             commands::prestart::kill_orphans,
             commands::proxy_test::run_singbox_tests,
+            commands::chain::start_chain,
+            commands::chain::stop_chain,
         ])
         .setup(app::setup::app_setup)
         .on_menu_event(app::events::on_menu_event)

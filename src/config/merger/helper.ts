@@ -469,29 +469,36 @@ export async function mergeProxyGroupsConfig(newConfig: any): Promise<void> {
             );
 
             if (group.group_type === "chain") {
-                // Chain: detour links outbounds as transport.
-                // The LAST outbound (no detour) is the exit whose IP is seen.
-                // Build from last to first, each with detour to next.
-                let prevTag = "";
-                const chainTags: string[] = [];
-                for (let i = tags.length - 1; i >= 0; i--) {
-                    const chainTag = `${prefix}-c${i}`;
-                    const existing = outbounds.find((o: any) => o.tag === tags[i]);
-                    if (!existing) continue;
-                    const o: any = JSON.parse(JSON.stringify(existing));
-                    o.tag = chainTag;
-                    if (prevTag) { o.detour = prevTag; } else { delete o.detour; }
-                    outbounds.push(o);
-                    chainTags.unshift(chainTag);
-                    prevTag = chainTag;
+                // Multi-instance chain cascade (A→B→C).
+                // Each server gets its own sing-box instance.
+                // The main config routes to the first instance (entry).
+                // The last instance uses the exit proxy directly.
+                // This works for ALL protocols because each hop has its own process.
+                const chainServers: any[] = [];
+                for (const t of tags) {
+                    const existing = outbounds.find((o: any) => o.tag === t);
+                    if (existing) chainServers.push(JSON.parse(JSON.stringify(existing)));
                 }
-                console.log(`[mergeProxyGroups] chain: order=[${chainTags.join("→")}] exit=${chainTags[chainTags.length-1]} (this proxy IP will be the visible one)`);
-                if (chainTags.length > 0) {
-                    outbounds[gwIdx].outbounds.push(chainTags[0]);
+
+                if (chainServers.length > 1) {
+                    // Store chain server configs for the engine to start
+                    const chainKey = `chain_${group.identifier}`;
+                    const store = await import("../../single/store");
+                    await store.setStoreValue(chainKey, JSON.stringify(chainServers));
+
+                    // Add a local SOCKS5 outbound to the entry instance
+                    const entryPort = 26780; // base port for chain instances
+                    const chainEntryTag = `${prefix}-entry`;
+                    outbounds.push({
+                        tag: chainEntryTag, type: "socks", server: "127.0.0.1",
+                        server_port: entryPort, version: "5",
+                    });
+                    outbounds[gwIdx].outbounds.push(chainEntryTag);
                     if (group.is_active) {
-                        const idx = outbounds[gwIdx].outbounds.indexOf(chainTags[0]);
-                        if (idx > 0) { outbounds[gwIdx].outbounds.splice(idx, 1); outbounds[gwIdx].outbounds.unshift(chainTags[0]); }
+                        outbounds[gwIdx].outbounds.unshift(chainEntryTag);
                     }
+
+                    console.log(`[mergeProxyGroups] chain cascade: ${chainServers.length} hops, entry port=${entryPort}, servers=[${chainServers.map(s => s.tag).join("→")}]`);
                 }
             } else {
                 // fixed/auto/random: wrap in selector or urltest using existing tags
