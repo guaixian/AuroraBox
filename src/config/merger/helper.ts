@@ -305,8 +305,11 @@ export async function mergeManualServersConfig(newConfig: any): Promise<void> {
                     outbound.type = "http";
                     if ((server as any).username) outbound.username = (server as any).username;
                     if (server.password) outbound.password = server.password;
-                    outbound.tcp_fast_open = true;
-                    outbound.tcp_keep_alive_interval = "15s";
+                    // Aggressive TCP keepalive — HTTP proxy closes connections,
+                    // sing-box connection pool needs fast dead-connection detection
+                    outbound.tcp_keep_alive_idle = "3s";
+                    outbound.tcp_keep_alive_interval = "1s";
+                    outbound.tcp_keep_alive_count = 2;
                     break;
                 case "trojan":
                 case "vless": {
