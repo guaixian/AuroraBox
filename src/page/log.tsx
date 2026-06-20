@@ -3,9 +3,7 @@ import { ArrowDown, ArrowDownCircle, ArrowUpCircle, Copy, Search, Trash } from '
 import { toast, Toaster } from 'sonner';
 import ConfigTemplate from '../components/config-template/config-template';
 import ConfigViewer from '../components/config-viewer/config-viewer';
-import EmptyLogMessage from '../components/log/empty-log-message';
-import LogTable from '../components/log/log-table';
-import { formatNetworkSpeed, useLogSource, useNetworkSpeed } from '../utils/clash-api';
+import { useLogSource, useNetworkSpeed } from '../utils/clash-api';
 import { initLanguage, t } from '../utils/helper';
 
 type TabKey = 'logs' | 'config' | 'config-template';
@@ -33,9 +31,9 @@ export default function LogPage() {
     const [query, setQuery] = useState('');
     const containerRef = useRef<HTMLDivElement>(null);
     const [lockScroll, setLockScroll] = useState(false);
-    const { logLines, clearLogs } = useLogSource();
-    const { upBytes, downBytes } = useNetworkSpeed();
-    const filteredLines = query ? logLines.filter((l: string) => l.toLowerCase().includes(query.toLowerCase())) : logLines;
+    const { logs: logLines, clearLogs } = useLogSource();
+    const speed = useNetworkSpeed();
+    const filteredLines = query ? (logLines || []).filter((l: any) => String(l.message || l).toLowerCase().includes(query.toLowerCase())) : (logLines || []);
 
     useEffect(() => { initLanguage(); }, []);
     useEffect(() => {
@@ -67,13 +65,13 @@ export default function LogPage() {
                         <button className="btn sm dang" onClick={clearLogs}><Trash size={12}/></button>
                     </div>
                     <div ref={containerRef} style={{flex:1,overflowY:'auto',fontSize:11,fontFamily:'var(--font-mono)',lineHeight:1.6,marginTop:8,background:'var(--bg-card)',borderRadius:'var(--r)',border:'0.5px solid var(--border)',padding:8}}>
-                        {filteredLines.map((l: string, i: number) => (
-                            <div key={i} style={{whiteSpace:'pre-wrap',wordBreak:'break-all',padding:'1px 0'}}>{l}</div>
+                        {filteredLines.map((l: any, i: number) => (
+                            <div key={i} style={{whiteSpace:'pre-wrap',wordBreak:'break-all',padding:'1px 0'}}>{l.message || String(l)}</div>
                         ))}
                     </div>
                     <div style={{display:'flex',gap:8,marginTop:8,fontSize:11,color:'var(--text2)'}}>
-                        <span><ArrowDownCircle size={12}/> {(downBytes || 0).toFixed(1)} KB/s</span>
-                        <span><ArrowUpCircle size={12}/> {(upBytes || 0).toFixed(1)} KB/s</span>
+                        <span><ArrowDownCircle size={12}/> {(speed.download / 1024).toFixed(1)} KB/s</span>
+                        <span><ArrowUpCircle size={12}/> {(speed.upload / 1024).toFixed(1)} KB/s</span>
                     </div>
                 </div>
             )}
