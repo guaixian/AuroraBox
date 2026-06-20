@@ -144,8 +144,8 @@ export default function Body({ isRunning, isLoading, onUpdate, onToggle }: { isR
 
         <div className="compact-stats">
           <div className="compact-stat"><div className="compact-stat-val" style={{color:"var(--green)"}}>—</div><div className="compact-stat-label">Ping</div></div>
-          <div className="compact-stat"><div className="compact-stat-val">{netDown > 0 ? (netDown / 1024).toFixed(1) + " KB/s" : "—"}</div><div className="compact-stat-label">Down</div></div>
-          <div className="compact-stat"><div className="compact-stat-val">{netUp > 0 ? (netUp / 1024).toFixed(1) + " KB/s" : "—"}</div><div className="compact-stat-label">Up</div></div>
+          <div className="compact-stat"><div className="compact-stat-val">{netDown > 0 ? (netDown / 1024).toFixed(1) + " KB/s" : isRunning ? "..." : "—"}</div><div className="compact-stat-label">Down</div></div>
+          <div className="compact-stat"><div className="compact-stat-val">{netUp > 0 ? (netUp / 1024).toFixed(1) + " KB/s" : isRunning ? "..." : "—"}</div><div className="compact-stat-label">Up</div></div>
         </div>
       </div>
 

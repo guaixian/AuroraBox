@@ -21,7 +21,8 @@ export default function ServersPage() {
   const { data: servers, mutate: refresh } = useSWR(GET_PROXY_SERVERS_SWR_KEY, getProxyServers, { fallbackData: [] });
   const [latency, setLatency] = useState<LatMap>({});
   const [speed, setSpeed] = useState<SpdMap>({});
-  const [testing, setTesting] = useState<Set<string>>(new Set());
+  const [testingL, setTestingL] = useState<Set<string>>(new Set());
+  const [testingS, setTestingS] = useState<Set<string>>(new Set());
   const [showAdd, setShowAdd] = useState(false);
   const [showImport, setShowImport] = useState(false);
   const [editServer, setEditServer] = useState<ProxyServer | null>(null);
@@ -54,7 +55,8 @@ export default function ServersPage() {
 
   const testOne = async (s: ProxyServer, mode: "latency"|"speed") => {
     const key = `${s.server_address}:${s.server_port}`;
-    setTesting(p=>new Set([...p,key]));
+    const setT = mode === "latency" ? setTestingL : setTestingS;
+    setT(p=>new Set([...p,key]));
     try {
       const results = await invoke<{server:string;port:number;tcp_ms:number|null;real_ms:number|null;speed_kbps:number|null;error:string|null}[]>("run_singbox_tests", { outbounds: [JSON.stringify(buildOutboundJSON(s))] });
       if (results[0]) {
@@ -66,20 +68,21 @@ export default function ServersPage() {
         }
       }
     } catch(e){}
-    setTesting(p=>{const n=new Set(p);n.delete(key);return n;});
+    setT(p=>{const n=new Set(p);n.delete(key);return n;});
   };
 
   const testAll = async (mode: "latency"|"speed") => {
     if (!servers?.length) return;
     const keys = servers.map(s=>`${s.server_address}:${s.server_port}`);
-    setTesting(p=>{const n=new Set(p);keys.forEach(k=>n.add(k));return n;});
+    const setT = mode === "latency" ? setTestingL : setTestingS;
+    setT(p=>{const n=new Set(p);keys.forEach(k=>n.add(k));return n;});
     try {
       const results = await invoke<{server:string;port:number;tcp_ms:number|null;real_ms:number|null;speed_kbps:number|null;error:string|null}[]>("run_singbox_tests", { outbounds: servers.map(s=>JSON.stringify(buildOutboundJSON(s))) });
       const l:LatMap={}; const s:SpdMap={};
       for (const r of results) { const k=`${r.server}:${r.port}`; l[k]={ms:r.real_ms,tcpMs:r.tcp_ms??undefined,error:r.error??undefined}; s[k]={kbps:r.speed_kbps?Math.round(r.speed_kbps):null,error:!r.speed_kbps?(r.error??undefined):undefined}; }
       if (mode==="latency") setLatency(l); else setSpeed(s);
     } catch(e){}
-    setTesting(p=>{const n=new Set(p);keys.forEach(k=>n.delete(k));return n;});
+    setT(p=>{const n=new Set(p);keys.forEach(k=>n.delete(k));return n;});
   };
 
   const handleExport = async () => {
@@ -114,7 +117,8 @@ export default function ServersPage() {
           <tbody>
             {(servers||[]).map(s=>{
               const k=`${s.server_address}:${s.server_port}`;
-              const l=latency[k]; const sp=speed[k]; const tg=testing.has(k);
+              const l=latency[k]; const sp=speed[k];
+              const tgL=testingL.has(k); const tgS=testingS.has(k);
               const copyLink = () => {
                 const h=`${s.server_address}:${s.server_port}`;const p=s.proxy_type||"ss";
                 let link=null;
@@ -131,11 +135,11 @@ export default function ServersPage() {
                   <td style={{fontWeight:500}}>{s.name}</td>
                   <td><span className={`badge ${getBadge(s.proxy_type||"ss")}`}>{getLabel(s.proxy_type||"ss")}</span></td>
                   <td style={{fontFamily:"monospace",fontSize:12,color:"var(--text2)"}}>{s.server_address}:{s.server_port}</td>
-                  <td style={{fontFamily:"monospace",fontSize:12,color:l?.ms?l.ms<200?"var(--green)":l.ms<500?"var(--orange)":"var(--red)":"var(--text3)"}}>{tg?"...":l?.ms?l.ms+"ms":"—"}</td>
-                  <td style={{fontFamily:"monospace",fontSize:12}}>{tg?"...":sp?.kbps?sp.kbps>=1024?(sp.kbps/1024).toFixed(1)+" MB/s":sp.kbps+" KB/s":"—"}</td>
+                  <td style={{fontFamily:"monospace",fontSize:12,color:l?.ms?l.ms<200?"var(--green)":l.ms<500?"var(--orange)":"var(--red)":"var(--text3)"}}>{tgL?"...":l?.ms?l.ms+"ms":"—"}</td>
+                  <td style={{fontFamily:"monospace",fontSize:12}}>{tgS?"...":sp?.kbps?sp.kbps>=1024?(sp.kbps/1024).toFixed(1)+" MB/s":sp.kbps+" KB/s":"—"}</td>
                   <td>
-                    <button className="btn xs" style={{marginRight:2}} onClick={(e)=>{e.stopPropagation();testOne(s,"latency")}} disabled={tg}><Stopwatch size={10}/></button>
-                    <button className="btn xs" style={{marginRight:2}} onClick={(e)=>{e.stopPropagation();testOne(s,"speed")}} disabled={tg}><Speedometer2 size={10}/></button>
+                    <button className="btn xs" style={{marginRight:2}} onClick={(e)=>{e.stopPropagation();testOne(s,"latency")}} disabled={tgL}><Stopwatch size={10}/></button>
+                    <button className="btn xs" style={{marginRight:2}} onClick={(e)=>{e.stopPropagation();testOne(s,"speed")}} disabled={tgS}><Speedometer2 size={10}/></button>
                     <button className="btn xs" style={{marginRight:2}} onClick={(e)=>{e.stopPropagation();copyLink()}}><Clipboard size={10}/></button>
                     <button className="btn xs" style={{marginRight:2}} onClick={(e)=>{e.stopPropagation();setEditServer(s);setShowAdd(true)}}><Pencil size={10}/></button>
                     <button className="btn xs danger" onClick={(e)=>{e.stopPropagation();if(confirm("Delete?"))handleDelete(s.identifier)}}><Trash3 size={10}/></button>
