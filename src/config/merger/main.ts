@@ -2,6 +2,7 @@ import * as path from '@tauri-apps/api/path';
 import { getSubscriptionConfig } from '../../action/db';
 import { getAllowLan, getClashApiSecret, getCustomRuleSet, getStoreValue, isBypassRouterEnabled, setStoreValue } from '../../single/store';
 import { STAGE_VERSION_STORE_KEY } from '../../types/definition';
+import { writeConfigFile } from '../helper';
 import { configureMixedInbound, configureTunInbound, mergeManualServersConfig, mergeProxyGroupsConfig, patchRuleSetCDN, updateDHCPSettings2Config, updateVPNServerConfigFromDB } from './helper';
 
 import { configType, getConfigTemplateCacheKey } from '../common';
@@ -96,6 +97,7 @@ export async function setMixedConfig(identifier: string | null) {
     }
     await mergeManualServersConfig(newConfig);
     await mergeProxyGroupsConfig(newConfig);
+    await writeConfigFile("config.json", new TextEncoder().encode(JSON.stringify(newConfig)));
 
 }
 
@@ -154,6 +156,7 @@ export async function setTunConfig(identifier: string | null) {
     }
     await mergeManualServersConfig(newConfig);
     await mergeProxyGroupsConfig(newConfig);
+    await writeConfigFile("config.json", new TextEncoder().encode(JSON.stringify(newConfig)));
 }
 
 
@@ -182,6 +185,7 @@ export async function setGlobalMixedConfig(identifier: string | null) {
     }
     await mergeManualServersConfig(newConfig);
     await mergeProxyGroupsConfig(newConfig);
+    await writeConfigFile("config.json", new TextEncoder().encode(JSON.stringify(newConfig)));
 
 }
 
@@ -213,4 +217,5 @@ export default async function setGlobalTunConfig(identifier: string | null) {
     }
     await mergeManualServersConfig(newConfig);
     await mergeProxyGroupsConfig(newConfig);
+    await writeConfigFile("config.json", new TextEncoder().encode(JSON.stringify(newConfig)));
 }

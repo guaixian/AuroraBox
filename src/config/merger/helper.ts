@@ -1,6 +1,7 @@
 import { type } from '@tauri-apps/plugin-os';
-import { getDirectDNS, getProxyPort, getStoreValue, getUseDHCP } from "../../single/store";
+import { getDirectDNS, getProxyPort, getStoreValue, getUseDHCP, setStoreValue } from "../../single/store";
 import { TUN_INTERFACE_NAME, TUN_STACK_STORE_KEY } from "../../types/definition";
+import { getProxyServers, getProxyGroups, getServersByGroup } from "../../action/db";
 import { writeConfigFile } from "../helper";
 
 /** Parse a JSON string of VLESS options, falling back to empty object. */
@@ -244,7 +245,6 @@ export async function configureMixedInbound(newConfig: any, allowLan: boolean, b
  */
 export async function mergeManualServersConfig(newConfig: any): Promise<void> {
     try {
-        const { getProxyServers } = await import("../../action/db");
         const servers = await getProxyServers();
         if (!servers || servers.length === 0) return;
 
@@ -401,10 +401,6 @@ export async function mergeManualServersConfig(newConfig: any): Promise<void> {
 
         // Write the final config — necessary when called without a preceding
         // updateVPNServerConfigFromDB (i.e. manual-servers-only mode).
-        await writeConfigFile(
-            "config.json",
-            new TextEncoder().encode(JSON.stringify(newConfig))
-        );
     } catch (e) {
         console.warn("[mergeManualServers] skipped — error:", e);
     }
@@ -422,7 +418,6 @@ export async function mergeManualServersConfig(newConfig: any): Promise<void> {
  */
 export async function mergeProxyGroupsConfig(newConfig: any): Promise<void> {
     try {
-        const { getProxyGroups, getServersByGroup } = await import("../../action/db");
         const groups = await getProxyGroups();
         if (!groups?.length) return;
 
@@ -483,8 +478,7 @@ export async function mergeProxyGroupsConfig(newConfig: any): Promise<void> {
                 if (chainServers.length > 1) {
                     // Store chain server configs for the engine to start
                     const chainKey = `chain_${group.identifier}`;
-                    const store = await import("../../single/store");
-                    await store.setStoreValue(chainKey, JSON.stringify(chainServers));
+                    await setStoreValue(chainKey, JSON.stringify(chainServers));
 
                     // Add a local HTTP outbound to the entry instance
                     const entryPort = 26780; // base port for chain instances
@@ -544,7 +538,6 @@ export async function mergeProxyGroupsConfig(newConfig: any): Promise<void> {
             }
         }
 
-        await writeConfigFile("config.json", new TextEncoder().encode(JSON.stringify(newConfig)));
     } catch (e) {
         console.warn("[mergeProxyGroups] skipped — error:", e);
     }
