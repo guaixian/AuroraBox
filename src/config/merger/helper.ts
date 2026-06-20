@@ -435,18 +435,30 @@ export async function mergeProxyGroupsConfig(newConfig: any): Promise<void> {
             if (!servers.length) continue;
 
             // Find existing outbound tags for these servers (already added
-            // by mergeManualServersConfig). Match by server:port + type pattern.
+            // by mergeManualServersConfig). Match by tag pattern first, then server:port.
             const tags: string[] = [];
             for (const s of servers) {
-                // Find the real outbound by matching server:port
-                const existing = outbounds.find((o: any) =>
-                    o.server === s.server_address && o.server_port === s.server_port);
+                const ptype = s.proxy_type || "ss";
+                const tagPrefix = `${ptype}-${s.identifier.slice(0, 8)}`;
+                // Try exact tag match first (more reliable)
+                let existing = outbounds.find((o: any) => o.tag === tagPrefix);
+                // Fall back to server:port match
+                if (!existing) {
+                    existing = outbounds.find((o: any) =>
+                        o.server === s.server_address && o.server_port === s.server_port);
+                }
                 if (existing) {
                     tags.push(existing.tag);
+                    console.log(`[mergeProxyGroups] matched server ${s.server_address}:${s.server_port} → tag ${existing.tag} (type=${existing.type})`);
+                } else {
+                    console.warn(`[mergeProxyGroups] NO match for server ${s.server_address}:${s.server_port} (tagPrefix=${tagPrefix})`);
                 }
             }
 
-            if (!tags.length) continue;
+            if (!tags.length) {
+                console.warn(`[mergeProxyGroups] group=${group.name} has no matching outbounds, skipping`);
+                continue;
+            }
 
             console.log(`[mergeProxyGroups] group=${group.name} type=${group.group_type} servers=${servers.length} tags=[${tags.join(",")}]`);
 
@@ -465,9 +477,10 @@ export async function mergeProxyGroupsConfig(newConfig: any): Promise<void> {
                     const chainTag = `${prefix}-c${i}`;
                     const existing = outbounds.find((o: any) => o.tag === tags[i]);
                     if (!existing) continue;
-                    // Clone existing outbound config and add detour
-                    const o: any = { ...existing, tag: chainTag };
-                    if (prevTag) o.detour = prevTag;
+                    // Deep-clone existing outbound config and add detour
+                    const o: any = JSON.parse(JSON.stringify(existing));
+                    o.tag = chainTag;
+                    if (prevTag) { o.detour = prevTag; } else { delete o.detour; }
                     outbounds.push(o);
                     chainTags.unshift(chainTag);
                     prevTag = chainTag;
