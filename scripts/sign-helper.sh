@@ -25,6 +25,11 @@ REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 SIGNING_IDENTITY="Developer ID Application: OneOh Cloud LLC (GN2W3N34TM)"
 HELPER_BIN="${1:-$REPO_ROOT/src-tauri/target/helper/com.guaixian.aurorabox.helper}"
 
+if [[ "${CI:-}" == "true" ]]; then
+    echo "sign-helper.sh: CI environment, skip signing (no certificate available)" >&2
+    exit 0
+fi
+
 if [[ "$(uname -s)" != "Darwin" ]]; then
     echo "sign-helper.sh: macOS only, skipping" >&2
     exit 0
