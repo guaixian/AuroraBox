@@ -1,475 +1,129 @@
 import { useEffect, useState } from "react";
 import useSWR from "swr";
-import { CloudPlus, Clipboard, Pencil, Server, Speedometer2, Stopwatch, Trash3 } from "react-bootstrap-icons";
-import { addGroupMember, deleteProxyGroup, deleteProxyServer, getGroupMembers, getProxyGroups, getProxyServers, insertProxyGroup, removeGroupMember } from "../action/db";
-import { GET_PROXY_GROUPS_SWR_KEY, GET_PROXY_SERVERS_SWR_KEY } from "../types/definition";
-import type { ProxyGroup, ProxyServer } from "../types/definition";
-import { t } from "../utils/helper";
-import { AddServerModal } from "../components/servers/add-server-modal";
-import { ImportShareLinksModal } from "../components/servers/import-share-links-modal";
+import { Speedometer2, Stopwatch, Trash3 } from "react-bootstrap-icons";
+import { deleteProxyServer, getProxyServers } from "../action/db";
+import { GET_PROXY_SERVERS_SWR_KEY } from "../types/definition";
+import type { ProxyServer } from "../types/definition";
+import { buildOutboundJSON } from "../utils/build-outbound";
 import { toast } from "sonner";
 import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
-import { buildOutboundJSON } from "../utils/build-outbound";
+import { parseProxyLink } from "../utils/shadowsocks-parser";
 
-type LatencyMap = Record<string, { ms: number | null; tcpMs?: number; error?: string }>;
-type SpeedMap = Record<string, { kbps: number | null; error?: string }>;
+type LatMap = Record<string, { ms: number | null; tcpMs?: number; error?: string }>;
+type SpdMap = Record<string, { kbps: number | null; error?: string }>;
 
-function ServersPage() {
-  const { data: servers, mutate } = useSWR(GET_PROXY_SERVERS_SWR_KEY, getProxyServers, { fallbackData: [] });
-  const [addVisible, setAddVisible] = useState(false);
-  const [importVisible, setImportVisible] = useState(false);
-  const [editServer, setEditServer] = useState<ProxyServer | null>(null);
-  const [expandedId, setExpandedId] = useState<string | null>(null);
-  const [latencyMap, setLatencyMap] = useState<LatencyMap>({});
-  const [speedMap, setSpeedMap] = useState<SpeedMap>({});
-  const [testingLatency, setTestingLatency] = useState<Set<string>>(new Set());
-  const [testingSpeed, setTestingSpeed] = useState<Set<string>>(new Set());
-  // Group management
-  const { data: groups, mutate: mutateGroups } = useSWR(GET_PROXY_GROUPS_SWR_KEY, getProxyGroups, { fallbackData: [] });
-  const [showGroupForm, setShowGroupForm] = useState(false);
-  const [groupName, setGroupName] = useState("");
-  const [groupType, setGroupType] = useState<"fixed"|"auto"|"random"|"chain">("fixed");
-  const [expandedGroupId, setExpandedGroupId] = useState<string | null>(null);
-  const [groupMembers, setGroupMembers] = useState<Record<string, any[]>>({});
-  const [memberCounts, setMemberCounts] = useState<Record<string, number>>({});
+function getBadge(t: string) { return ({hysteria2:"badge-hy2",vless:"badge-vl",trojan:"badge-tj",socks5:"badge-s5",http:"badge-ht",ss:"badge-ss"})[t]||"badge-ht"; }
+function getLabel(t: string) { return ({hysteria2:"HY2",vless:"VL",trojan:"TJ",socks5:"S5",http:"HTTP",ss:"SS"})[t]||t.toUpperCase(); }
 
-  // Pre-load member counts for all groups (no need to expand)
+export default function ServersPage() {
+  const { data: servers, mutate: refresh } = useSWR(GET_PROXY_SERVERS_SWR_KEY, getProxyServers, { fallbackData: [] });
+  const [latency, setLatency] = useState<LatMap>({});
+  const [speed, setSpeed] = useState<SpdMap>({});
+  const [testing, setTesting] = useState<Set<string>>(new Set());
+
   useEffect(() => {
-    (async () => {
-      const counts: Record<string, number> = {};
-      for (const g of (groups || [])) {
-        const m = await getGroupMembers(g.identifier);
-        counts[g.identifier] = m.length;
-      }
-      setMemberCounts(counts);
-    })();
-  }, [groups]);
-
-  const refresh = () => mutate();
-
-  // Real-time test results — update as each server finishes
-  useEffect(() => {
-    const unlisten = listen<{
-      server: string; port: number; tcp_ms: number | null;
-      real_ms: number | null; speed_kbps: number | null; error: string | null;
-    }>("proxy-test-result", (e) => {
-      const r = e.payload;
-      const key = `${r.server}:${r.port}`;
-      setLatencyMap(prev => ({ ...prev, [key]: { ms: r.real_ms, tcpMs: r.tcp_ms ?? undefined, error: r.error ?? undefined } }));
-      setSpeedMap(prev => ({ ...prev, [key]: { kbps: r.speed_kbps ? Math.round(r.speed_kbps) : null, error: !r.speed_kbps ? (r.error ?? undefined) : undefined } }));
-      setTestingLatency(prev => { const n = new Set(prev); n.delete(key); return n; });
-      setTestingSpeed(prev => { const n = new Set(prev); n.delete(key); return n; });
+    const unlisten = listen<{server:string;port:number;tcp_ms:number|null;real_ms:number|null;speed_kbps:number|null;error:string|null}>("proxy-test-result", (e) => {
+      const r = e.payload; const key = `${r.server}:${r.port}`;
+      setLatency(p=>({...p,[key]:{ms:r.real_ms,tcpMs:r.tcp_ms??undefined,error:r.error??undefined}}));
+      setSpeed(p=>({...p,[key]:{kbps:r.speed_kbps?Math.round(r.speed_kbps):null,error:!r.speed_kbps?(r.error??undefined):undefined}}));
+      setTesting(p=>{const n=new Set(p);n.delete(key);return n;});
     });
-    return () => { unlisten.then(f => f()); };
+    return ()=>{unlisten.then(f=>f());};
   }, []);
 
-  // ── v2rayN-style paste-to-import ──────────────────────────────────
+  // Paste import
   useEffect(() => {
     const handler = async (e: ClipboardEvent) => {
       if (document.activeElement?.tagName === "INPUT" || document.activeElement?.tagName === "TEXTAREA") return;
-      const text = e.clipboardData?.getData("text")?.trim();
-      if (!text) return;
-      const { parseProxyLink } = await import("../utils/shadowsocks-parser");
-      const { batchInsertProxyServers } = await import("../action/db");
+      const text = e.clipboardData?.getData("text")?.trim(); if (!text) return;
       const links = text.split("\n").map(l => l.trim()).filter(Boolean);
       const parsed = links.map(l => parseProxyLink(l)).filter(Boolean);
-      const valid = parsed.filter((s): s is NonNullable<typeof s> => s != null);
-      if (valid.length === 0) return;
+      if (!parsed.length) return;
       e.preventDefault();
       try {
-        await batchInsertProxyServers(valid.map(s => ({
-          name: s.name, server_address: s.server, server_port: s.port,
-          password: s.password, encryption_method: s.method,
-          plugin: s.plugin, plugin_opts: s.pluginOpts,
-          proxy_type: s.proxyType || "ss", username: s.username || "",
-          vless_uuid: (s as any).vlessUUID || "", vless_opts: s.vlessOpts ? JSON.stringify(s.vlessOpts) : "",
-        })));
-        toast.success(t("imported_n_servers", { count: valid.length.toString() }) || `已导入 ${valid.length} 个服务器`);
-        refresh();
+        const { batchInsertProxyServers } = await import("../action/db");
+        await batchInsertProxyServers(parsed.map(s => ({
+          name:s!.name,server_address:s!.server,server_port:s!.port,password:s!.password,
+          encryption_method:s!.method,plugin:s!.plugin,plugin_opts:s!.pluginOpts,
+          proxy_type:s!.proxyType||"ss",username:s!.username||"",
+          vless_uuid:(s as any).vlessUUID||"",vless_opts:s!.vlessOpts?JSON.stringify(s!.vlessOpts):"",
+        }))); refresh(); toast.success("Imported");
       } catch (err: any) { toast.error(String(err)); }
     };
     document.addEventListener("paste", handler);
     return () => document.removeEventListener("paste", handler);
   }, []);
-  const handleDelete = async (id: string) => { try { await deleteProxyServer(id); refresh(); } catch (e) { toast.error(String(e)); } };
-  const handleEdit = (s: ProxyServer) => { setEditServer(s); setAddVisible(true); };
-  const handleAdd = () => { setEditServer(null); setAddVisible(true); };
 
-  // ── v2rayN-style: rebuild share link from DB row ──────────────────
-  const buildShareLink = (s: ProxyServer): string => {
-    const ptype = s.proxy_type || "ss";
-    const host = `${s.server_address}:${s.server_port}`;
-    switch (ptype) {
-      case "ss": {
-        const userinfo = btoa(`${s.encryption_method}:${s.password}`);
-        return `ss://${userinfo}@${host}#${encodeURIComponent(s.name)}`;
-      }
-      case "trojan":
-        return `trojan://${encodeURIComponent(s.password)}@${host}?security=tls#${encodeURIComponent(s.name)}`;
-      case "vless": {
-        const uid = (s as any).vless_uuid || "";
-        return `vless://${uid}@${host}?security=tls#${encodeURIComponent(s.name)}`;
-      }
-      case "hysteria2":
-        return `hysteria2://${s.password}@${host}?sni=${s.server_address}&insecure=1#${encodeURIComponent(s.name)}`;
-      case "socks5":
-        return `socks5://${s.username ? s.username + ":" + s.password : ""}@${host}#${encodeURIComponent(s.name)}`;
-      case "http":
-        return `http://${s.username ? s.username + ":" + s.password : ""}@${host}#${encodeURIComponent(s.name)}`;
-      default: return "";
-    }
-  };
+  const handleDelete = async (id: string) => { try { await deleteProxyServer(id); refresh(); } catch (e: any) { toast.error(String(e)); } };
 
-  const handleCopyLink = async (s: ProxyServer) => {
-    const link = buildShareLink(s);
-    if (!link) return;
-    try { await navigator.clipboard.writeText(link); toast.success("已复制"); } catch { toast.error("复制失败"); }
-  };
-
-  const handleExportLinks = async () => {
-    if (!servers?.length) return;
-    const links = servers.map(s => buildShareLink(s)).filter(Boolean).join("\n");
-    try {
-      await navigator.clipboard.writeText(links);
-      toast.success(`已导出 ${servers.length} 个分享链接到剪贴板`);
-    } catch { toast.error("复制失败"); }
-  };
-
-  // ── Group management ──────────────────────────────────────────────
-  const handleCreateGroup = async () => {
-    if (!groupName.trim()) return;
-    try { await insertProxyGroup(groupName.trim(), groupType); mutateGroups(); notifyMembersChanged(); setGroupName(""); setShowGroupForm(false); } catch (e: any) { toast.error(String(e)); }
-  };
-  const handleDeleteGroup = async (id: string) => { try { await deleteProxyGroup(id); mutateGroups(); } catch (e: any) { toast.error(String(e)); } };
-  // Group activation is handled on the home page
-  const handleLoadMembers = async (g: ProxyGroup) => {
-    if (expandedGroupId === g.identifier) { setExpandedGroupId(null); return; }
-    try {
-      const members = await getGroupMembers(g.identifier);
-      setGroupMembers(prev => ({ ...prev, [g.identifier]: members }));
-      setExpandedGroupId(g.identifier);
-    } catch (e: any) { toast.error(String(e)); }
-  };
-  const notifyMembersChanged = () => window.dispatchEvent(new CustomEvent("group-members-changed"));
-
-  const refreshGroupMembers = async (g: ProxyGroup) => {
-    const members = await getGroupMembers(g.identifier);
-    setGroupMembers(prev => ({ ...prev, [g.identifier]: members }));
-    setMemberCounts(prev => ({ ...prev, [g.identifier]: members.length }));
-    window.dispatchEvent(new CustomEvent("group-members-changed"));
-  };
-
-  const handleAddToGroup = async (g: ProxyGroup, s: ProxyServer) => {
-    try {
-      await addGroupMember(g.identifier, s.identifier, 0);
-      await refreshGroupMembers(g);
-      toast.success(`已添加 ${s.name}`);
-    } catch (e: any) { toast.error(String(e)); }
-  };
-  const handleRemoveFromGroup = async (g: ProxyGroup, serverId: string) => {
-    try {
-      await removeGroupMember(g.identifier, serverId);
-      await refreshGroupMembers(g);
-    } catch (e: any) { toast.error(String(e)); }
-  };
-  const handleReorderMember = async (g: ProxyGroup, serverId: string, direction: "up" | "down") => {
-    const members = groupMembers[g.identifier] || [];
-    const idx = members.findIndex((m: any) => m.server_identifier === serverId);
-    if (idx === -1) return;
-    const newIdx = direction === "up" ? idx - 1 : idx + 1;
-    if (newIdx < 0 || newIdx >= members.length) return;
-    const reordered = [...members];
-    [reordered[idx], reordered[newIdx]] = [reordered[newIdx], reordered[idx]];
-    // Update sort_order in DB
-    try {
-      for (let i = 0; i < reordered.length; i++) {
-        await addGroupMember(g.identifier, reordered[i].server_identifier, i);
-      }
-      await refreshGroupMembers(g);
-      // Chain reorder needs engine restart
-      if (g.group_type === "chain") {
-        const { confirm } = await import("@tauri-apps/plugin-dialog");
-        const restart = await confirm("链路顺序已更改，是否重启代理使新顺序生效？", { title: "重启代理", kind: "info", okLabel: "立即重启", cancelLabel: "稍后" });
-        if (restart) {
-          try { await invoke("stop_chain"); } catch (_) {}
-          await new Promise(r => setTimeout(r, 500));
-          // Start new chain cascade with updated order
-          const members = await getGroupMembers(g.identifier);
-          const allServers = await getProxyServers();
-          const servers = members.map((m: any) => allServers.find(s => s.identifier === m.server_identifier)).filter(Boolean);
-          if (servers.length >= 2) {
-            const outbounds = servers.map((s: any) => JSON.stringify(buildOutboundJSON(s)));
-            try { await invoke("start_chain", { groupId: g.identifier, servers: outbounds }); } catch (e: any) { toast.error(String(e)); }
-          }
-          toast.success("链路已更新");
-        }
-      }
-    } catch (e: any) { toast.error(String(e)); }
-  };
-  const GROUP_TYPE_LABELS: Record<string, string> = { fixed: "手动选择", auto: "自动最优", random: "随机切换", chain: "链路代理" };
-  const GROUP_TYPE_TIPS: Record<string, string> = {
-    fixed: "选择一个固定的代理使用",
-    auto: "自动选择延迟最低的代理",
-    random: "每次启动随机选择一个代理",
-    chain: "多实例级联 1→2→3。支持全部协议，最后为出口 IP"
-  };
-
-  // ── v2rayN-style 3-layer test ─────────────────────────────────────
-  const runTests = async (s: ProxyServer, mode: "latency" | "speed") => {
-    const outbounds = [JSON.stringify(buildOutboundJSON(s))];
-    const isLatency = mode === "latency";
-    const setTesting = isLatency ? setTestingLatency : setTestingSpeed;
-    const setMap: any = isLatency ? setLatencyMap : setSpeedMap;
+  const testOne = async (s: ProxyServer) => {
     const key = `${s.server_address}:${s.server_port}`;
-    setTesting(prev => new Set([...prev, key]));
-
-    try {
-      const results = await invoke<{
-        server: string; port: number;
-        tcp_ms: number | null; real_ms: number | null; speed_kbps: number | null; error: string | null;
-      }[]>("run_singbox_tests", { outbounds });
-
-      if (isLatency) {
-        setMap((prev: any) => ({ ...prev, [key]: { ms: results[0]?.real_ms ?? null, tcpMs: results[0]?.tcp_ms ?? undefined, error: results[0]?.error ?? undefined } }));
-      } else {
-        setMap((prev: any) => ({ ...prev, [key]: { kbps: results[0]?.speed_kbps ? Math.round(results[0].speed_kbps) : null, error: !results[0]?.speed_kbps ? (results[0]?.error ?? undefined) : undefined } }));
-      }
-    } catch (e) { toast.error(String(e)); } finally {
-      setTesting(prev => { const n = new Set(prev); n.delete(key); return n; });
-    }
+    setTesting(p=>new Set([...p,key]));
+    try { await invoke("run_singbox_tests", { outbounds: [JSON.stringify(buildOutboundJSON(s))] }); } catch(e){}
+    setTesting(p=>{const n=new Set(p);n.delete(key);return n;});
   };
 
-  const runTestsBatch = async (mode: "latency" | "speed") => {
+  const testAll = async () => {
     if (!servers?.length) return;
-    const outbounds = servers.map(s => JSON.stringify(buildOutboundJSON(s)));
-    const isLatency = mode === "latency";
-    const setTesting = isLatency ? setTestingLatency : setTestingSpeed;
-    const setMap: any = isLatency ? setLatencyMap : setSpeedMap;
-    const keys = servers.map(s => `${s.server_address}:${s.server_port}`);
-    setTesting(prev => { const n = new Set(prev); keys.forEach(k => n.add(k)); return n; });
-
-    try {
-      const results = await invoke<{
-        server: string; port: number;
-        tcp_ms: number | null; real_ms: number | null; speed_kbps: number | null; error: string | null;
-      }[]>("run_singbox_tests", { outbounds });
-      setMap((prev: any) => {
-        const next = { ...prev };
-        for (const r of results) {
-          const k = `${r.server}:${r.port}`;
-          if (isLatency) next[k] = { ms: r.real_ms, tcpMs: r.tcp_ms ?? undefined, error: r.error ?? undefined };
-          else next[k] = { kbps: r.speed_kbps ? Math.round(r.speed_kbps) : null, error: !r.speed_kbps ? (r.error ?? undefined) : undefined };
-        }
-        return next;
-      });
-    } catch (e) { toast.error(String(e)); } finally {
-      setTesting(prev => { const n = new Set(prev); keys.forEach(k => n.delete(k)); return n; });
-    }
+    const keys = servers.map(s=>`${s.server_address}:${s.server_port}`);
+    setTesting(p=>{const n=new Set(p);keys.forEach(k=>n.add(k));return n;});
+    try { await invoke("run_singbox_tests", { outbounds: servers.map(s=>JSON.stringify(buildOutboundJSON(s))) }); } catch(e){}
   };
 
-  const isTesting = (s: ProxyServer, mode: "latency" | "speed") => {
-    const set = mode === "latency" ? testingLatency : testingSpeed;
-    return set.has(`${s.server_address}:${s.server_port}`);
-  };
-
-  // ── Display helpers ───────────────────────────────────────────────
-  const delayColor = (ms: number | null | undefined) => {
-    if (ms == null) return "var(--aurorabox-label-tertiary)";
-    if (ms < 200) return "var(--aurorabox-green)";
-    if (ms < 500) return "var(--aurorabox-orange)";
-    return "var(--aurorabox-red)";
-  };
-  const speedText = (kbps: number | null | undefined) => {
-    if (kbps == null) return "—";
-    if (kbps >= 1024) return `${(kbps / 1024).toFixed(1)} MB/s`;
-    return `${kbps} KB/s`;
+  const handleExport = async () => {
+    const links = (servers||[]).map(s => {
+      const h = `${s.server_address}:${s.server_port}`;
+      const p = s.proxy_type||"ss";
+      if (p==="ss") return `ss://${btoa(`${s.encryption_method}:${s.password}`)}@${h}#${encodeURIComponent(s.name)}`;
+      if (p==="trojan") return `trojan://${encodeURIComponent(s.password)}@${h}?security=tls#${encodeURIComponent(s.name)}`;
+      if (p==="vless") return `vless://${(s as any).vless_uuid||""}@${h}?security=tls#${encodeURIComponent(s.name)}`;
+      if (p==="hysteria2") return `hysteria2://${s.password}@${h}?sni=${s.server_address}&insecure=1#${encodeURIComponent(s.name)}`;
+      if (p==="socks5") return `socks5://${s.username?s.username+":"+s.password:""}@${h}#${encodeURIComponent(s.name)}`;
+      if (p==="http") return `http://${s.username?s.username+":"+s.password:""}@${h}#${encodeURIComponent(s.name)}`;
+      return "";
+    }).filter(Boolean).join("\n");
+    try { await navigator.clipboard.writeText(links); toast.success("Exported"); } catch { toast.error("Failed"); }
   };
 
   return (
-    <div className="aurorabox-scrollpage">
-      <div className="aurorabox-page-inner px-4 pt-6 pb-4">
-        <h2 className="text-[22px] font-semibold text-[var(--aurorabox-label)] mb-1">{t("servers")}</h2>
-        <p className="text-sm text-[var(--aurorabox-label-secondary)] mb-4">{t("servers_description")}</p>
-
-        <div className="flex gap-2 mb-4 flex-wrap">
-          <button onClick={handleAdd} className="flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg bg-[var(--aurorabox-blue)] text-white hover:brightness-110">
-            <CloudPlus size={16} /> {t("add_server")}
-          </button>
-          <button onClick={() => setImportVisible(true)} className="flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg bg-[var(--aurorabox-fill)] text-[var(--aurorabox-label)] hover:brightness-95">
-            {t("batch_import")}
-          </button>
-          <button onClick={handleExportLinks} disabled={!servers?.length}
-            className="flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg bg-[var(--aurorabox-fill)] text-[var(--aurorabox-label)] hover:brightness-95 disabled:opacity-50">
-            {t("export_links")}
-          </button>
-          <button onClick={() => runTestsBatch("latency")} disabled={testingLatency.size > 0 || !servers?.length}
-            className="flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg bg-[var(--aurorabox-fill)] text-[var(--aurorabox-label)] hover:brightness-95 disabled:opacity-50">
-            <Stopwatch size={16} className={testingLatency.size > 0 ? "animate-pulse" : ""} />
-            {testingLatency.size > 0 ? t("testing") : t("test_latency")}
-          </button>
-          <button onClick={() => runTestsBatch("speed")} disabled={testingSpeed.size > 0 || !servers?.length}
-            className="flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg bg-[var(--aurorabox-fill)] text-[var(--aurorabox-label)] hover:brightness-95 disabled:opacity-50">
-            <Speedometer2 size={16} className={testingSpeed.size > 0 ? "animate-pulse" : ""} />
-            {testingSpeed.size > 0 ? t("testing") : t("test_speed")}
-          </button>
-        </div>
-
-        {(!servers || servers.length === 0) && (
-          <div className="flex flex-col items-center justify-center py-16 text-[var(--aurorabox-label-tertiary)]">
-            <Server size={48} className="mb-3 opacity-40" /><p className="text-sm">{t("no_servers_yet")}</p>
-            <button onClick={handleAdd} className="mt-3 px-4 py-2 text-sm rounded-lg bg-[var(--aurorabox-fill)] text-[var(--aurorabox-label)] hover:brightness-95">{t("add_first_server")}</button>
-          </div>
-        )}
-
-        <div className="aurorabox-grouped-card">
-          {(servers ?? []).map((s) => {
-            const lkey = `${s.server_address}:${s.server_port}`;
-            const latency = latencyMap[lkey];
-            const speed = speedMap[lkey];
-            const lTesting = isTesting(s, "latency");
-            const sTesting = isTesting(s, "speed");
-            return (
-              <div key={s.identifier} className="border-b border-[var(--aurorabox-separator)] last:border-b-0">
-                <button onClick={() => setExpandedId(expandedId === s.identifier ? null : s.identifier)}
-                  className="w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-[var(--aurorabox-row-hover)] transition-colors">
-                  <div className="min-w-0 flex-1">
-                    <div className="font-medium text-[var(--aurorabox-label)] text-sm truncate">{s.name}</div>
-                    <div className="text-xs text-[var(--aurorabox-label-secondary)] font-mono truncate">
-                      {s.server_address}:{s.server_port} · {(s as any).proxy_type === 'socks5' ? 'SOCKS5' : (s as any).proxy_type === 'http' ? 'HTTP' : (s as any).proxy_type === 'vless' ? 'VLESS' : (s as any).proxy_type === 'trojan' ? 'Trojan' : (s as any).proxy_type === 'hysteria2' ? 'Hysteria2' : s.encryption_method}
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-1.5 flex-shrink-0">
-                    {lTesting && <Speedometer2 size={14} className="animate-pulse" />}
-                    {latency && !lTesting && latency.tcpMs != null && (
-                      <span className="text-[10px] font-mono px-1.5 py-0.5 rounded" style={{ color: "var(--aurorabox-label-tertiary)", background: "var(--aurorabox-fill)" }}>TCP {latency.tcpMs}ms</span>
-                    )}
-                    {latency && !lTesting && latency.ms != null && (
-                      <span className="text-xs font-mono font-medium px-2 py-0.5 rounded" style={{ color: delayColor(latency.ms), background: "var(--aurorabox-fill)" }}>{latency.ms}ms</span>
-                    )}
-                    {latency && !lTesting && latency.ms == null && latency.error && (
-                      <span className="text-[10px] font-mono px-1 py-0.5 rounded" style={{ color: "var(--aurorabox-red)", background: "var(--aurorabox-fill)" }}>FAIL</span>
-                    )}
-                    {sTesting && <Speedometer2 size={14} className="animate-pulse" />}
-                    {speed && !sTesting && speed.kbps != null && (
-                      <span className="text-xs font-mono font-medium px-2 py-0.5 rounded" style={{ color: "var(--aurorabox-blue)", background: "var(--aurorabox-fill)" }}>{speedText(speed.kbps)}</span>
-                    )}
-                    {speed && !sTesting && speed.error && (
-                      <span className="text-[10px] font-mono px-1 py-0.5 rounded" style={{ color: "var(--aurorabox-red)", background: "var(--aurorabox-fill)" }}>FAIL</span>
-                    )}
-                  </div>
-                  {s.plugin && <span className="text-[11px] px-1.5 py-0.5 rounded bg-[var(--aurorabox-fill)] text-[var(--aurorabox-label-secondary)] flex-shrink-0">plugin</span>}
-                </button>
-
-                {expandedId === s.identifier && (
-                  <div className="flex gap-1 px-4 pb-3 flex-wrap">
-                    <button onClick={() => runTests(s, "latency")} disabled={isTesting(s, "latency")}
-                      className="flex items-center gap-1 px-3 py-1.5 text-xs rounded-md bg-[var(--aurorabox-fill)] text-[var(--aurorabox-label)] hover:brightness-95 disabled:opacity-50">
-                      <Stopwatch size={12} /> {isTesting(s, "latency") ? "..." : t("test_latency")}
-                    </button>
-                    <button onClick={() => runTests(s, "speed")} disabled={isTesting(s, "speed")}
-                      className="flex items-center gap-1 px-3 py-1.5 text-xs rounded-md bg-[var(--aurorabox-fill)] text-[var(--aurorabox-label)] hover:brightness-95 disabled:opacity-50">
-                      <Speedometer2 size={12} /> {isTesting(s, "speed") ? "..." : t("test_speed")}
-                    </button>
-                    <button onClick={() => handleCopyLink(s)} className="flex items-center gap-1 px-3 py-1.5 text-xs rounded-md bg-[var(--aurorabox-fill)] text-[var(--aurorabox-label)] hover:brightness-95"><Clipboard size={12} /> 复制</button>
-                    <button onClick={() => handleEdit(s)} className="flex items-center gap-1 px-3 py-1.5 text-xs rounded-md bg-[var(--aurorabox-fill)] text-[var(--aurorabox-label)] hover:brightness-95"><Pencil size={12} /> {t("edit")}</button>
-                    <button onClick={() => handleDelete(s.identifier)} className="flex items-center gap-1 px-3 py-1.5 text-xs rounded-md bg-[var(--aurorabox-red)]/10 text-[var(--aurorabox-red)] hover:brightness-95"><Trash3 size={12} /> {t("delete")}</button>
-                  </div>
-                )}
-              </div>
-            );
-          })}
-        </div>
-
-        {/* ── Groups Section ──────────────────────────────────── */}
-        <div className="mt-6">
-          <div className="flex items-center gap-2 mb-3">
-            <h3 className="text-lg font-semibold text-[var(--aurorabox-label)]">代理组</h3>
-            <button onClick={() => setShowGroupForm(!showGroupForm)}
-              className="text-xs px-2 py-1 rounded bg-[var(--aurorabox-fill)] text-[var(--aurorabox-label-secondary)] hover:brightness-95">
-              {showGroupForm ? "取消" : "+ 新建"}
-            </button>
-          </div>
-          {showGroupForm && (
-            <div className="flex gap-2 mb-3 flex-wrap items-center p-3 rounded-lg bg-[var(--aurorabox-fill)]">
-              <input value={groupName} onChange={e => setGroupName(e.target.value)} placeholder="组名称" className="px-3 py-1.5 text-sm rounded bg-[var(--aurorabox-card)] border border-[var(--aurorabox-separator)] text-[var(--aurorabox-label)] w-32" />
-              <select value={groupType} onChange={e => setGroupType(e.target.value as any)} className="px-3 py-1.5 text-sm rounded bg-[var(--aurorabox-card)] border border-[var(--aurorabox-separator)] text-[var(--aurorabox-label)]">
-                <option value="fixed">固定</option><option value="auto">自动</option><option value="random">随机</option><option value="chain">链路</option>
-              </select>
-              <button onClick={handleCreateGroup} className="px-3 py-1.5 text-sm rounded bg-[var(--aurorabox-blue)] text-white">创建</button>
-            </div>
-          )}
-          {(groups ?? []).map(g => (
-            <div key={g.identifier} className="mb-2 border border-[var(--aurorabox-separator)] rounded-lg bg-[var(--aurorabox-card)]">
-              <div className="flex items-center gap-3 px-4 py-2 cursor-pointer hover:bg-[var(--aurorabox-row-hover)]" onClick={() => handleLoadMembers(g)}>
-                <div className={`w-2.5 h-2.5 rounded-full ${g.is_active ? "bg-[var(--aurorabox-green)]" : "bg-[var(--aurorabox-fill-strong)]"}`} />
-                <span className="font-medium text-sm text-[var(--aurorabox-label)]">{g.name}</span>
-                <span className="text-[10px] px-1.5 py-0.5 rounded bg-[var(--aurorabox-blue)]/10 text-[var(--aurorabox-blue)]">{GROUP_TYPE_LABELS[g.group_type] || g.group_type}</span>
-                <span className="text-[10px] text-[var(--aurorabox-label-tertiary)]">{memberCounts[g.identifier] ?? 0} 个节点</span>
-                <div className="flex-1" />
-                {g.is_active && <span className="text-[10px] px-2 py-0.5 rounded bg-[var(--aurorabox-green)]/10 text-[var(--aurorabox-green)]">活跃</span>}
-                <button onClick={(e) => { e.stopPropagation(); handleDeleteGroup(g.identifier); }} className="text-[10px] px-2 py-1 rounded bg-[var(--aurorabox-red)]/10 text-[var(--aurorabox-red)]">删除</button>
-              </div>
-              {expandedGroupId === g.identifier && (
-                <div className="px-4 pb-3 border-t border-[var(--aurorabox-separator)] pt-2">
-                  <p className="text-xs text-[var(--aurorabox-label-secondary)] mb-3">{GROUP_TYPE_TIPS[g.group_type]}</p>
-                  {/* Members with mode-specific controls */}
-                  <div className="space-y-1">
-                    {(groupMembers[g.identifier] || []).map((m: any, idx: number) => {
-                      const svr = (servers || []).find(s => s.identifier === m.server_identifier);
-                      if (!svr) return null;
-                      const isFirst = idx === 0;
-                      const isLast = idx === (groupMembers[g.identifier] || []).length - 1;
-                      return (
-                        <div key={m.server_identifier} className="flex items-center gap-2 py-1.5 text-xs rounded px-2 hover:bg-[var(--aurorabox-row-hover)]">
-                          {/* Chain: order number */}
-                          {g.group_type === "chain" && <span className="w-5 text-center font-mono text-[var(--aurorabox-label-tertiary)]">{idx + 1}</span>}
-                          {/* Fixed: radio to pick default */}
-                          {g.group_type === "fixed" && (
-                            <input type="radio" name={`gp-${g.identifier}`} checked={isFirst}
-                              onChange={() => {/* move to front via reorder */}}
-                              className="w-3.5 h-3.5 accent-[var(--aurorabox-blue)]" />
-                          )}
-                          <span className="truncate flex-1 text-[var(--aurorabox-label)]">
-                            {svr.name} <span className="text-[var(--aurorabox-label-tertiary)]">({svr.server_address}:{svr.server_port})</span>
-                          </span>
-                          {/* Chain: reorder buttons */}
-                          {g.group_type === "chain" && (
-                            <div className="flex gap-0.5">
-                              <button onClick={() => handleReorderMember(g, m.server_identifier, "up")} disabled={isFirst}
-                                className="text-[10px] px-1.5 rounded disabled:opacity-30 hover:bg-[var(--aurorabox-fill)]">▲</button>
-                              <button onClick={() => handleReorderMember(g, m.server_identifier, "down")} disabled={isLast}
-                                className="text-[10px] px-1.5 rounded disabled:opacity-30 hover:bg-[var(--aurorabox-fill)]">▼</button>
-                            </div>
-                          )}
-                          <button onClick={() => handleRemoveFromGroup(g, m.server_identifier)} className="text-[var(--aurorabox-red)] hover:brightness-75">✕</button>
-                        </div>
-                      );
-                    })}
-                    {(!groupMembers[g.identifier] || groupMembers[g.identifier].length === 0) && (
-                      <p className="text-xs text-[var(--aurorabox-label-tertiary)] py-2 text-center">暂无成员，从下方添加</p>
-                    )}
-                  </div>
-                  {/* Add server buttons */}
-                  <div className="mt-3 flex flex-wrap gap-1">
-                    {(servers || []).filter(s => !(groupMembers[g.identifier] || []).some((m: any) => m.server_identifier === s.identifier)).map(s => (
-                      <button key={s.identifier} onClick={() => handleAddToGroup(g, s)}
-                        className="text-[10px] px-2 py-1 rounded bg-[var(--aurorabox-fill)] text-[var(--aurorabox-label-secondary)] hover:brightness-95">+ {s.name}</button>
-                    ))}
-                    {(servers || []).filter(s => !(groupMembers[g.identifier] || []).some((m: any) => m.server_identifier === s.identifier)).length === 0 && (
-                      <span className="text-[10px] text-[var(--aurorabox-label-tertiary)]">所有服务器已加入此组</span>
-                    )}
-                  </div>
-                </div>
-              )}
-            </div>
-          ))}
-        </div>
+    <div className="page-body" style={{height:"100%"}}>
+      <div className="toolbar">
+        <button className="btn prim">+ Add</button>
+        <button className="btn">Import</button>
+        <button className="btn" onClick={handleExport}>Export</button>
+        <div style={{flex:1}}/>
+        <button className="btn sm" onClick={testAll}><Stopwatch size={12}/> Latency</button>
+        <button className="btn sm" onClick={testAll}><Speedometer2 size={12}/> Speed</button>
       </div>
-      <AddServerModal visible={addVisible} editServer={editServer} onClose={() => setAddVisible(false)} onSaved={refresh} />
-      <ImportShareLinksModal visible={importVisible} onClose={() => setImportVisible(false)} onImported={refresh} />
+
+      <div className="grouped-list" style={{borderRadius:"var(--r-lg)",overflow:"hidden"}}>
+        <table className="data-table">
+          <thead><tr><th style={{width:24}}/><th>Name</th><th style={{width:60}}>Type</th><th>Server</th><th style={{width:65}}>Latency</th><th style={{width:75}}>Speed</th><th style={{width:80}}/></tr></thead>
+          <tbody>
+            {(servers||[]).map(s=>{
+              const k=`${s.server_address}:${s.server_port}`;
+              const l=latency[k]; const sp=speed[k]; const tg=testing.has(k);
+              return (
+                <tr key={s.identifier} style={{cursor:"pointer"}}>
+                  <td><div className="list-radio" style={{display:"inline-block"}}/></td>
+                  <td style={{fontWeight:500}}>{s.name}</td>
+                  <td><span className={`badge ${getBadge(s.proxy_type||"ss")}`}>{getLabel(s.proxy_type||"ss")}</span></td>
+                  <td style={{fontFamily:"monospace",fontSize:12,color:"var(--text2)"}}>{s.server_address}:{s.server_port}</td>
+                  <td style={{fontFamily:"monospace",fontSize:12,color:l?.ms?l.ms<200?"var(--green)":l.ms<500?"var(--orange)":"var(--red)":"var(--text3)"}}>{tg?"...":l?.ms?l.ms+"ms":"—"}</td>
+                  <td style={{fontFamily:"monospace",fontSize:12}}>{tg?"...":sp?.kbps?sp.kbps>=1024?(sp.kbps/1024).toFixed(1)+" MB/s":sp.kbps+" KB/s":"—"}</td>
+                  <td>
+                    <button className="btn xs" style={{marginRight:2}} onClick={(e)=>{e.stopPropagation();testOne(s)}} disabled={tg}><Stopwatch size={10}/></button>
+                    <button className="btn xs" style={{marginRight:2}} onClick={(e)=>{e.stopPropagation();testOne(s)}} disabled={tg}><Speedometer2 size={10}/></button>
+                    <button className="btn xs dang" onClick={(e)=>{e.stopPropagation();if(confirm("Delete?"))handleDelete(s.identifier)}}><Trash3 size={10}/></button>
+                  </td>
+                </tr>
+              );
+            })}
+            {(!servers||servers.length===0)&&<tr><td colSpan={7} className="empty-state">No servers</td></tr>}
+          </tbody>
+        </table>
+      </div>
     </div>
   );
 }
-
-export default ServersPage;
