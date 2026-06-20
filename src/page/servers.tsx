@@ -10,6 +10,7 @@ import { ImportShareLinksModal } from "../components/servers/import-share-links-
 import { toast } from "sonner";
 import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
+import { buildOutboundJSON } from "../utils/build-outbound";
 
 type LatencyMap = Record<string, { ms: number | null; tcpMs?: number; error?: string }>;
 type SpeedMap = Record<string, { kbps: number | null; error?: string }>;
@@ -214,35 +215,9 @@ function ServersPage() {
     chain: "多实例级联 1→2→3。支持全部协议，最后为出口 IP"
   };
 
-  // ── Build outbound JSON ───────────────────────────────────────────
-  const buildOutboundJSON = (s: ProxyServer): string => {
-    const ptype = s.proxy_type || "ss";
-    const tag = `${ptype}-${(s as any).identifier?.slice(0, 8) || "00000000"}`;
-    const base: any = { tag, server: s.server_address, server_port: s.server_port, domain_resolver: "system" };
-    switch (ptype) {
-      case "hysteria2":
-        base.type = "hysteria2"; base.password = s.password;
-        const hops = (() => { try { return JSON.parse((s as any).vless_opts || "{}"); } catch { return {}; } })();
-        base.tls = { enabled: true, server_name: hops.sni || s.server_address, insecure: hops.insecure === "1" || hops.allowInsecure === "1" };
-        if (hops.obfs) base.obfs = { type: "salamander", password: hops.obfs };
-        break;
-      case "trojan": case "vless":
-        base.type = ptype;
-        if (ptype === "vless") base.uuid = (s as any).vless_uuid || "";
-        else base.password = s.password;
-        const vopts = (() => { try { return JSON.parse((s as any).vless_opts || "{}"); } catch { return {}; } })();
-        base.tls = { enabled: vopts.security !== "none", server_name: vopts.sni || "" };
-        break;
-      case "socks5": base.type = "socks"; base.version = "5"; if (s.username) base.username = s.username; if (s.password) base.password = s.password; break;
-      case "http": base.type = "http"; if (s.username) base.username = s.username; if (s.password) base.password = s.password; break;
-      default: base.type = "shadowsocks"; base.method = s.encryption_method; base.password = s.password; break;
-    }
-    return JSON.stringify(base);
-  };
-
   // ── v2rayN-style 3-layer test ─────────────────────────────────────
   const runTests = async (s: ProxyServer, mode: "latency" | "speed") => {
-    const outbounds = [buildOutboundJSON(s)];
+    const outbounds = [JSON.stringify(buildOutboundJSON(s))];
     const isLatency = mode === "latency";
     const setTesting = isLatency ? setTestingLatency : setTestingSpeed;
     const setMap: any = isLatency ? setLatencyMap : setSpeedMap;
@@ -267,7 +242,7 @@ function ServersPage() {
 
   const runTestsBatch = async (mode: "latency" | "speed") => {
     if (!servers?.length) return;
-    const outbounds = servers.map(s => buildOutboundJSON(s));
+    const outbounds = servers.map(s => JSON.stringify(buildOutboundJSON(s)));
     const isLatency = mode === "latency";
     const setTesting = isLatency ? setTestingLatency : setTestingSpeed;
     const setMap: any = isLatency ? setLatencyMap : setSpeedMap;

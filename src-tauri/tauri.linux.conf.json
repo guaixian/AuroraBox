@@ -5,7 +5,7 @@
   "app": {
     "windows": [
       {
-        "devtools": true,
+        "devtools": false,
         "maximizable": true,
         "decorations": true,
         "resizable": true,

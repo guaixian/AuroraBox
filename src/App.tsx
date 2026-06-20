@@ -141,26 +141,16 @@ function App() {
   }, []);
 
 
+  const isDeveloperMode = React.useRef(false);
   useEffect(() => {
-    let isDeveloperMode = false;
-
-    // 初始化时获取一次
     getStoreValue(DEVELOPER_TOGGLE_STORE_KEY, false).then((val) => {
-      isDeveloperMode = val;
+      isDeveloperMode.current = val;
     });
-
     const handler = (e: MouseEvent) => {
-      if (!isDeveloperMode) {
-        e.preventDefault();
-      }
+      if (!isDeveloperMode.current) e.preventDefault();
     };
-
     document.addEventListener('contextmenu', handler);
-
-    // 清理事件
-    return () => {
-      document.removeEventListener('contextmenu', handler);
-    };
+    return () => document.removeEventListener('contextmenu', handler);
   }, []);
 
   useEffect(() => {

@@ -1,5 +1,5 @@
 import { confirm, message } from "@tauri-apps/plugin-dialog";
-import { exit, relaunch } from "@tauri-apps/plugin-process";
+import { relaunch } from "@tauri-apps/plugin-process";
 import { type Update } from "@tauri-apps/plugin-updater";
 import clsx from "clsx";
 import { useState } from "react";
@@ -184,7 +184,7 @@ function NewBadge() {
 
 // ---- Business logic (unchanged) -----------------------------------------
 
-function useUpdateInstallation(isSimulating: boolean) {
+function useUpdateInstallation() {
     const confirmInstallation = async (updateInfo: Update) => {
         const confirmed = await confirm(t("update_downloaded"), {
             title: t("update_install"),
@@ -192,10 +192,6 @@ function useUpdateInstallation(isSimulating: boolean) {
         });
         if (confirmed) {
             try {
-                if (isSimulating) {
-                    await exit();
-                    return;
-                }
                 await vpnServiceManager.stop();
                 setTimeout(async () => {
                     await markPendingUpdateRelaunch();
@@ -256,9 +252,8 @@ export default function UpdaterItem() {
         downloading,
         downloadProgress,
         signatureThrottleUntil,
-        isSimulating,
     } = useUpdate();
-    const { confirmInstallation } = useUpdateInstallation(isSimulating);
+    const { confirmInstallation } = useUpdateInstallation();
     const { isUpdating, handleUpdateClick } = useUpdateHandler();
 
     const phase: UpdaterPhase = downloadComplete && updateInfo

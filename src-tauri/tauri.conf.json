@@ -1,6 +1,6 @@
 {
   "productName": "AuroraBox",
-  "version": "1.4.31",
+  "version": "1.0.0",
   "identifier": "com.guaixian.aurorabox",
   "build": {
     "beforeDevCommand": "deno task dev",
@@ -11,7 +11,7 @@
   "app": {
     "windows": [
       {
-        "devtools": true,
+        "devtools": false,
         "maximizable": true,
         "decorations": true,
         "resizable": true,
