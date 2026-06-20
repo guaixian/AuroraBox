@@ -76,13 +76,6 @@ export default function ServersPage() {
     try { await invoke("run_singbox_tests", { outbounds: servers.map(s=>JSON.stringify(buildOutboundJSON(s))) }); } catch(e){}
   };
 
-  const testSpeedAll = async () => {
-    if (!servers?.length) return;
-    const keys = servers.map(s=>`${s.server_address}:${s.server_port}`);
-    setTesting(p=>{const n=new Set(p);keys.forEach(k=>n.add(k));return n;});
-    try { await invoke("run_singbox_tests", { outbounds: servers.map(s=>JSON.stringify(buildOutboundJSON(s))) }); } catch(e){}
-  };
-
   const handleExport = async () => {
     const links = (servers||[]).map(s => {
       const h = `${s.server_address}:${s.server_port}`;
