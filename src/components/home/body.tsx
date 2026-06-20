@@ -111,12 +111,12 @@ export default function Body({ isRunning, isLoading, onUpdate, onToggle }: { isR
             headers: { Authorization: `Bearer ${s}` },
             connectTimeout: 3000
           });
-          if (r.ok) {
-            const text = await r.text();
-            const d = JSON.parse(text);
-            if (active) { setNetDown(d.down||0); setNetUp(d.up||0); }
-          }
-        } catch(e){}
+          const text = await r.text();
+          console.log("[traffic] raw:", text);
+          const d = JSON.parse(text);
+          console.log("[traffic] parsed:", d);
+          if (active) { setNetDown(d.down||0); setNetUp(d.up||0); }
+        } catch(e){ console.log("[traffic] ERR:", e); }
         if (active) await new Promise(r => setTimeout(r, 2000));
       }
     };
