@@ -28,8 +28,12 @@ pub async fn start_chain(
     group_id: String,
     servers: Vec<String>,
 ) -> Result<u16, String> {
-    // Kill any existing chain first
+    // Kill any existing chain first, then force-clean ports
     stop_chain_inner();
+    for port in 26780u16..26790 {
+        let _ = std::process::Command::new("fuser").args(["-k", &format!("{}/tcp", port)]).output();
+    }
+    std::thread::sleep(Duration::from_millis(300));
 
     let base_port: u16 = 26780;
     let n = servers.len();
@@ -71,12 +75,6 @@ pub async fn start_chain(
 
         let config = serde_json::json!({
             "log": { "level": "info" },
-            "dns": {
-                "servers": [
-                    { "tag": "dns-direct", "address": "tcp://8.8.8.8", "detour": "direct" }
-                ],
-                "rules": [{ "outbound": "any", "server": "dns-direct" }]
-            },
             "inbounds": [{
                 "tag": &tag,
                 "type": "mixed",
@@ -131,7 +129,7 @@ pub async fn start_chain(
     }
 
     let entry_port = base_port;
-    *CHAIN_PROCESSES.lock().unwrap() = Some(procs);
+    *CHAIN_PROCESSES.lock().unwrap_or_else(|e| e.into_inner()) = Some(procs);
 
     log::info!("[chain] cascade ready, entry port={}", entry_port);
     Ok(entry_port)
@@ -145,7 +143,10 @@ pub async fn stop_chain() -> Result<(), String> {
 }
 
 fn stop_chain_inner() {
-    let mut guard = CHAIN_PROCESSES.lock().unwrap();
+    let mut guard = match CHAIN_PROCESSES.lock() {
+        Ok(g) => g,
+        Err(e) => e.into_inner(),
+    };
     if let Some(procs) = guard.take() {
         for (pid, path, _child) in &procs {
             unsafe { libc::kill(*pid as i32, libc::SIGTERM); }
