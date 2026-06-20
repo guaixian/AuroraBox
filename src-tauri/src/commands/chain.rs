@@ -70,7 +70,13 @@ pub async fn start_chain(
         };
 
         let config = serde_json::json!({
-            "log": { "disabled": true },
+            "log": { "level": "info" },
+            "dns": {
+                "servers": [
+                    { "tag": "dns-direct", "address": "tcp://8.8.8.8", "detour": "direct" }
+                ],
+                "rules": [{ "outbound": "any", "server": "dns-direct" }]
+            },
             "inbounds": [{
                 "tag": &tag,
                 "type": "mixed",
