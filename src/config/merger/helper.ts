@@ -486,12 +486,12 @@ export async function mergeProxyGroupsConfig(newConfig: any): Promise<void> {
                     const store = await import("../../single/store");
                     await store.setStoreValue(chainKey, JSON.stringify(chainServers));
 
-                    // Add a local SOCKS5 outbound to the entry instance
+                    // Add a local HTTP outbound to the entry instance
                     const entryPort = 26780; // base port for chain instances
                     const chainEntryTag = `${prefix}-entry`;
                     outbounds.push({
-                        tag: chainEntryTag, type: "socks", server: "127.0.0.1",
-                        server_port: entryPort, version: "5",
+                        tag: chainEntryTag, type: "http", server: "127.0.0.1",
+                        server_port: entryPort,
                     });
                     outbounds[gwIdx].outbounds.push(chainEntryTag);
                     if (group.is_active) {

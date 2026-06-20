@@ -59,16 +59,16 @@ pub async fn start_chain(
                 exit_ob,
             ]
         } else {
-            // Intermediate: SOCKS5 to next instance
+            // Intermediate: HTTP proxy to next instance
+            // HTTP chaining works correctly with mixed inbound→http outbound
             let next_port = base_port + (i + 1) as u16;
             vec![
                 serde_json::json!({ "tag": "direct", "type": "direct" }),
                 serde_json::json!({
                     "tag": &tag,
-                    "type": "socks",
+                    "type": "http",
                     "server": "127.0.0.1",
-                    "server_port": next_port,
-                    "version": "5"
+                    "server_port": next_port
                 }),
             ]
         };
