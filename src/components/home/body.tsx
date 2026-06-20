@@ -46,7 +46,16 @@ export default function Body({ isRunning, isLoading, onUpdate, onToggle }: { isR
 
   // Load group members + all servers when active group changes or on mount
   useEffect(() => {
-    getProxyServers().then(s => setAllServers(s));
+    getProxyServers().then(s => {
+      setAllServers(s);
+      if (!active) {
+        // All Nodes mode: restore the previously active server
+        const cur = s.find((x: any) => x.is_active);
+        if (cur) setSelectedId(cur.identifier);
+        setMembers([]);
+        return;
+      }
+    });
     if (!active) { setMembers([]); return; }
     getGroupMembers(active.identifier).then(m => {
       setMembers(m);
