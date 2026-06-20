@@ -469,15 +469,15 @@ export async function mergeProxyGroupsConfig(newConfig: any): Promise<void> {
             );
 
             if (group.group_type === "chain") {
-                // Chain: create linked outbounds referencing existing ones
-                // Build chain from last to first, each with detour to next
+                // Chain: detour links outbounds as transport.
+                // The LAST outbound (no detour) is the exit whose IP is seen.
+                // Build from last to first, each with detour to next.
                 let prevTag = "";
                 const chainTags: string[] = [];
                 for (let i = tags.length - 1; i >= 0; i--) {
                     const chainTag = `${prefix}-c${i}`;
                     const existing = outbounds.find((o: any) => o.tag === tags[i]);
                     if (!existing) continue;
-                    // Deep-clone existing outbound config and add detour
                     const o: any = JSON.parse(JSON.stringify(existing));
                     o.tag = chainTag;
                     if (prevTag) { o.detour = prevTag; } else { delete o.detour; }
@@ -485,7 +485,7 @@ export async function mergeProxyGroupsConfig(newConfig: any): Promise<void> {
                     chainTags.unshift(chainTag);
                     prevTag = chainTag;
                 }
-                console.log(`[mergeProxyGroups] chain: entry=${chainTags[0]} order=[${chainTags.join("→")}] detours=[${chainTags.map(t => { const o = outbounds.find((x: any) => x.tag === t); return o?.detour || "none"; }).join(",")}]`);
+                console.log(`[mergeProxyGroups] chain: order=[${chainTags.join("→")}] exit=${chainTags[chainTags.length-1]} (this proxy IP will be the visible one)`);
                 if (chainTags.length > 0) {
                     outbounds[gwIdx].outbounds.push(chainTags[0]);
                     if (group.is_active) {
