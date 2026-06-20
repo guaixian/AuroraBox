@@ -101,7 +101,7 @@ export default function ServersPage() {
   return (
     <div className="page-body" style={{height:"100%"}}>
       <div className="toolbar">
-        <button className="btn prim" onClick={() => { setEditServer(null); setShowAdd(true); }}>+ Add</button>
+        <button className="btn primary" onClick={() => { setEditServer(null); setShowAdd(true); }}>+ Add</button>
         <button className="btn" onClick={() => setShowImport(true)}>Import</button>
         <button className="btn" onClick={handleExport}>Export</button>
         <div style={{flex:1}}/>
@@ -127,7 +127,7 @@ export default function ServersPage() {
                   <td>
                     <button className="btn xs" style={{marginRight:2}} onClick={(e)=>{e.stopPropagation();testOne(s)}} disabled={tg}><Stopwatch size={10}/></button>
                     <button className="btn xs" style={{marginRight:2}} onClick={(e)=>{e.stopPropagation();testOne(s)}} disabled={tg}><Speedometer2 size={10}/></button>
-                    <button className="btn xs dang" onClick={(e)=>{e.stopPropagation();if(confirm("Delete?"))handleDelete(s.identifier)}}><Trash3 size={10}/></button>
+                    <button className="btn xs danger" onClick={(e)=>{e.stopPropagation();if(confirm("Delete?"))handleDelete(s.identifier)}}><Trash3 size={10}/></button>
                   </td>
                 </tr>
               );

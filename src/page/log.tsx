@@ -58,7 +58,7 @@ export default function LogPage() {
                             <input placeholder={t("filter_placeholder")} value={query} onChange={e => setQuery(e.target.value)}
                                 style={{flex:1,border:'none',background:'none',fontSize:12,color:'var(--text)',outline:'none',fontFamily:'inherit'}}/>
                         </div>
-                        <button className={`btn sm ${lockScroll ? "prim" : ""}`} onClick={() => setLockScroll(!lockScroll)}>
+                        <button className={`btn sm ${lockScroll ? "primary" : ""}`} onClick={() => setLockScroll(!lockScroll)}>
                             <ArrowDown size={12}/> {lockScroll ? 'Locked' : 'Auto'}
                         </button>
                         <button className="btn sm" onClick={handleCopy}><Copy size={12}/></button>

@@ -107,8 +107,8 @@ body{margin:0;padding:0;font-family:inherit;font-size:13px;color:var(--text);bac
 
 /* BUTTON */
 .btn{display:inline-flex;align-items:center;gap:5px;padding:5px 12px;border-radius:var(--r-sm);font-size:12px;font-weight:500;cursor:pointer;border:0.5px solid var(--border-s);background:var(--bg-card);color:var(--text);user-select:none;font-family:inherit}
-.btn:hover{background:var(--bg-fill)}.btn.prim{background:var(--blue);color:#fff;border-color:var(--blue)}.btn.prim:hover{opacity:0.9}
-.btn.dang{color:var(--red)}.btn.xs{padding:2px 6px;font-size:10px}.btn.sm{padding:3px 8px;font-size:10px}
+.btn:hover{background:var(--bg-fill)}.btn.primary{background:var(--blue);color:#fff;border-color:var(--blue)}.btn.primary:hover{opacity:0.9}
+.btn.danger{color:var(--red)}.btn.xs{padding:2px 6px;font-size:10px}.btn.sm{padding:3px 8px;font-size:10px}
 .toolbar{display:flex;align-items:center;gap:8px;margin-bottom:14px}
 
 /* SETTINGS */
@@ -144,6 +144,21 @@ body{margin:0;padding:0;font-family:inherit;font-size:13px;color:var(--text);bac
 }
 /* Legacy component aliases */
 .aurorabox-grouped-card{}.aurorabox-page-inner{}.aurorabox-scrollpage{}.aurorabox-form-field{margin-bottom:8px}.aurorabox-form-label{font-size:11px;color:var(--text2);margin-bottom:3px;display:block}.aurorabox-select{width:100%;padding:5px 8px;border-radius:var(--r-sm);border:0.5px solid var(--border);background:var(--bg-card);color:var(--text);font-size:12px;font-family:inherit}
+.aurorabox-surface{display:flex;flex-direction:column;height:100vh;background:var(--bg-window);color:var(--text)}
+.aurorabox-plain-card{background:var(--bg-card);border-radius:var(--r-lg);border:0.5px solid var(--border)}
+.aurorabox-spinner{display:inline-block;border-radius:50%;animation:spin .6s linear infinite}
+.aurorabox-spinner-ring{width:18px;height:18px;border:2px solid var(--bg-fill);border-top-color:var(--blue)}
+.aurorabox-spinner-lg{width:24px;height:24px}
+.aurorabox-spinner-sm{width:14px;height:14px}
+.aurorabox-logrow{display:flex;align-items:baseline;gap:12px;padding:3px 16px;font-family:var(--font-mono);font-size:11px;line-height:1.55;color:var(--text);transition:background .08s;word-break:break-word;white-space:pre-wrap}
+.aurorabox-logrow:hover{background:var(--bg-hover)}
+.aurorabox-search{display:inline-flex;align-items:center;gap:6px;height:24px;padding:0 8px;border-radius:6px;background:var(--bg-fill);width:200px}
+.aurorabox-search input{flex:1;background:transparent;border:0;outline:none;font-size:12px;color:var(--text);min-width:0}
+.aurorabox-toolbar-btn{height:24px;min-width:24px;padding:0 8px;display:inline-flex;align-items:center;justify-content:center;gap:4px;font-size:12px;font-weight:500;color:var(--text2);background:transparent;border:0;border-radius:5px;cursor:pointer;transition:background .12s,color .12s}
+.aurorabox-toolbar-btn:hover{background:var(--bg-hover);color:var(--text)}
+.aurorabox-grouped-list{border-radius:var(--r-lg);overflow:hidden;border:0.5px solid var(--border);background:var(--bg-card)}
+.aurorabox-toggle{width:36px;height:20px;border-radius:10px;background:var(--text3);cursor:pointer;position:relative;transition:background .2s;flex-shrink:0}
+.aurorabox-toggle::after{content:'';position:absolute;width:16px;height:16px;border-radius:50%;background:#fff;top:2px;left:2px;transition:left .2s;box-shadow:0 1px 3px rgba(0,0,0,0.15)}
 /* Fix: Tailwind purges bg-[var(--aurorabox-*)] — provide explicit classes */
 .bg-aurorabox-card{background:var(--bg-card)}.bg-aurorabox-blue{background:var(--blue)}.bg-aurorabox-fill{background:var(--bg-fill)}.bg-aurorabox-red{background:var(--red)}.bg-aurorabox-green{background:var(--green)}
 .text-aurorabox-label{color:var(--text)}.text-aurorabox-secondary{color:var(--text2)}.text-aurorabox-blue{color:var(--blue)}.text-aurorabox-red{color:var(--red)}
