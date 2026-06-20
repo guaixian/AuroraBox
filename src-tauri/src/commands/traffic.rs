@@ -1,15 +1,14 @@
-//! Read traffic stats from sing-box Clash API via raw TCP.
+//! Read traffic stats from sing-box Clash API.
 //!
-//! We use a raw TcpStream + manual HTTP GET instead of `curl` because
-//! the SystemProxy start path sets HTTP_PROXY env vars on the Rust
-//! process, which `curl` (spawned as a child) inherits — causing the
-//! request to 127.0.0.1:9191 to loop back through the sing-box mixed
-//! inbound instead of connecting directly to the Clash API listener.
+//! We use async TCP with a time-bounded read because the /traffic
+//! endpoint is an SSE stream that never closes — `read_to_end` would
+//! block forever.
 
-use std::io::{Read, Write};
-use std::net::TcpStream;
 use std::time::Duration;
 use tauri::Manager;
+use tokio::io::{AsyncReadExt, AsyncWriteExt};
+use tokio::net::TcpStream;
+use tokio::time::timeout;
 
 use crate::app::state::AppData;
 
@@ -20,25 +19,22 @@ pub struct TrafficStats {
 }
 
 /// Fetch current traffic stats from sing-box's Clash API at
-/// 127.0.0.1:9191. Reads the API secret from AppData (set by the
-/// `is_running` command on engine start) and includes it in the
-/// Authorization header.
+/// 127.0.0.1:9191. The endpoint streams NDJSON indefinitely, so we
+/// read for at most 1.5 seconds then take the last complete line.
 #[tauri::command]
-pub fn get_traffic(app: tauri::AppHandle) -> Result<TrafficStats, String> {
+pub async fn get_traffic(app: tauri::AppHandle) -> Result<TrafficStats, String> {
     let secret = app
         .state::<AppData>()
         .get_clash_secret()
         .unwrap_or_default();
 
-    let mut stream = TcpStream::connect_timeout(
-        &"127.0.0.1:9191".parse().map_err(|e| format!("bad addr: {e}"))?,
+    let mut stream = timeout(
         Duration::from_secs(2),
+        TcpStream::connect("127.0.0.1:9191"),
     )
+    .await
+    .map_err(|_| "connect timeout".to_string())?
     .map_err(|e| format!("connect 127.0.0.1:9191: {e}"))?;
-
-    stream
-        .set_read_timeout(Some(Duration::from_secs(2)))
-        .map_err(|e| format!("set timeout: {e}"))?;
 
     let req = if secret.is_empty() {
         "GET /traffic HTTP/1.0\r\nHost: 127.0.0.1:9191\r\nConnection: close\r\n\r\n".to_string()
@@ -49,15 +45,27 @@ pub fn get_traffic(app: tauri::AppHandle) -> Result<TrafficStats, String> {
     };
     stream
         .write_all(req.as_bytes())
+        .await
         .map_err(|e| format!("write: {e}"))?;
 
-    let mut buf = Vec::new();
-    stream
-        .read_to_end(&mut buf)
-        .map_err(|e| format!("read: {e}"))?;
+    // Read whatever arrives within 1.5 s — enough to capture several
+    // NDJSON lines without blocking the caller indefinitely.
+    let mut buf = vec![0u8; 8192];
+    let mut total = Vec::new();
+    let deadline = Duration::from_millis(1500);
+    let read = async {
+        loop {
+            match stream.read(&mut buf).await {
+                Ok(0) => break,
+                Ok(n) => total.extend_from_slice(&buf[..n]),
+                Err(_) => break,
+            }
+        }
+    };
+    let _ = timeout(deadline, read).await;
+    // stream is dropped here → connection closed
 
-    let text = String::from_utf8_lossy(&buf);
-    // HTTP/1.0 response: headers then \r\n\r\n then body (NDJSON lines)
+    let text = String::from_utf8_lossy(&total);
     let body = text
         .split("\r\n\r\n")
         .nth(1)
@@ -70,8 +78,7 @@ pub fn get_traffic(app: tauri::AppHandle) -> Result<TrafficStats, String> {
         return Ok(TrafficStats { up: 0, down: 0 });
     }
 
-    // Traffic API returns newline-delimited JSON — take the last line
-    // (most recent cumulative stats).
+    // Take the last NDJSON line (most recent cumulative stats).
     if let Some(last) = body.lines().last() {
         match serde_json::from_str::<serde_json::Value>(last) {
             Ok(v) => {
