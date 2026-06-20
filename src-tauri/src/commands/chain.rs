@@ -44,22 +44,30 @@ pub async fn start_chain(
         let parsed: serde_json::Value =
             serde_json::from_str(&servers[i]).map_err(|e| format!("json: {}", e))?;
 
-        let outbound = if i == n - 1 {
-            // Last instance = exit: use the actual proxy outbound
-            parsed.clone()
+        let tag = format!("chain-hop-{}", i);
+        let outbounds_array = if i == n - 1 {
+            // Exit hop: use the FULL server outbound config (with tls/password/etc)
+            let mut exit_ob = parsed.clone();
+            exit_ob["tag"] = serde_json::Value::String(tag.clone());
+            vec![
+                serde_json::json!({ "tag": "direct", "type": "direct" }),
+                exit_ob,
+            ]
         } else {
             // Intermediate: SOCKS5 to next instance
             let next_port = base_port + (i + 1) as u16;
-            serde_json::json!({
-                "tag": format!("chain-hop-{}", i),
-                "type": "socks",
-                "server": "127.0.0.1",
-                "server_port": next_port,
-                "version": "5"
-            })
+            vec![
+                serde_json::json!({ "tag": "direct", "type": "direct" }),
+                serde_json::json!({
+                    "tag": &tag,
+                    "type": "socks",
+                    "server": "127.0.0.1",
+                    "server_port": next_port,
+                    "version": "5"
+                }),
+            ]
         };
 
-        let tag = format!("chain-hop-{}", i);
         let config = serde_json::json!({
             "log": { "disabled": true },
             "inbounds": [{
@@ -68,10 +76,7 @@ pub async fn start_chain(
                 "listen": "127.0.0.1",
                 "listen_port": port
             }],
-            "outbounds": [
-                { "tag": "direct", "type": "direct" },
-                { "tag": &tag, "type": outbound["type"], "server": outbound["server"], "server_port": outbound["server_port"] }
-            ],
+            "outbounds": outbounds_array,
             "route": {
                 "rules": [{ "protocol": "dns", "outbound": "direct" }],
                 "final": tag,
