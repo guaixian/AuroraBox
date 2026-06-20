@@ -231,7 +231,7 @@ export default function Body({ isRunning, onUpdate }: { isRunning: boolean; onUp
             <p className="text-xs text-[var(--aurorabox-label-tertiary)]">
               {active?.group_type === "auto" && "节点自动切换 — sing-box URlTest 实时选最优"}
               {active?.group_type === "random" && "节点随机切换 — 每次连接随机选一个"}
-              {active?.group_type === "chain" && `链路模式 — 流量按序经过 ${members.length} 个节点`}
+              {active?.group_type === "chain" && `链路模式 — 流量顺序: ${members.map((m: any, i: number) => { const s = allServers.find(x => x.identifier === m.server_identifier); return s ? (i+1)+"."+s.name : ""; }).filter(Boolean).join(" → ")}`}
             </p>
           </div>
         )}
