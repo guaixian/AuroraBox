@@ -305,6 +305,8 @@ export async function mergeManualServersConfig(newConfig: any): Promise<void> {
                     outbound.type = "http";
                     if ((server as any).username) outbound.username = (server as any).username;
                     if (server.password) outbound.password = server.password;
+                    outbound.tcp_fast_open = true;
+                    outbound.tcp_keep_alive_interval = "15s";
                     break;
                 case "trojan":
                 case "vless": {
