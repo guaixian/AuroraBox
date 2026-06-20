@@ -169,6 +169,18 @@ function ServersPage() {
         await addGroupMember(g.identifier, reordered[i].server_identifier, i);
       }
       await refreshGroupMembers(g);
+      // Chain reorder needs engine restart
+      if (g.group_type === "chain") {
+        const { confirm } = await import("@tauri-apps/plugin-dialog");
+        const restart = await confirm("链路顺序已更改，是否重启代理使新顺序生效？", { title: "重启代理", kind: "info", okLabel: "立即重启", cancelLabel: "稍后" });
+        if (restart) {
+          const { vpnServiceManager } = await import("../utils/helper");
+          try {
+            await vpnServiceManager.syncConfig({});
+            await vpnServiceManager.start();
+          } catch (e) { /* engine might not be running */ }
+        }
+      }
     } catch (e: any) { toast.error(String(e)); }
   };
   const GROUP_TYPE_LABELS: Record<string, string> = { fixed: "手动选择", auto: "自动最优", random: "随机切换", chain: "链路代理" };

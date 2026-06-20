@@ -217,6 +217,8 @@ export const vpnServiceManager = {
                     console.log("[chain] starting cascade with", servers.length, "hops");
                     const port = await invoke<number>("start_chain", { groupId: activeChain.identifier, servers: outbounds });
                     console.log("[chain] cascade ready, entry port:", port);
+                    // Give chain instances time to fully initialize
+                    await new Promise(r => setTimeout(r, 1000));
                 }
             }
 
