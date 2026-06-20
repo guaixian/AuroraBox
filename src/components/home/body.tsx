@@ -98,19 +98,30 @@ export default function Body({ isRunning, isLoading, onUpdate, onToggle }: { isR
 
   // Poll traffic via Rust command (avoids SSE streaming issue)
   useEffect(() => {
+    console.log("[traffic] useEffect fired, isRunning=", isRunning);
     if (!isRunning) { setNetDown(0); setNetUp(0); return; }
+    console.log("[traffic] starting poll loop");
     let active = true;
+    let tick = 0;
     const poll = async () => {
       while (active) {
         try {
           const d = await invoke<{up:number,down:number}>("get_traffic");
-          if (active) { setNetDown(d.down||0); setNetUp(d.up||0); }
-        } catch(e){}
+          tick++;
+          const dn = d.down || 0;
+          const up = d.up || 0;
+          if (active) { setNetDown(dn); setNetUp(up); }
+          if (tick === 1 || tick % 5 === 0) {
+            console.log(`[traffic] tick=${tick} down=${dn} up=${up} down_kb=${(dn/1024).toFixed(1)} up_kb=${(up/1024).toFixed(1)}`);
+          }
+        } catch(e){
+          if (active) console.error("[traffic] poll error:", e);
+        }
         if (active) await new Promise(r => setTimeout(r, 2000));
       }
     };
     poll();
-    return () => { active = false; };
+    return () => { console.log("[traffic] cleanup, stopping poll"); active = false; };
   }, [isRunning]);
 
   const canPick = allNodesMode || active?.group_type === "fixed";
