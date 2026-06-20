@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import useSWR from "swr";
-import { Clipboard, Pencil, Speedometer2, Trash3 } from "react-bootstrap-icons";
+import { Clipboard, Pencil, Speedometer2, Stopwatch, Trash3 } from "react-bootstrap-icons";
 import { deleteProxyServer, getProxyServers } from "../action/db";
 import { GET_PROXY_SERVERS_SWR_KEY } from "../types/definition";
 import type { ProxyServer } from "../types/definition";
@@ -9,7 +9,6 @@ import { AddServerModal } from "../components/servers/add-server-modal";
 import { ImportShareLinksModal } from "../components/servers/import-share-links-modal";
 import { toast } from "sonner";
 import { invoke } from "@tauri-apps/api/core";
-import { listen } from "@tauri-apps/api/event";
 import { parseProxyLink } from "../utils/shadowsocks-parser";
 
 type LatMap = Record<string, { ms: number | null; tcpMs?: number; error?: string }>;
@@ -27,15 +26,6 @@ export default function ServersPage() {
   const [showImport, setShowImport] = useState(false);
   const [editServer, setEditServer] = useState<ProxyServer | null>(null);
 
-  useEffect(() => {
-    const unlisten = listen<{server:string;port:number;tcp_ms:number|null;real_ms:number|null;speed_kbps:number|null;error:string|null}>("proxy-test-result", (e) => {
-      const r = e.payload; const key = `${r.server}:${r.port}`;
-      setLatency(p=>({...p,[key]:{ms:r.real_ms,tcpMs:r.tcp_ms??undefined,error:r.error??undefined}}));
-      setSpeed(p=>({...p,[key]:{kbps:r.speed_kbps?Math.round(r.speed_kbps):null,error:!r.speed_kbps?(r.error??undefined):undefined}}));
-      setTesting(p=>{const n=new Set(p);n.delete(key);return n;});
-    });
-    return ()=>{unlisten.then(f=>f());};
-  }, []);
 
   // Paste import
   useEffect(() => {
@@ -62,18 +52,34 @@ export default function ServersPage() {
 
   const handleDelete = async (id: string) => { try { await deleteProxyServer(id); refresh(); } catch (e: any) { toast.error(String(e)); } };
 
-  const testOne = async (s: ProxyServer) => {
+  const testOne = async (s: ProxyServer, mode: "latency"|"speed") => {
     const key = `${s.server_address}:${s.server_port}`;
     setTesting(p=>new Set([...p,key]));
-    try { await invoke("run_singbox_tests", { outbounds: [JSON.stringify(buildOutboundJSON(s))] }); } catch(e){}
+    try {
+      const results = await invoke<{server:string;port:number;tcp_ms:number|null;real_ms:number|null;speed_kbps:number|null;error:string|null}[]>("run_singbox_tests", { outbounds: [JSON.stringify(buildOutboundJSON(s))] });
+      if (results[0]) {
+        const r = results[0];
+        if (mode === "latency") {
+          setLatency(p=>({...p,[key]:{ms:r.real_ms,tcpMs:r.tcp_ms??undefined,error:r.error??undefined}}));
+        } else {
+          setSpeed(p=>({...p,[key]:{kbps:r.speed_kbps?Math.round(r.speed_kbps):null,error:!r.speed_kbps?(r.error??undefined):undefined}}));
+        }
+      }
+    } catch(e){}
     setTesting(p=>{const n=new Set(p);n.delete(key);return n;});
   };
 
-  const testLatencyAll = async () => {
+  const testAll = async (mode: "latency"|"speed") => {
     if (!servers?.length) return;
     const keys = servers.map(s=>`${s.server_address}:${s.server_port}`);
     setTesting(p=>{const n=new Set(p);keys.forEach(k=>n.add(k));return n;});
-    try { await invoke("run_singbox_tests", { outbounds: servers.map(s=>JSON.stringify(buildOutboundJSON(s))) }); } catch(e){}
+    try {
+      const results = await invoke<{server:string;port:number;tcp_ms:number|null;real_ms:number|null;speed_kbps:number|null;error:string|null}[]>("run_singbox_tests", { outbounds: servers.map(s=>JSON.stringify(buildOutboundJSON(s))) });
+      const l:LatMap={}; const s:SpdMap={};
+      for (const r of results) { const k=`${r.server}:${r.port}`; l[k]={ms:r.real_ms,tcpMs:r.tcp_ms??undefined,error:r.error??undefined}; s[k]={kbps:r.speed_kbps?Math.round(r.speed_kbps):null,error:!r.speed_kbps?(r.error??undefined):undefined}; }
+      if (mode==="latency") setLatency(l); else setSpeed(s);
+    } catch(e){}
+    setTesting(p=>{const n=new Set(p);keys.forEach(k=>n.delete(k));return n;});
   };
 
   const handleExport = async () => {
@@ -98,7 +104,8 @@ export default function ServersPage() {
         <button className="btn" onClick={() => setShowImport(true)}>Import</button>
         <button className="btn" onClick={handleExport}>Export</button>
         <div style={{flex:1}}/>
-        <button className="btn sm" onClick={testLatencyAll}><Speedometer2 size={12}/> Test All</button>
+        <button className="btn sm" onClick={()=>testAll("latency")}><Stopwatch size={12}/> Latency</button>
+        <button className="btn sm" onClick={()=>testAll("speed")}><Speedometer2 size={12}/> Speed</button>
       </div>
 
       <div className="grouped-list" style={{borderRadius:"var(--r-lg)",overflow:"hidden"}}>
@@ -127,7 +134,8 @@ export default function ServersPage() {
                   <td style={{fontFamily:"monospace",fontSize:12,color:l?.ms?l.ms<200?"var(--green)":l.ms<500?"var(--orange)":"var(--red)":"var(--text3)"}}>{tg?"...":l?.ms?l.ms+"ms":"—"}</td>
                   <td style={{fontFamily:"monospace",fontSize:12}}>{tg?"...":sp?.kbps?sp.kbps>=1024?(sp.kbps/1024).toFixed(1)+" MB/s":sp.kbps+" KB/s":"—"}</td>
                   <td>
-                    <button className="btn xs" style={{marginRight:2}} onClick={(e)=>{e.stopPropagation();testOne(s)}} disabled={tg}><Speedometer2 size={10}/> Test</button>
+                    <button className="btn xs" style={{marginRight:2}} onClick={(e)=>{e.stopPropagation();testOne(s,"latency")}} disabled={tg}><Stopwatch size={10}/></button>
+                    <button className="btn xs" style={{marginRight:2}} onClick={(e)=>{e.stopPropagation();testOne(s,"speed")}} disabled={tg}><Speedometer2 size={10}/></button>
                     <button className="btn xs" style={{marginRight:2}} onClick={(e)=>{e.stopPropagation();copyLink()}}><Clipboard size={10}/></button>
                     <button className="btn xs" style={{marginRight:2}} onClick={(e)=>{e.stopPropagation();setEditServer(s);setShowAdd(true)}}><Pencil size={10}/></button>
                     <button className="btn xs danger" onClick={(e)=>{e.stopPropagation();if(confirm("Delete?"))handleDelete(s.identifier)}}><Trash3 size={10}/></button>
