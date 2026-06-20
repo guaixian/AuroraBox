@@ -2,7 +2,8 @@ import { useEffect, useState } from "react";
 import useSWR from "swr";
 import { ChevronDown, ClipboardData } from "react-bootstrap-icons";
 import { getProxyGroups, getGroupMembers, setActiveProxyGroup, getProxyServers, setActiveProxyServer } from "../../action/db";
-import { GET_PROXY_GROUPS_SWR_KEY } from "../../types/definition";
+import { GET_PROXY_GROUPS_SWR_KEY, RULE_MODE_STORE_KEY, ENABLE_TUN_STORE_KEY } from "../../types/definition";
+import { getStoreValue, setStoreValue } from "../../single/store";
 import type { ProxyGroup } from "../../types/definition";
 import { vpnServiceManager } from "../../utils/helper"; // used for syncConfig + node selection
 import { AppleNetworkStatus, GoogleNetworkStatus } from "./network-check";
@@ -19,8 +20,27 @@ export default function Body({ isRunning, isLoading, onUpdate, onToggle }: { isR
   const [members, setMembers] = useState<any[]>([]);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [switching, setSwitching] = useState(false);
+  const [curMode, setCurMode] = useState<string>("rules");
+  const [tunMode, setTunMode] = useState(false);
   const active = (groups || []).find(g => g.is_active);
   const allNodesMode = !active;
+
+  useEffect(() => {
+    getStoreValue(RULE_MODE_STORE_KEY, "rules").then(setCurMode);
+    getStoreValue(ENABLE_TUN_STORE_KEY, false).then(setTunMode);
+  }, []);
+
+  const handleModeChange = async (mode: string) => {
+    setCurMode(mode);
+    if (mode === "tun") {
+      await setStoreValue(ENABLE_TUN_STORE_KEY, true);
+      setTunMode(true);
+    } else {
+      if (tunMode) { await setStoreValue(ENABLE_TUN_STORE_KEY, false); setTunMode(false); }
+      await setStoreValue(RULE_MODE_STORE_KEY, mode);
+    }
+    try { await vpnServiceManager.syncConfig({}); if (isRunning) onUpdate(); } catch(e){}
+  };
 
   useEffect(() => {
     getProxyServers().then(s => {
@@ -81,9 +101,9 @@ export default function Body({ isRunning, isLoading, onUpdate, onToggle }: { isR
         <div className="power-sub">{selectedId ? allServers.find(s => s.identifier === selectedId)?.server_address + " · " + getTypeLabel(allServers.find(s => s.identifier === selectedId)?.proxy_type || "ss") : "—"}</div>
 
         <div className="mode-bar">
-          <button className="mode-btn active">Rules</button>
-          <button className="mode-btn">Global</button>
-          <button className="mode-btn tun">TUN</button>
+          <button className={`mode-btn ${curMode === "rules" && !tunMode ? "on" : ""}`} onClick={() => handleModeChange("rules")}>Rules</button>
+          <button className={`mode-btn ${curMode === "global" && !tunMode ? "on" : ""}`} onClick={() => handleModeChange("global")}>Global</button>
+          <button className={`mode-btn tun ${tunMode ? "on" : ""}`} onClick={() => handleModeChange("tun")}>TUN</button>
         </div>
 
         <div className="compact-stats">

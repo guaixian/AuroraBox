@@ -5,6 +5,8 @@ import { deleteProxyServer, getProxyServers } from "../action/db";
 import { GET_PROXY_SERVERS_SWR_KEY } from "../types/definition";
 import type { ProxyServer } from "../types/definition";
 import { buildOutboundJSON } from "../utils/build-outbound";
+import { AddServerModal } from "../components/servers/add-server-modal";
+import { ImportShareLinksModal } from "../components/servers/import-share-links-modal";
 import { toast } from "sonner";
 import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
@@ -21,6 +23,9 @@ export default function ServersPage() {
   const [latency, setLatency] = useState<LatMap>({});
   const [speed, setSpeed] = useState<SpdMap>({});
   const [testing, setTesting] = useState<Set<string>>(new Set());
+  const [showAdd, setShowAdd] = useState(false);
+  const [showImport, setShowImport] = useState(false);
+  const [editServer, setEditServer] = useState<ProxyServer | null>(null);
 
   useEffect(() => {
     const unlisten = listen<{server:string;port:number;tcp_ms:number|null;real_ms:number|null;speed_kbps:number|null;error:string|null}>("proxy-test-result", (e) => {
@@ -89,8 +94,8 @@ export default function ServersPage() {
   return (
     <div className="page-body" style={{height:"100%"}}>
       <div className="toolbar">
-        <button className="btn prim">+ Add</button>
-        <button className="btn">Import</button>
+        <button className="btn prim" onClick={() => { setEditServer(null); setShowAdd(true); }}>+ Add</button>
+        <button className="btn" onClick={() => setShowImport(true)}>Import</button>
         <button className="btn" onClick={handleExport}>Export</button>
         <div style={{flex:1}}/>
         <button className="btn sm" onClick={testAll}><Stopwatch size={12}/> Latency</button>
@@ -124,6 +129,8 @@ export default function ServersPage() {
           </tbody>
         </table>
       </div>
+      <AddServerModal visible={showAdd} editServer={editServer} onClose={() => setShowAdd(false)} onSaved={refresh} />
+      <ImportShareLinksModal visible={showImport} onClose={() => setShowImport(false)} onImported={refresh} />
     </div>
   );
 }
