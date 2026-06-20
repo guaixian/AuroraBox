@@ -15,7 +15,8 @@ use tauri_plugin_shell::ShellExt;
 use tokio::time::sleep;
 
 /// Active chain processes, keyed by chain group identifier.
-static CHAIN_PROCESSES: Mutex<Option<Vec<(u32, String)>>> = Mutex::new(None);
+/// Stores (pid, config_path, CommandChild) to keep processes alive.
+static CHAIN_PROCESSES: Mutex<Option<Vec<(u32, String, tauri_plugin_shell::process::CommandChild)>>> = Mutex::new(None);
 
 /// Start a multi-instance proxy chain.
 ///
@@ -36,7 +37,7 @@ pub async fn start_chain(
         return Err("chain needs at least 2 servers".into());
     }
 
-    let mut pids: Vec<(u32, String)> = Vec::new();
+    let mut procs: Vec<(u32, String, tauri_plugin_shell::process::CommandChild)> = Vec::new();
 
     // Build from last (exit) to first (entry)
     for i in (0..n).rev() {
@@ -110,7 +111,7 @@ pub async fn start_chain(
 
         if !ready {
             // Kill all started instances
-            for (pid, path) in &pids {
+            for (pid, path, _child) in &procs {
                 unsafe { libc::kill(*pid as i32, libc::SIGKILL); }
                 let _ = std::fs::remove_file(path);
             }
@@ -119,13 +120,12 @@ pub async fn start_chain(
             return Err(format!("hop {} failed to start", i));
         }
 
-        pids.push((pid, config_path));
+        procs.push((pid, config_path, child));
         log::info!("[chain] hop {} started on port {} (pid={})", i, port, pid);
     }
 
     let entry_port = base_port;
-    pids.reverse(); // Keep in order for cleanup
-    *CHAIN_PROCESSES.lock().unwrap() = Some(pids);
+    *CHAIN_PROCESSES.lock().unwrap() = Some(procs);
 
     log::info!("[chain] cascade ready, entry port={}", entry_port);
     Ok(entry_port)
@@ -141,12 +141,13 @@ pub async fn stop_chain() -> Result<(), String> {
 fn stop_chain_inner() {
     let mut guard = CHAIN_PROCESSES.lock().unwrap();
     if let Some(procs) = guard.take() {
-        for (pid, path) in &procs {
+        for (pid, path, _child) in &procs {
             unsafe { libc::kill(*pid as i32, libc::SIGTERM); }
             std::thread::sleep(Duration::from_millis(200));
             unsafe { libc::kill(*pid as i32, libc::SIGKILL); }
             let _ = std::fs::remove_file(path);
             log::info!("[chain] stopped hop pid={}", pid);
         }
+        // procs dropped here, _child handles released
     }
 }
