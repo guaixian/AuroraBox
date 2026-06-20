@@ -62,7 +62,7 @@ export default function ServersPage() {
 
   const handleDelete = async (id: string) => { try { await deleteProxyServer(id); refresh(); } catch (e: any) { toast.error(String(e)); } };
 
-  const testOne = async (s: ProxyServer, mode: "latency"|"speed") => {
+  const testOne = async (s: ProxyServer) => {
     const key = `${s.server_address}:${s.server_port}`;
     setTesting(p=>new Set([...p,key]));
     try { await invoke("run_singbox_tests", { outbounds: [JSON.stringify(buildOutboundJSON(s))] }); } catch(e){}
@@ -125,8 +125,8 @@ export default function ServersPage() {
                   <td style={{fontFamily:"monospace",fontSize:12,color:l?.ms?l.ms<200?"var(--green)":l.ms<500?"var(--orange)":"var(--red)":"var(--text3)"}}>{tg?"...":l?.ms?l.ms+"ms":"—"}</td>
                   <td style={{fontFamily:"monospace",fontSize:12}}>{tg?"...":sp?.kbps?sp.kbps>=1024?(sp.kbps/1024).toFixed(1)+" MB/s":sp.kbps+" KB/s":"—"}</td>
                   <td>
-                    <button className="btn xs" style={{marginRight:2}} onClick={(e)=>{e.stopPropagation();testOne(s,"latency")}} disabled={tg}><Stopwatch size={10}/></button>
-                    <button className="btn xs" style={{marginRight:2}} onClick={(e)=>{e.stopPropagation();testOne(s,"speed")}} disabled={tg}><Speedometer2 size={10}/></button>
+                    <button className="btn xs" style={{marginRight:2}} onClick={(e)=>{e.stopPropagation();testOne(s)}} disabled={tg}><Stopwatch size={10}/></button>
+                    <button className="btn xs" style={{marginRight:2}} onClick={(e)=>{e.stopPropagation();testOne(s)}} disabled={tg}><Speedometer2 size={10}/></button>
                     <button className="btn xs dang" onClick={(e)=>{e.stopPropagation();if(confirm("Delete?"))handleDelete(s.identifier)}}><Trash3 size={10}/></button>
                   </td>
                 </tr>
