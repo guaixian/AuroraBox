@@ -7,7 +7,6 @@ import { getStoreValue, setStoreValue } from "../../single/store";
 import type { ProxyGroup } from "../../types/definition";
 import { vpnServiceManager } from "../../utils/helper"; // used for syncConfig + node selection
 import { AppleNetworkStatus, GoogleNetworkStatus } from "./network-check";
-import { useNetworkSpeed } from "../../utils/clash-api";
 import { invoke } from "@tauri-apps/api/core";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 
@@ -94,8 +93,25 @@ export default function Body({ isRunning, isLoading, onUpdate, onToggle }: { isR
   };
   useEffect(() => { if (!open) return; const h = () => setOpen(false); document.addEventListener("click", h); return () => document.removeEventListener("click", h); }, [open]);
 
+  const [netDown, setNetDown] = useState(0);
+  const [netUp, setNetUp] = useState(0);
+
+  // Poll Clash API for network speed every 2 seconds
+  useEffect(() => {
+    if (!isRunning) { setNetDown(0); setNetUp(0); return; }
+    const interval = setInterval(async () => {
+      try {
+        const secret = (await import("../../single/store")).getClashApiSecret;
+        const s = await secret();
+        const res = await fetch(`http://127.0.0.1:9191/traffic`, { headers: { Authorization: `Bearer ${s}` } });
+        const data = await res.json();
+        setNetDown(data.down || 0); setNetUp(data.up || 0);
+      } catch(e){}
+    }, 2000);
+    return () => clearInterval(interval);
+  }, [isRunning]);
+
   const canPick = allNodesMode || active?.group_type === "fixed";
-  const netSpeed = useNetworkSpeed(isRunning);
   const displayedNodes = allNodesMode ? allServers : members.map(m => allServers.find(s => s.identifier === m.server_identifier)).filter(Boolean);
   const getBadge = (t: string) => ({ hysteria2: "badge-hy2", vless: "badge-vl", trojan: "badge-tj", socks5: "badge-s5", http: "badge-ht", ss: "badge-ss" })[t] || "badge-ht";
   const getTypeLabel = (t: string) => ({ hysteria2: "HY2", vless: "VL", trojan: "TJ", socks5: "S5", http: "HTTP", ss: "SS" })[t] || t.toUpperCase();
@@ -116,8 +132,8 @@ export default function Body({ isRunning, isLoading, onUpdate, onToggle }: { isR
 
         <div className="compact-stats">
           <div className="compact-stat"><div className="compact-stat-val" style={{color:"var(--green)"}}>—</div><div className="compact-stat-label">Ping</div></div>
-          <div className="compact-stat"><div className="compact-stat-val">{netSpeed ? (netSpeed.download / 1024).toFixed(1) : "—"} KB/s</div><div className="compact-stat-label">Down</div></div>
-          <div className="compact-stat"><div className="compact-stat-val">{netSpeed ? (netSpeed.upload / 1024).toFixed(1) : "—"} KB/s</div><div className="compact-stat-label">Up</div></div>
+          <div className="compact-stat"><div className="compact-stat-val">{netDown > 0 ? (netDown / 1024).toFixed(1) + " KB/s" : "—"}</div><div className="compact-stat-label">Down</div></div>
+          <div className="compact-stat"><div className="compact-stat-val">{netUp > 0 ? (netUp / 1024).toFixed(1) + " KB/s" : "—"}</div><div className="compact-stat-label">Up</div></div>
         </div>
       </div>
 
