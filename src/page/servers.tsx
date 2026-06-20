@@ -174,11 +174,17 @@ function ServersPage() {
         const { confirm } = await import("@tauri-apps/plugin-dialog");
         const restart = await confirm("链路顺序已更改，是否重启代理使新顺序生效？", { title: "重启代理", kind: "info", okLabel: "立即重启", cancelLabel: "稍后" });
         if (restart) {
-          const { vpnServiceManager } = await import("../utils/helper");
-          try {
-            await vpnServiceManager.syncConfig({});
-            await vpnServiceManager.start();
-          } catch (e) { /* engine might not be running */ }
+          try { await invoke("stop_chain"); } catch (_) {}
+          await new Promise(r => setTimeout(r, 500));
+          // Start new chain cascade with updated order
+          const members = await getGroupMembers(g.identifier);
+          const allServers = await getProxyServers();
+          const servers = members.map((m: any) => allServers.find(s => s.identifier === m.server_identifier)).filter(Boolean);
+          if (servers.length >= 2) {
+            const outbounds = servers.map((s: any) => JSON.stringify(buildOutboundJSON(s)));
+            try { await invoke("start_chain", { groupId: g.identifier, servers: outbounds }); } catch (e: any) { toast.error(String(e)); }
+          }
+          toast.success("链路已更新");
         }
       }
     } catch (e: any) { toast.error(String(e)); }
