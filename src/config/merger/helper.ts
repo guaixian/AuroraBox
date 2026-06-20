@@ -496,6 +496,10 @@ export async function mergeProxyGroupsConfig(newConfig: any): Promise<void> {
                     outbounds[gwIdx].outbounds.push(chainEntryTag);
                     if (group.is_active) {
                         outbounds[gwIdx].outbounds.unshift(chainEntryTag);
+                        // Disable cache_file to prevent stale selector state
+                        if (newConfig.experimental?.cache_file) {
+                            newConfig.experimental.cache_file.enabled = false;
+                        }
                     }
 
                     console.log(`[mergeProxyGroups] chain cascade: ${chainServers.length} hops, entry port=${entryPort}, servers=[${chainServers.map(s => s.tag).join("→")}]`);
