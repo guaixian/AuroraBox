@@ -102,9 +102,11 @@ function parseUserinfo(
       };
     } catch { /* fall through */ }
   }
-  const password = parts[1] || "";
-  const plugin = parts[2] || "";
-  const pluginOpts = parts.slice(3).join(":") || "";
+  const is2022 = method.startsWith("2022-");
+  // SS 2022: parts[2] is uPSK, not plugin — combine into password
+  const password = is2022 ? parts.slice(1).join(":") : (parts[1] || "");
+  const plugin = is2022 ? "" : (parts[2] || "");
+  const pluginOpts = is2022 ? "" : parts.slice(3).join(":") || "";
   if (!SUPPORTED_METHODS.has(method)) return null;
   return { method, password, plugin, pluginOpts };
 }
