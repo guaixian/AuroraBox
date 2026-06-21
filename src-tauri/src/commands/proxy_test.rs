@@ -213,12 +213,8 @@ pub async fn run_singbox_tests(
 }
 
 fn cleanup(pid: u32, config_path: &str) {
-    unsafe {
-        libc::kill(pid as i32, libc::SIGTERM);
-    }
+    crate::utils::terminate_process(pid);
     std::thread::sleep(Duration::from_millis(300));
-    unsafe {
-        libc::kill(pid as i32, libc::SIGKILL);
-    }
+    crate::utils::force_kill(pid);
     let _ = std::fs::remove_file(config_path);
 }

@@ -116,10 +116,10 @@ pub async fn start_chain(
         if !ready {
             // Kill all started instances
             for (pid, path, _child) in &procs {
-                unsafe { libc::kill(*pid as i32, libc::SIGKILL); }
+                crate::utils::force_kill(*pid);
                 let _ = std::fs::remove_file(path);
             }
-            unsafe { libc::kill(pid as i32, libc::SIGKILL); }
+            crate::utils::force_kill(pid);
             let _ = std::fs::remove_file(&config_path);
             return Err(format!("hop {} failed to start", i));
         }
@@ -149,9 +149,9 @@ fn stop_chain_inner() {
     };
     if let Some(procs) = guard.take() {
         for (pid, path, _child) in &procs {
-            unsafe { libc::kill(*pid as i32, libc::SIGTERM); }
+            crate::utils::terminate_process(*pid);
             std::thread::sleep(Duration::from_millis(200));
-            unsafe { libc::kill(*pid as i32, libc::SIGKILL); }
+            crate::utils::force_kill(*pid);
             let _ = std::fs::remove_file(path);
             log::info!("[chain] stopped hop pid={}", pid);
         }

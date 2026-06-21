@@ -86,6 +86,36 @@ pub fn copy_database_files(app: &AppHandle) -> Result<(), Box<dyn std::error::Er
     Ok(())
 }
 
+// ── Cross-platform process termination ────────────────────────────
+
+/// Force-kill a process by PID. Unix: SIGKILL, Windows: taskkill /F.
+pub(crate) fn force_kill(pid: u32) {
+    #[cfg(unix)]
+    unsafe {
+        libc::kill(pid as i32, libc::SIGKILL);
+    }
+    #[cfg(windows)]
+    {
+        let _ = std::process::Command::new("taskkill")
+            .args(["/F", "/PID", &pid.to_string()])
+            .output();
+    }
+}
+
+/// Gracefully terminate a process by PID. Unix: SIGTERM, Windows: taskkill /F.
+pub(crate) fn terminate_process(pid: u32) {
+    #[cfg(unix)]
+    unsafe {
+        libc::kill(pid as i32, libc::SIGTERM);
+    }
+    #[cfg(windows)]
+    {
+        force_kill(pid);
+    }
+}
+
+// ── Dashboard ─────────────────────────────────────────────────────
+
 pub fn show_dashboard(app: AppHandle) {
     if let Some(w) = app.get_webview_window("main") {
         #[cfg(any(target_os = "windows", target_os = "linux"))]
