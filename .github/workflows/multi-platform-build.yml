@@ -143,8 +143,8 @@ jobs:
         with:
           name: aurorabox-windows-${{ matrix.target }}
           path: |
-            src-tauri/target/${{ matrix.target }}/release/bundle/msi/*.msi
-            src-tauri/target/${{ matrix.target }}/release/bundle/nsis/*.exe
+            src-tauri/target/release/bundle/msi/*.msi
+            src-tauri/target/release/bundle/nsis/*.exe
 
   # ── Release (tag push only) ────────────────────────────────────
   release:
