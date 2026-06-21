@@ -6,12 +6,14 @@
     "windows": [
       {
         "devtools": true,
-        "maximizable": false,
+        "maximizable": true,
         "decorations": true,
-        "resizable": false,
+        "resizable": true,
         "title": "AuroraBox",
-        "width": 320,
-        "height": 600
+        "width": 900,
+        "height": 650,
+        "minWidth": 371,
+        "minHeight": 514
       }
     ],
     "security": {
@@ -25,7 +27,12 @@
     ],
     "linux": {
       "deb": {
-        "desktopTemplate": "resources/main.desktop"
+        "desktopTemplate": "resources/main.desktop",
+        "files": {
+          "/usr/lib/AuroraBox/aurorabox-tun-helper": "resources/linux/aurorabox-tun-helper",
+          "/etc/polkit-1/rules.d/49-aurorabox.rules": "resources/linux/49-aurorabox.rules",
+          "/usr/share/polkit-1/actions/com.guaixian.aurorabox.policy": "resources/linux/com.guaixian.aurorabox.policy"
+        }
       },
       "rpm": {
         "desktopTemplate": "resources/main.desktop"

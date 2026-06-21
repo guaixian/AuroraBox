@@ -17,7 +17,6 @@ import {
 interface UpdateContextType {
     updateInfo: Update | null;
     downloading: boolean;
-    isSimulating: boolean;
     lastCheckTime: number | null;
     downloadProgress: number;
     downloadComplete: boolean;
@@ -40,8 +39,6 @@ export function UpdateProvider({ children }: { children: ReactNode }) {
     const [downloadProgress, setDownloadProgress] = useState(0);
     const [lastCheckTime, setLastCheckTime] = useState<number | null>(null);
     const [signatureThrottleUntil, setSignatureThrottleUntil] = useState(0);
-    const [isSimulating] = useState(false); // 设置为 true 可以进行模拟测试
-
     const checkingRef = useRef(false);
     const signatureThrottleUntilRef = useRef(0);
 
@@ -88,55 +85,19 @@ export function UpdateProvider({ children }: { children: ReactNode }) {
         console.log('Checking for updates...');
 
         try {
-            if (isSimulating) {
-                // 模拟更新检查和下载过程
+            const checkResult = await checkUpdate();
+            if (checkResult) {
+                setUpdateInfo(checkResult);
                 setDownloadingSync(true);
-                console.log("开始 mock 下载，已设置 downloading 为 true");
-                const mockUpdate = {
-                    version: '2.0.0',
-                    currentVersion: '1.0.0',
-                    available: true,
-                    pending: false,
-                    downloaded: false,
-                    shouldUpdate: true,
-                    rawJson: { version: '2.0.0' } as Record<string, unknown>,
-                    install: async () => { console.log('模拟安装更新'); },
-                    download: async (onEvent?: (event: any) => void) => {
-                        if (onEvent) {
-                            onEvent({ event: 'Started', data: { contentLength: 1000000 } });
-                        }
-                        console.log('模拟下载更新开始');
-                    }
-                } as unknown as Update;
-                setUpdateInfo(mockUpdate);
-                let progress = 0;
-                const simulateDownload = setInterval(() => {
-                    progress += 1;
-                    setDownloadProgress(progress);
-                    if (progress >= 100) {
-                        clearInterval(simulateDownload);
-                        setDownloadCompleteSync(true);
-                        setDownloadingSync(false);
-                    }
-                }, 100);
-
-                return mockUpdate;
-            } else {
-                const checkResult = await checkUpdate();
-                if (checkResult) {
-                    setUpdateInfo(checkResult);
-                    setDownloadingSync(true);
-
-                    try {
-                        await downloadUpdateIfNeeded(checkResult, setDownloadProgress);
-                        setDownloadCompleteSync(true);
-                        return checkResult;
-                    } catch (error) {
-                        console.error('Download error:', error);
-                        throw error;
-                    } finally {
-                        setDownloadingSync(false);
-                    }
+                try {
+                    await downloadUpdateIfNeeded(checkResult, setDownloadProgress);
+                    setDownloadCompleteSync(true);
+                    return checkResult;
+                } catch (error) {
+                    console.error('Download error:', error);
+                    throw error;
+                } finally {
+                    setDownloadingSync(false);
                 }
             }
 
@@ -258,7 +219,6 @@ export function UpdateProvider({ children }: { children: ReactNode }) {
             downloadProgress,
             lastCheckTime,
             signatureThrottleUntil,
-            isSimulating
         }}>
             {children}
         </UpdateContext.Provider>

@@ -3,9 +3,7 @@ import { ArrowDown, ArrowDownCircle, ArrowUpCircle, Copy, Search, Trash } from '
 import { toast, Toaster } from 'sonner';
 import ConfigTemplate from '../components/config-template/config-template';
 import ConfigViewer from '../components/config-viewer/config-viewer';
-import EmptyLogMessage from '../components/log/empty-log-message';
-import LogTable from '../components/log/log-table';
-import { formatNetworkSpeed, useLogSource, useNetworkSpeed } from '../utils/clash-api';
+import { useLogSource, useNetworkSpeed } from '../utils/clash-api';
 import { initLanguage, t } from '../utils/helper';
 
 type TabKey = 'logs' | 'config' | 'config-template';
@@ -16,27 +14,11 @@ const TABS: { key: TabKey; labelKey: string; fallback: string }[] = [
     { key: 'config-template', labelKey: 'config_template', fallback: 'Template' },
 ];
 
-// Segmented control (NSSegmentedControl) — track + lifted active pill.
-// Keyed off data-active so CSS can style without React-only class lists.
-function Segments({
-    value,
-    onChange,
-}: {
-    value: TabKey;
-    onChange: (v: TabKey) => void;
-}) {
+function Segments({ value, onChange }: { value: TabKey; onChange: (v: TabKey) => void }) {
     return (
-        <div className="aurorabox-segctl" role="tablist">
+        <div className="mode-bar" style={{marginBottom:14}}>
             {TABS.map(({ key, labelKey, fallback }) => (
-                <button
-                    key={key}
-                    type="button"
-                    role="tab"
-                    aria-selected={value === key}
-                    data-active={value === key}
-                    onClick={() => onChange(key)}
-                    className="aurorabox-segctl-item"
-                >
+                <button key={key} className={`mode-btn ${value === key ? "on" : ""}`} onClick={() => onChange(key)}>
                     {t(labelKey) || fallback}
                 </button>
             ))}
@@ -44,205 +26,58 @@ function Segments({
     );
 }
 
-// Logs-tab toolbar tools: search field, auto-scroll toggle, clear.
-function LogsTools({
-    filter,
-    setFilter,
-    autoScroll,
-    setAutoScroll,
-    clearLogs,
-}: {
-    filter: string;
-    setFilter: (s: string) => void;
-    autoScroll: boolean;
-    setAutoScroll: (v: boolean) => void;
-    clearLogs: () => void;
-}) {
-    return (
-        <>
-            <label className="aurorabox-search" aria-label={t('filter_placeholder') || 'Filter'}>
-                <Search size={11} />
-                <input
-                    type="text"
-                    value={filter}
-                    onChange={(e) => setFilter(e.target.value)}
-                    placeholder={t('filter_placeholder') || '过滤关键词…'}
-                />
-            </label>
-            <button
-                type="button"
-                className="aurorabox-toolbar-btn"
-                data-active={autoScroll}
-                onClick={() => setAutoScroll(!autoScroll)}
-                title={t('auto_scroll')}
-                aria-pressed={autoScroll}
-            >
-                <ArrowDown size={12} />
-            </button>
-            <button
-                type="button"
-                className="aurorabox-toolbar-btn"
-                onClick={clearLogs}
-                title={t('clear_log')}
-            >
-                <Trash size={12} />
-            </button>
-        </>
-    );
-}
-
-// Config-tab toolbar tool: copy current JSON to clipboard.
-function ConfigTools({ getContent }: { getContent: () => string | undefined }) {
-    const handleCopy = () => {
-        const c = getContent();
-        if (!c) return;
-        toast.promise(navigator.clipboard.writeText(c), {
-            loading: t('loading') || 'Copying…',
-            success: () => t('config_copied_to_clipboard') || 'Copied',
-            error: (e) => (e instanceof Error ? e.message : String(e)),
-        });
-    };
-    return (
-        <button
-            type="button"
-            className="aurorabox-toolbar-btn"
-            onClick={handleCopy}
-            title={t('config_copied_to_clipboard') || 'Copy'}
-        >
-            <Copy size={12} />
-        </button>
-    );
-}
-
 export default function LogPage() {
-    const [filter, setFilter] = useState('');
-    const [autoScroll, setAutoScroll] = useState(true);
-    const [isLanguageLoading, setIsLanguageLoading] = useState(true);
     const [activeTab, setActiveTab] = useState<TabKey>('logs');
-    const [configContent, setConfigContent] = useState<string | undefined>();
-    const logContainerRef = useRef<HTMLDivElement>(null);
-    const { logs, clearLogs } = useLogSource();
+    const [query, setQuery] = useState('');
+    const containerRef = useRef<HTMLDivElement>(null);
+    const [lockScroll, setLockScroll] = useState(false);
+    const { logs: logLines, clearLogs } = useLogSource();
     const speed = useNetworkSpeed();
+    const filteredLines = query ? (logLines || []).filter((l: any) => String(l.message || l).toLowerCase().includes(query.toLowerCase())) : (logLines || []);
 
-    const filteredLogs = filter
-        ? logs.filter((log) =>
-              log.message.toLowerCase().includes(filter.toLowerCase()),
-          )
-        : logs;
+    useEffect(() => { initLanguage(); }, []);
+    useEffect(() => {
+        if (lockScroll || !containerRef.current) return;
+        containerRef.current.scrollTop = containerRef.current.scrollHeight;
+    }, [logLines, lockScroll]);
 
-    const highlightText = (text: string, highlight: string) => {
-        if (!highlight) return text;
-        const parts = text.split(new RegExp(`(${highlight})`, 'gi'));
-        return parts.map((part, index) =>
-            part.toLowerCase() === highlight.toLowerCase() ? (
-                <mark key={index} className="aurorabox-highlight">
-                    {part}
-                </mark>
-            ) : (
-                part
-            ),
-        );
+    const handleCopy = async () => {
+        try { await navigator.clipboard.writeText(filteredLines.join('\n')); toast.success('Copied'); } catch { toast.error('Copy failed'); }
     };
 
-    useEffect(() => {
-        initLanguage().finally(() => setIsLanguageLoading(false));
-    }, []);
-
-    // Wire scroll to the right container based on activeTab. We only watch
-    // the logs container because config/template have their own scroll and
-    // don't need the auto-scroll-to-bottom contract.
-    useEffect(() => {
-        if (activeTab !== 'logs') return;
-        const container = logContainerRef.current;
-        if (!container) return;
-        const handleScroll = () => {
-            const { scrollTop, scrollHeight, clientHeight } = container;
-            setAutoScroll(scrollHeight - scrollTop - clientHeight < 5);
-        };
-        container.addEventListener('scroll', handleScroll);
-        return () => container.removeEventListener('scroll', handleScroll);
-    }, [activeTab]);
-
-    useEffect(() => {
-        if (autoScroll && activeTab === 'logs' && logContainerRef.current) {
-            logContainerRef.current.scrollTop =
-                logContainerRef.current.scrollHeight;
-        }
-    }, [filteredLogs, autoScroll, activeTab]);
-
-    if (isLanguageLoading) {
-        return (
-            <div className="aurorabox-mac-window flex items-center justify-center">
-                <span className="aurorabox-spinner aurorabox-spinner-ring aurorabox-spinner-lg" />
-            </div>
-        );
-    }
-
     return (
-        <div className="aurorabox-mac-window">
+        <div className="page-body" style={{height:'100%',display:'flex',flexDirection:'column'}}>
             <Toaster position="top-center" toastOptions={{ duration: 2000 }} />
+            <Segments value={activeTab} onChange={setActiveTab} />
 
-            <div className="aurorabox-mac-toolbar">
-                <Segments value={activeTab} onChange={setActiveTab} />
-                <div className="flex-1" />
-                {activeTab === 'logs' && (
-                    <LogsTools
-                        filter={filter}
-                        setFilter={setFilter}
-                        autoScroll={autoScroll}
-                        setAutoScroll={setAutoScroll}
-                        clearLogs={clearLogs}
-                    />
-                )}
-                {activeTab === 'config' && (
-                    <ConfigTools getContent={() => configContent} />
-                )}
-            </div>
+            {activeTab === 'logs' && (
+                <div style={{flex:1,display:'flex',flexDirection:'column'}}>
+                    <div className="toolbar">
+                        <div className="grouped-list" style={{flex:1,display:'flex',alignItems:'center',padding:'2px 8px',borderRadius:'var(--r-sm)',gap:4}}>
+                            <Search size={12} style={{color:'var(--text3)'}}/>
+                            <input placeholder={t("filter_placeholder")} value={query} onChange={e => setQuery(e.target.value)}
+                                style={{flex:1,border:'none',background:'none',fontSize:12,color:'var(--text)',outline:'none',fontFamily:'inherit'}}/>
+                        </div>
+                        <button className={`btn sm ${lockScroll ? "primary" : ""}`} onClick={() => setLockScroll(!lockScroll)}>
+                            <ArrowDown size={12}/> {lockScroll ? 'Locked' : 'Auto'}
+                        </button>
+                        <button className="btn sm" onClick={handleCopy}><Copy size={12}/></button>
+                        <button className="btn sm dang" onClick={clearLogs}><Trash size={12}/></button>
+                    </div>
+                    <div ref={containerRef} style={{flex:1,overflowY:'auto',fontSize:11,fontFamily:'var(--font-mono)',lineHeight:1.6,marginTop:8,background:'var(--bg-card)',borderRadius:'var(--r)',border:'0.5px solid var(--border)',padding:8}}>
+                        {filteredLines.map((l: any, i: number) => (
+                            <div key={i} style={{whiteSpace:'pre-wrap',wordBreak:'break-all',padding:'1px 0'}}>{l.message || String(l)}</div>
+                        ))}
+                    </div>
+                    <div style={{display:'flex',gap:8,marginTop:8,fontSize:11,color:'var(--text2)'}}>
+                        <span><ArrowDownCircle size={12}/> {(speed.download / 1024).toFixed(1)} KB/s</span>
+                        <span><ArrowUpCircle size={12}/> {(speed.upload / 1024).toFixed(1)} KB/s</span>
+                    </div>
+                </div>
+            )}
 
-            {/* Logs: scrollable log stream, own ref for auto-scroll. */}
-            <div
-                ref={logContainerRef}
-                className="aurorabox-mac-content"
-                style={{ display: activeTab === 'logs' ? 'block' : 'none' }}
-                role="tabpanel"
-            >
-                {filteredLogs.length === 0 ? (
-                    <EmptyLogMessage filter={filter} />
-                ) : (
-                    <LogTable
-                        logs={filteredLogs}
-                        filter={filter}
-                        highlightText={highlightText}
-                    />
-                )}
-            </div>
-
-            {/* Config & template: their own inner scrollers. */}
-            <div
-                className="aurorabox-mac-content"
-                style={{ display: activeTab === 'config' ? 'block' : 'none' }}
-                role="tabpanel"
-            >
-                <ConfigViewer onContent={setConfigContent} />
-            </div>
-            <div
-                className="aurorabox-mac-content"
-                style={{ display: activeTab === 'config-template' ? 'block' : 'none' }}
-                role="tabpanel"
-            >
-                <ConfigTemplate />
-            </div>
-
-            <div className="aurorabox-mac-statusbar">
-                <span className="inline-flex items-center gap-1.5">
-                    <ArrowUpCircle size={11} style={{ color: 'var(--aurorabox-blue)' }} />
-                    <span>{formatNetworkSpeed(speed.upload)}</span>
-                </span>
-                <span className="inline-flex items-center gap-1.5">
-                    <ArrowDownCircle size={11} style={{ color: 'var(--aurorabox-blue)' }} />
-                    <span>{formatNetworkSpeed(speed.download)}</span>
-                </span>
-            </div>
+            {activeTab === 'config' && <ConfigViewer />}
+            {activeTab === 'config-template' && <ConfigTemplate />}
         </div>
     );
 }

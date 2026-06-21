@@ -3,7 +3,7 @@ import { invoke } from '@tauri-apps/api/core';
 import { readTextFile } from '@tauri-apps/plugin-fs';
 import { toast } from 'sonner';
 import { getDataBaseInstance } from '../single/db';
-import { Subscription, SubscriptionConfig } from '../types/definition';
+import { ProxyGroup, ProxyGroupMember, ProxyServer, Subscription, SubscriptionConfig } from '../types/definition';
 import { getSingBoxUserAgent, t } from '../utils/helper';
 
 
@@ -339,4 +339,150 @@ export async function getSubscriptionConfig(identifier: string) {
         toast.error(t('get_subscription_config_failed'))
     }
 
+}
+
+// ── Proxy Server CRUD ────────────────────────────────────────────────
+
+function uuidHexNoDash(): string {
+    return crypto.randomUUID().replace(/-/g, "");
+}
+
+export async function getProxyServers(): Promise<ProxyServer[]> {
+    const db = await getDataBaseInstance();
+    return db.select('SELECT * FROM proxy_servers ORDER BY is_active DESC, name ASC');
+}
+
+export async function insertProxyServer(server: Omit<ProxyServer, "id" | "identifier" | "is_active" | "created_at" | "updated_at">): Promise<string> {
+    const db = await getDataBaseInstance();
+    const identifier = uuidHexNoDash();
+    const now = Math.floor(Date.now() / 1000);
+    await db.execute(
+        `INSERT INTO proxy_servers (identifier, name, server_address, server_port, password, encryption_method, plugin, plugin_opts, proxy_type, username, vless_uuid, vless_opts, created_at, updated_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        [identifier, server.name, server.server_address, server.server_port, server.password, server.encryption_method, server.plugin || '', server.plugin_opts || '', (server as any).proxy_type || 'ss', (server as any).username || '', (server as any).vless_uuid || '', (server as any).vless_opts || '', now, now]
+    );
+    return identifier;
+}
+
+export async function updateProxyServer(identifier: string, server: Partial<Omit<ProxyServer, "id" | "identifier" | "created_at">>): Promise<void> {
+    const db = await getDataBaseInstance();
+    const now = Math.floor(Date.now() / 1000);
+    const sets: string[] = [];
+    const params: any[] = [];
+    const fields: (keyof typeof server)[] = ["name", "server_address", "server_port", "password", "encryption_method", "plugin", "plugin_opts", "proxy_type", "username", "vless_uuid", "vless_opts"];
+    for (const f of fields) {
+        const v = server[f];
+        if (v !== undefined) {
+            sets.push(`${f} = ?`);
+            params.push(v);
+        }
+    }
+    if (sets.length === 0) return;
+    sets.push(`updated_at = ?`);
+    params.push(now);
+    params.push(identifier);
+    await db.execute(`UPDATE proxy_servers SET ${sets.join(', ')} WHERE identifier = ?`, params);
+}
+
+export async function deleteProxyServer(identifier: string): Promise<void> {
+    const db = await getDataBaseInstance();
+    await db.execute('DELETE FROM proxy_servers WHERE identifier = ?', [identifier]);
+}
+
+export async function setActiveProxyServer(identifier: string | null): Promise<void> {
+    const db = await getDataBaseInstance();
+    await db.execute('UPDATE proxy_servers SET is_active = 0 WHERE is_active = 1');
+    if (identifier) {
+        await db.execute('UPDATE proxy_servers SET is_active = 1 WHERE identifier = ?', [identifier]);
+    }
+}
+
+export async function batchInsertProxyServers(servers: Omit<ProxyServer, "id" | "identifier" | "is_active" | "created_at" | "updated_at">[]): Promise<string[]> {
+    const db = await getDataBaseInstance();
+    const identifiers: string[] = [];
+    const now = Math.floor(Date.now() / 1000);
+    // tauri-plugin-sql auto-commits each execute; no manual BEGIN/COMMIT
+    for (const server of servers) {
+        const identifier = uuidHexNoDash();
+        await db.execute(
+            `INSERT INTO proxy_servers (identifier, name, server_address, server_port, password, encryption_method, plugin, plugin_opts, proxy_type, username, vless_uuid, vless_opts, created_at, updated_at)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+            [identifier, server.name, server.server_address, server.server_port, server.password, server.encryption_method, server.plugin || '', server.plugin_opts || '', (server as any).proxy_type || 'ss', (server as any).username || '', (server as any).vless_uuid || '', (server as any).vless_opts || '', now, now]
+        );
+        identifiers.push(identifier);
+    }
+    return identifiers;
+}
+
+// ── Proxy Group CRUD ─────────────────────────────────────────────────
+
+export async function getProxyGroups(): Promise<ProxyGroup[]> {
+    const db = await getDataBaseInstance();
+    return db.select('SELECT * FROM proxy_groups ORDER BY is_active DESC, name ASC');
+}
+
+export async function insertProxyGroup(name: string, groupType: string): Promise<string> {
+    const db = await getDataBaseInstance();
+    const identifier = uuidHexNoDash();
+    const now = Math.floor(Date.now() / 1000);
+    await db.execute(
+        `INSERT INTO proxy_groups (identifier, name, group_type, created_at, updated_at) VALUES (?, ?, ?, ?, ?)`,
+        [identifier, name, groupType, now, now]
+    );
+    return identifier;
+}
+
+export async function updateProxyGroup(identifier: string, data: Partial<ProxyGroup>): Promise<void> {
+    const db = await getDataBaseInstance();
+    const now = Math.floor(Date.now() / 1000);
+    const sets: string[] = [];
+    const params: any[] = [];
+    if (data.name !== undefined) { sets.push("name = ?"); params.push(data.name); }
+    if (data.group_type !== undefined) { sets.push("group_type = ?"); params.push(data.group_type); }
+    if (sets.length === 0) return;
+    sets.push("updated_at = ?"); params.push(now);
+    params.push(identifier);
+    await db.execute(`UPDATE proxy_groups SET ${sets.join(', ')} WHERE identifier = ?`, params);
+}
+
+export async function deleteProxyGroup(identifier: string): Promise<void> {
+    const db = await getDataBaseInstance();
+    await db.execute('DELETE FROM proxy_group_members WHERE group_identifier = ?', [identifier]);
+    await db.execute('DELETE FROM proxy_groups WHERE identifier = ?', [identifier]);
+}
+
+export async function setActiveProxyGroup(identifier: string | null): Promise<void> {
+    const db = await getDataBaseInstance();
+    await db.execute('UPDATE proxy_groups SET is_active = 0 WHERE is_active = 1');
+    if (identifier) await db.execute('UPDATE proxy_groups SET is_active = 1 WHERE identifier = ?', [identifier]);
+}
+
+export async function getGroupMembers(groupId: string): Promise<ProxyGroupMember[]> {
+    const db = await getDataBaseInstance();
+    return db.select('SELECT * FROM proxy_group_members WHERE group_identifier = ? ORDER BY sort_order ASC', [groupId]);
+}
+
+export async function addGroupMember(groupId: string, serverId: string, order: number): Promise<void> {
+    const db = await getDataBaseInstance();
+    // Delete any existing entry first (upsert), then insert
+    await db.execute('DELETE FROM proxy_group_members WHERE group_identifier = ? AND server_identifier = ?', [groupId, serverId]);
+    await db.execute(
+        'INSERT INTO proxy_group_members (group_identifier, server_identifier, sort_order) VALUES (?, ?, ?)',
+        [groupId, serverId, order]
+    );
+}
+
+export async function removeGroupMember(groupId: string, serverId: string): Promise<void> {
+    const db = await getDataBaseInstance();
+    await db.execute('DELETE FROM proxy_group_members WHERE group_identifier = ? AND server_identifier = ?', [groupId, serverId]);
+}
+
+export async function getServersByGroup(groupId: string): Promise<ProxyServer[]> {
+    const db = await getDataBaseInstance();
+    return db.select(
+        `SELECT ps.* FROM proxy_servers ps
+         INNER JOIN proxy_group_members pgm ON ps.identifier = pgm.server_identifier
+         WHERE pgm.group_identifier = ?
+         ORDER BY pgm.sort_order ASC`, [groupId]
+    );
 }

@@ -2,7 +2,8 @@ import * as path from '@tauri-apps/api/path';
 import { getSubscriptionConfig } from '../../action/db';
 import { getAllowLan, getClashApiSecret, getCustomRuleSet, getStoreValue, isBypassRouterEnabled, setStoreValue } from '../../single/store';
 import { STAGE_VERSION_STORE_KEY } from '../../types/definition';
-import { configureMixedInbound, configureTunInbound, updateDHCPSettings2Config, updateVPNServerConfigFromDB } from './helper';
+import { writeConfigFile } from '../helper';
+import { configureMixedInbound, configureTunInbound, mergeManualServersConfig, mergeProxyGroupsConfig, patchRuleSetCDN, updateDHCPSettings2Config, updateVPNServerConfigFromDB } from './helper';
 
 import { configType, getConfigTemplateCacheKey } from '../common';
 import { getBuiltInTemplate } from '../templates';
@@ -40,9 +41,10 @@ async function updateExperimentalConfig(newConfig: any, dbCacheFilePath: string)
 
 }
 
-export async function setMixedConfig(identifier: string) {
+export async function setMixedConfig(identifier: string | null) {
     // 一定要优先深拷贝配置文件，否则会修改原始配置文件对象，导致后续使用时出错。
     const newConfig = await getConfigTemplate('mixed');
+    patchRuleSetCDN(newConfig);
 
     // 根据当前的 Stage 版本设置日志等级
     let level = await getStoreValue(STAGE_VERSION_STORE_KEY) === "dev" ? "debug" : "info";
@@ -50,7 +52,7 @@ export async function setMixedConfig(identifier: string) {
     newConfig.log.level = level;
 
     console.log("写入[规则]系统代理配置文件");
-    let dbConfigData = await getSubscriptionConfig(identifier);
+    let dbConfigData = identifier ? await getSubscriptionConfig(identifier) : null;
     const appConfigPath = await path.appConfigDir();
     const dbCacheFilePath = await path.join(appConfigPath, 'mixed-cache-rule-v2.db');
 
@@ -90,18 +92,24 @@ export async function setMixedConfig(identifier: string) {
     await configureMixedInbound(newConfig, allowLan, bypassRouter);
 
     await updateDHCPSettings2Config(newConfig);
-    await updateVPNServerConfigFromDB('config.json', dbConfigData, newConfig);
+    if (dbConfigData) {
+        await updateVPNServerConfigFromDB('config.json', dbConfigData, newConfig);
+    }
+    await mergeManualServersConfig(newConfig);
+    await mergeProxyGroupsConfig(newConfig);
+    await writeConfigFile("config.json", new TextEncoder().encode(JSON.stringify(newConfig)));
 
 }
 
-export async function setTunConfig(identifier: string) {
+export async function setTunConfig(identifier: string | null) {
     const newConfig = await getConfigTemplate('tun');
+    patchRuleSetCDN(newConfig);
 
     // 根据当前的 Stage 版本设置日志等级
     let level = await getStoreValue(STAGE_VERSION_STORE_KEY) === "dev" ? "debug" : "info";
     newConfig.log.level = level;
     console.log("写入[规则]TUN代理配置文件");
-    let dbConfigData = await getSubscriptionConfig(identifier);
+    let dbConfigData = identifier ? await getSubscriptionConfig(identifier) : null;
     const appConfigPath = await path.appConfigDir();
     const dbCacheFilePath = await path.join(appConfigPath, 'tun-cache-rule-v2.db');
     let directCustomRuleSet = await getCustomRuleSet('direct');
@@ -143,20 +151,26 @@ export async function setTunConfig(identifier: string) {
     await configureMixedInbound(newConfig, allowLan, bypassRouter);
 
     await updateDHCPSettings2Config(newConfig);
-    await updateVPNServerConfigFromDB('config.json', dbConfigData, newConfig);
+    if (dbConfigData) {
+        await updateVPNServerConfigFromDB('config.json', dbConfigData, newConfig);
+    }
+    await mergeManualServersConfig(newConfig);
+    await mergeProxyGroupsConfig(newConfig);
+    await writeConfigFile("config.json", new TextEncoder().encode(JSON.stringify(newConfig)));
 }
 
 
-export async function setGlobalMixedConfig(identifier: string) {
+export async function setGlobalMixedConfig(identifier: string | null) {
 
     const newConfig = await getConfigTemplate('mixed-global');
+    patchRuleSetCDN(newConfig);
 
     // 根据当前的 Stage 版本设置日志等级
     let level = await getStoreValue(STAGE_VERSION_STORE_KEY) === "dev" ? "debug" : "info";
     newConfig.log.level = level;
 
     console.log("写入[全局]系统代理配置文件");
-    let dbConfigData = await getSubscriptionConfig(identifier);
+    let dbConfigData = identifier ? await getSubscriptionConfig(identifier) : null;
     const appConfigPath = await path.appConfigDir();
     const dbCacheFilePath = await path.join(appConfigPath, 'mixed-cache-global-v2.db');
 
@@ -166,20 +180,26 @@ export async function setGlobalMixedConfig(identifier: string) {
     await configureMixedInbound(newConfig, allowLan, bypassRouter);
 
     await updateDHCPSettings2Config(newConfig);
-    await updateVPNServerConfigFromDB('config.json', dbConfigData, newConfig);
+    if (dbConfigData) {
+        await updateVPNServerConfigFromDB('config.json', dbConfigData, newConfig);
+    }
+    await mergeManualServersConfig(newConfig);
+    await mergeProxyGroupsConfig(newConfig);
+    await writeConfigFile("config.json", new TextEncoder().encode(JSON.stringify(newConfig)));
 
 }
 
 
 
-export default async function setGlobalTunConfig(identifier: string) {
+export default async function setGlobalTunConfig(identifier: string | null) {
     const newConfig = await getConfigTemplate('tun-global');
+    patchRuleSetCDN(newConfig);
     // 根据当前的 Stage 版本设置日志等级
     let level = await getStoreValue(STAGE_VERSION_STORE_KEY) === "dev" ? "debug" : "info";
     newConfig.log.level = level;
 
     console.log("写入[全局]TUN代理配置文件");
-    let dbConfigData = await getSubscriptionConfig(identifier);
+    let dbConfigData = identifier ? await getSubscriptionConfig(identifier) : null;
     const appConfigPath = await path.appConfigDir();
     const dbCacheFilePath = await path.join(appConfigPath, 'tun-cache-global-v2.db');
 
@@ -192,5 +212,10 @@ export default async function setGlobalTunConfig(identifier: string) {
     await configureMixedInbound(newConfig, allowLan, bypassRouter);
 
     await updateDHCPSettings2Config(newConfig);
-    await updateVPNServerConfigFromDB('config.json', dbConfigData, newConfig);
+    if (dbConfigData) {
+        await updateVPNServerConfigFromDB('config.json', dbConfigData, newConfig);
+    }
+    await mergeManualServersConfig(newConfig);
+    await mergeProxyGroupsConfig(newConfig);
+    await writeConfigFile("config.json", new TextEncoder().encode(JSON.stringify(newConfig)));
 }

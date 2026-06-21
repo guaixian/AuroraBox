@@ -165,6 +165,26 @@ async function syncConfig(props: SyncConfigProps) {
 export const vpnServiceManager = {
     start: async () => {
         try {
+            // Start chain cascade instances BEFORE main sing-box
+            const { getProxyGroups, getGroupMembers } = await import("../action/db");
+            const groups = await getProxyGroups();
+            const activeChain = groups.find(g => g.is_active && g.group_type === "chain");
+            if (activeChain) {
+                const members = await getGroupMembers(activeChain.identifier);
+                const { getProxyServers } = await import("../action/db");
+                const allServers = await getProxyServers();
+                const servers = members.map((m: any) => allServers.find(s => s.identifier === m.server_identifier)).filter(Boolean);
+                if (servers.length >= 2) {
+                    const { buildOutboundJSON } = await import("./build-outbound");
+                    const outbounds = servers.map((s: any) => JSON.stringify(buildOutboundJSON(s)));
+                    console.log("[chain] starting cascade with", servers.length, "hops");
+                    const port = await invoke<number>("start_chain", { groupId: activeChain.identifier, servers: outbounds });
+                    console.log("[chain] cascade ready, entry port:", port);
+                    // Give chain instances time to fully initialize
+                    await new Promise(r => setTimeout(r, 1000));
+                }
+            }
+
             const configPath = await getSingBoxConfigPath();
             const tunMode: boolean | undefined = await getEnableTun();
             const skipSystemProxy = !tunMode && await getSkipSystemProxy();
@@ -206,7 +226,9 @@ export const vpnServiceManager = {
      * 
      */
     stop: async () => {
-        await invoke("stop", { app: appWindow })
+        await invoke("stop", { app: appWindow });
+        // Always clean up chain cascade instances
+        try { await invoke("stop_chain"); } catch (_) {}
     },
 
 
@@ -219,6 +241,7 @@ export const vpnServiceManager = {
             if (type() === 'windows' && !useTun) {
                 // Windows 下的系统代理模式需要重启服务
                 await invoke("stop", { app: appWindow });
+                try { await invoke("stop_chain"); } catch (_) {}
                 await new Promise(resolve => setTimeout(resolve, 1000)); // 等待1秒确保服务完全停止
                 await vpnServiceManager.start();
             } else {

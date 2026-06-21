@@ -1,7 +1,87 @@
 import { type } from '@tauri-apps/plugin-os';
-import { getDirectDNS, getProxyPort, getStoreValue, getUseDHCP } from "../../single/store";
+import { getDirectDNS, getProxyPort, getStoreValue, getUseDHCP, setStoreValue } from "../../single/store";
 import { TUN_INTERFACE_NAME, TUN_STACK_STORE_KEY } from "../../types/definition";
+import { getProxyServers, getProxyGroups, getServersByGroup } from "../../action/db";
 import { writeConfigFile } from "../helper";
+
+/** Parse a JSON string of VLESS options, falling back to empty object. */
+function parseVlessOpts(raw: string): Record<string, string> {
+    try { return JSON.parse(raw); } catch { return {}; }
+}
+
+/**
+ * Strip remote rule_set entries and convert rule_set-based rules to
+ * inline equivalents. This avoids the startup HTTP downloads that can
+ * fail when CDNs are unreachable. The config is mutated in-place.
+ *
+ * Strategy: remove all rule_set entries and replace every rule that
+ * references a rule_set with a simplified inline version.
+ */
+export function patchRuleSetCDN(config: any): void {
+    const route = config?.route;
+    if (!route) return;
+
+    // Remove ALL remote rule_set entries — we only use inline rules
+    if (route.rule_set) {
+        route.rule_set = [];
+    }
+
+    // Replace rule_set-based rules with inline equivalents.
+    // The templates use rule_set references like:
+    //   { "rule_set": "geosite-cn", "outbound": "direct" }
+    //   { "rule_set": "geoip-cn", "outbound": "direct" }
+    //
+    // We just drop them and rely on the default outbound (ExitGateway)
+    // plus a few hard-coded direct-routing rules.
+    if (route.rules && Array.isArray(route.rules)) {
+        route.rules = route.rules.filter((r: any) => {
+            // Keep rules that don't reference rule_sets
+            if (r.rule_set) return false;
+            // Keep DNS hijack, protocol sniffing, private-IP rules
+            return true;
+        });
+    }
+
+    // Inline key routing: private IPs → direct, rest → ExitGateway
+    const inlineRules = [
+        // DNS hijack prevention
+        { "protocol": "dns", "outbound": "dns-out" },
+        // Private & local IPs → direct
+        {
+            "ip_is_private": true,
+            "outbound": "direct",
+        },
+        {
+            "ip_cidr": [
+                "10.0.0.0/8",
+                "172.16.0.0/12",
+                "192.168.0.0/16",
+                "127.0.0.0/8",
+                "224.0.0.0/4",
+                "::1/128",
+                "fc00::/7",
+                "fe80::/10",
+            ],
+            "outbound": "direct",
+        },
+    ];
+
+    // Prepend inline rules (higher priority)
+    route.rules = [...inlineRules, ...(route.rules || [])];
+
+    // Also strip rule_set references from DNS rules
+    if (config.dns?.rules && Array.isArray(config.dns.rules)) {
+        config.dns.rules = config.dns.rules.filter((r: any) => !r.rule_set);
+    }
+    // And from the DNS server list (used for domain-based server selection)
+    if (config.dns?.servers && Array.isArray(config.dns.servers)) {
+        for (const s of config.dns.servers) {
+            if (s.rules && Array.isArray(s.rules)) {
+                s.rules = s.rules.filter((r: any) => !r.rule_set);
+            }
+        }
+    }
+}
 
 
 
@@ -150,5 +230,318 @@ export async function configureMixedInbound(newConfig: any, allowLan: boolean, b
     if (mixedInbound) {
         mixedInbound.listen = (allowLan || bypassRouter) ? "0.0.0.0" : "127.0.0.1";
         mixedInbound.listen_port = await getProxyPort();
+    }
+}
+
+/**
+ * Merge manually-configured proxy servers (Shadowsocks, etc.) into the
+ * sing-box config template. Appends each server as a sing-box outbound
+ * and wires them into the ExitGateway selector and auto urltest group.
+ *
+ * The template's outbounds array is expected to have:
+ *   [0] = direct
+ *   [1] = selector (ExitGateway) with an "outbounds" array of tags
+ *   [2] = urltest (auto) with an "outbounds" array of tags
+ */
+export async function mergeManualServersConfig(newConfig: any): Promise<void> {
+    try {
+        const servers = await getProxyServers();
+        if (!servers || servers.length === 0) return;
+
+        const outbound_groups = newConfig["outbounds"];
+        if (!outbound_groups || outbound_groups.length < 3) return;
+
+        const selectorIdx = outbound_groups.findIndex(
+            (g: any) => g.type === "selector" && g.tag === "ExitGateway"
+        );
+        const urltestIdx = outbound_groups.findIndex(
+            (g: any) => g.type === "urltest" && g.tag === "auto"
+        );
+        if (selectorIdx === -1 || urltestIdx === -1) return;
+
+        const outboundsSelector = outbound_groups[selectorIdx]["outbounds"];
+        const outboundsUrltest = outbound_groups[urltestIdx]["outbounds"];
+
+        let activeTag: string | null = null;
+
+        for (const server of servers) {
+            const ptype = (server as any).proxy_type || "ss";
+            const tag = `${ptype}-${server.identifier.slice(0, 8)}`;
+
+            const outbound: any = {
+                tag,
+                server: server.server_address,
+                server_port: server.server_port,
+                domain_resolver: "system",
+            };
+
+            switch (ptype) {
+                case "hysteria2": {
+                    outbound.type = "hysteria2";
+                    outbound.password = server.password;
+                    const hops = parseVlessOpts((server as any).vless_opts || "{}");
+                    if (hops.upmbps) outbound.up_mbps = parseInt(hops.upmbps, 10) || 100;
+                    if (hops.downmbps) outbound.down_mbps = parseInt(hops.downmbps, 10) || 200;
+                    if (hops.obfs || hops["obfs-password"]) {
+                        outbound.obfs = { type: "salamander", password: hops.obfs || hops["obfs-password"] };
+                    }
+                    // TLS
+                    const tls: any = { enabled: true };
+                    if (hops.sni) tls.server_name = hops.sni;
+                    if (hops.insecure === "1" || hops.allowInsecure === "1") tls.insecure = true;
+                    if (hops.alpn) tls.alpn = hops.alpn.split(",");
+                    if (hops.pinSHA256) tls.pin_sha256 = hops.pinSHA256;
+                    if (hops.fingerprint) tls.utls = { enabled: true, fingerprint: hops.fingerprint };
+                    outbound.tls = tls;
+                    break;
+                }
+                case "socks5":
+                    outbound.type = "socks";
+                    outbound.version = "5";
+                    if ((server as any).username) outbound.username = (server as any).username;
+                    if (server.password) outbound.password = server.password;
+                    break;
+                case "http":
+                    outbound.type = "http";
+                    if ((server as any).username) outbound.username = (server as any).username;
+                    if (server.password) outbound.password = server.password;
+                    outbound.tcp_fast_open = true;
+                    break;
+                case "trojan":
+                case "vless": {
+                    outbound.type = ptype;
+                    const vuuid = (server as any).vless_uuid || "";
+                    const vopts = parseVlessOpts((server as any).vless_opts || "{}");
+                    if (ptype === "vless") {
+                        outbound.uuid = vuuid;
+                    } else {
+                        outbound.password = server.password;
+                    }
+                    outbound.flow = vopts.flow || "";
+                    if (ptype === "vless") outbound.packet_encoding = vopts.packetEncoding || "";
+
+                    // TLS / Reality
+                    const tls: any = {};
+                    const security = vopts.security || "none";
+                    if (security === "tls" || security === "xtls") {
+                        tls.enabled = true;
+                        if (vopts.sni) tls.server_name = vopts.sni;
+                        if (vopts.alpn) tls.alpn = vopts.alpn.split(",");
+                        if (vopts.fingerprint) {
+                            tls.utls = { enabled: true, fingerprint: vopts.fingerprint };
+                        }
+                    } else if (security === "reality") {
+                        tls.enabled = true;
+                        tls.server_name = vopts.sni || "";
+                        tls.reality = {
+                            enabled: true,
+                            public_key: vopts.publicKey || "",
+                            short_id: vopts.shortId || "",
+                        };
+                        if (vopts.fingerprint) {
+                            tls.utls = { enabled: true, fingerprint: vopts.fingerprint };
+                        }
+                    }
+                    if (tls.enabled) outbound.tls = tls;
+
+                    // Transport
+                    const transport: any = {};
+                    const tp = vopts.type || "tcp";
+                    transport.type = tp;
+                    if (tp === "ws") {
+                        if (vopts.path) transport.path = vopts.path;
+                        if (vopts.host) transport.headers = { Host: vopts.host };
+                    } else if (tp === "grpc") {
+                        if (vopts.serviceName) transport.service_name = vopts.serviceName;
+                    } else if (tp === "httpupgrade") {
+                        if (vopts.path) transport.path = vopts.path;
+                        if (vopts.host) transport.host = vopts.host;
+                    }
+                    if (tp !== "tcp") outbound.transport = transport;
+
+                    break;
+                }
+                default: { // ss
+                    outbound.type = "shadowsocks";
+                    outbound.method = server.encryption_method;
+                    outbound.password = server.password;
+                    // Only set plugin for non-2022 SS (2022 uses uPSK not plugin)
+                    if (server.plugin && !server.encryption_method?.startsWith("2022-")) {
+                        outbound.plugin = server.plugin;
+                        outbound.plugin_opts = server.plugin_opts;
+                    }
+                    break;
+                }
+            }
+
+            // Avoid duplicate tags
+            const existing = outbound_groups.find((g: any) => g.tag === tag);
+            if (existing) continue;
+
+            outboundsSelector.push(tag);
+            outboundsUrltest.push(tag);
+            outbound_groups.push(outbound);
+
+            if (server.is_active) {
+                activeTag = tag;
+            }
+        }
+
+        // If there is an active server, move its tag to the front of the
+        // selector so sing-box picks it as the default instead of "auto".
+        if (activeTag) {
+            const idx = outboundsSelector.indexOf(activeTag);
+            if (idx > 0) {
+                outboundsSelector.splice(idx, 1);
+                outboundsSelector.unshift(activeTag);
+            }
+        }
+
+        console.log(
+            `[mergeManualServers] merged ${servers.length} manual server(s)` +
+            (activeTag ? `, active=${activeTag}` : "")
+        );
+
+        // Write the final config — necessary when called without a preceding
+        // updateVPNServerConfigFromDB (i.e. manual-servers-only mode).
+    } catch (e) {
+        console.warn("[mergeManualServers] skipped — error:", e);
+    }
+}
+
+/**
+ * Merge proxy groups into sing-box config. Each group becomes a sing-box
+ * outbound group (selector/urltest/chain) wired into ExitGateway.
+ *
+ * Group types:
+ *   fixed  → selector with first server as default
+ *   auto   → urltest with all member servers
+ *   random → selector (frontend randomly picks on start)
+ *   chain  → individual outbounds with detour linking 1→2→3
+ */
+export async function mergeProxyGroupsConfig(newConfig: any): Promise<void> {
+    try {
+        const groups = await getProxyGroups();
+        if (!groups?.length) return;
+
+        const outbounds: any[] = newConfig.outbounds;
+        const gwIdx = outbounds.findIndex((g: any) => g.tag === "ExitGateway");
+        if (gwIdx === -1) return;
+
+        for (const group of groups) {
+            const servers = await getServersByGroup(group.identifier);
+            if (!servers.length) continue;
+
+            // Find existing outbound tags for these servers (already added
+            // by mergeManualServersConfig). Match by tag pattern first, then server:port.
+            const tags: string[] = [];
+            for (const s of servers) {
+                const ptype = s.proxy_type || "ss";
+                const tagPrefix = `${ptype}-${s.identifier.slice(0, 8)}`;
+                // Try exact tag match first (more reliable)
+                let existing = outbounds.find((o: any) => o.tag === tagPrefix);
+                // Fall back to server:port match
+                if (!existing) {
+                    existing = outbounds.find((o: any) =>
+                        o.server === s.server_address && o.server_port === s.server_port);
+                }
+                if (existing) {
+                    tags.push(existing.tag);
+                    console.log(`[mergeProxyGroups] matched server ${s.server_address}:${s.server_port} → tag ${existing.tag} (type=${existing.type})`);
+                } else {
+                    console.warn(`[mergeProxyGroups] NO match for server ${s.server_address}:${s.server_port} (tagPrefix=${tagPrefix})`);
+                }
+            }
+
+            if (!tags.length) {
+                console.warn(`[mergeProxyGroups] group=${group.name} has no matching outbounds, skipping`);
+                continue;
+            }
+
+            console.log(`[mergeProxyGroups] group=${group.name} type=${group.group_type} servers=${servers.length} tags=[${tags.join(",")}]`);
+
+            const prefix = `gp-${group.identifier.slice(0, 6)}`;
+            // Remove any previous entries from this group to avoid duplicates
+            outbounds[gwIdx].outbounds = outbounds[gwIdx].outbounds.filter(
+                (t: string) => !t.startsWith(prefix)
+            );
+
+            if (group.group_type === "chain") {
+                // Multi-instance chain cascade (A→B→C).
+                // Each server gets its own sing-box instance.
+                // The main config routes to the first instance (entry).
+                // The last instance uses the exit proxy directly.
+                // This works for ALL protocols because each hop has its own process.
+                const chainServers: any[] = [];
+                for (const t of tags) {
+                    const existing = outbounds.find((o: any) => o.tag === t);
+                    if (existing) chainServers.push(JSON.parse(JSON.stringify(existing)));
+                }
+
+                if (chainServers.length > 1) {
+                    // Store chain server configs for the engine to start
+                    const chainKey = `chain_${group.identifier}`;
+                    await setStoreValue(chainKey, JSON.stringify(chainServers));
+
+                    // Add a local HTTP outbound to the entry instance
+                    const entryPort = 26780; // base port for chain instances
+                    const chainEntryTag = `${prefix}-entry`;
+                    outbounds.push({
+                        tag: chainEntryTag, type: "http", server: "127.0.0.1",
+                        server_port: entryPort,
+                    });
+                    outbounds[gwIdx].outbounds.push(chainEntryTag);
+                    if (group.is_active) {
+                        outbounds[gwIdx].outbounds.unshift(chainEntryTag);
+                        // Disable cache_file to prevent stale selector state
+                        if (newConfig.experimental?.cache_file) {
+                            newConfig.experimental.cache_file.enabled = false;
+                        }
+                    }
+
+                    console.log(`[mergeProxyGroups] chain cascade: ${chainServers.length} hops, entry port=${entryPort}, servers=[${chainServers.map(s => s.tag).join("→")}]`);
+                }
+            } else {
+                // fixed/auto/random: wrap in selector or urltest using existing tags
+                if (group.group_type === "auto") {
+                    const autoTag = `${prefix}-auto`;
+                    outbounds.push({ tag: autoTag, type: "urltest", url: "https://www.google.com/generate_204", interval: "5m", outbounds: [...tags] });
+                    outbounds[gwIdx].outbounds.push(autoTag);
+                    if (group.is_active) outbounds[gwIdx].outbounds.unshift(autoTag);
+                } else {
+                    const selTag = `${prefix}-sel`;
+                    outbounds.push({ tag: selTag, type: "selector", outbounds: [...tags], default: tags[0] });
+                    outbounds[gwIdx].outbounds.push(selTag);
+                    if (group.is_active) outbounds[gwIdx].outbounds.unshift(selTag);
+                }
+            }
+        }
+
+        // Deduplicate ExitGateway outbounds
+        const seen = new Set<string>();
+        outbounds[gwIdx].outbounds = outbounds[gwIdx].outbounds.filter((t: string) => {
+            if (seen.has(t)) return false;
+            seen.add(t);
+            return true;
+        });
+
+        // If any group is active, move it to the front (default)
+        for (const group of groups) {
+            if (!group.is_active) continue;
+            const servers = await getServersByGroup(group.identifier);
+            if (!servers.length) continue;
+            const prefix = `gp-${group.identifier.slice(0, 6)}`;
+            const groupTag = outbounds[gwIdx].outbounds.find((t: string) => t.startsWith(prefix));
+            if (groupTag) {
+                const idx = outbounds[gwIdx].outbounds.indexOf(groupTag);
+                if (idx > 0) {
+                    outbounds[gwIdx].outbounds.splice(idx, 1);
+                    outbounds[gwIdx].outbounds.unshift(groupTag);
+                }
+            }
+        }
+
+    } catch (e) {
+        console.warn("[mergeProxyGroups] skipped — error:", e);
     }
 }

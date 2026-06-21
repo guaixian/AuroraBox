@@ -4,8 +4,8 @@ import { invoke } from '@tauri-apps/api/core';
 import { listen } from '@tauri-apps/api/event';
 import { getCurrentWindow } from '@tauri-apps/api/window';
 import { motion } from 'framer-motion';
-import { Suspense, useEffect, useMemo, useState } from 'react';
-import { GearWideConnected, House, Layers } from 'react-bootstrap-icons';
+import { Suspense, useEffect, useState } from 'react';
+import { GearWideConnected, House } from 'react-bootstrap-icons';
 import { Toaster } from 'sonner';
 
 import React from 'react';
@@ -16,84 +16,16 @@ import { primeAllConfigTemplateCaches, purgeLegacyTemplateCache } from "./hooks/
 import { EngineStateContext, useEngineStateRoot } from "./hooks/useEngineState";
 import { useApplyPipelineRoot } from "./components/home/hooks";
 import { DeepLinkApplyProgressModal } from "./components/home/deep-link-apply-progress-modal";
-import HomePage from "./page/home";
+import { Body } from "./components/layout/body";
+import { DesktopShell } from "./components/layout/desktop-shell";
+import { LayoutProvider, useLayout } from "./components/layout/layout-context";
 import { ActiveScreenType, NavContext } from './single/context';
 import { getStoreValue } from "./single/store";
 import { DEVELOPER_TOGGLE_STORE_KEY } from "./types/definition";
 import { initLanguage, t } from './utils/helper';
 
-const ConfigurationPage = React.lazy(() => import('./page/config'));
-const DevPage = React.lazy(() => import('./page/developer'));
-const SettingsPage = React.lazy(() => import('./page/settings'));
-const RouterSettingsPage = React.lazy(() => import('./page/router'));
 const UpdaterButton = React.lazy(() => import('./components/settings/updater-button'));
 
-
-
-
-type BodyProps = {
-  lang: string;
-  activeScreen: ActiveScreenType;
-}
-
-// 加载中的组件
-const LoadingFallback = () => (
-  <div className="flex flex-col items-center justify-center h-full space-y-4">
-    <span className="aurorabox-spinner aurorabox-spinner-ring aurorabox-spinner-lg" />
-  </div>
-);
-
-function Body({ lang, activeScreen }: BodyProps) {
-
-  const lazyComponent = useMemo(() => {
-    switch (activeScreen) {
-      case 'home':
-        return (
-          <HomePage />
-        );
-      case 'configuration':
-        return (
-          <Suspense fallback={<LoadingFallback />}>
-            <ConfigurationPage />
-          </Suspense>
-        );
-
-      case 'settings':
-        return (
-          <Suspense fallback={<LoadingFallback />}>
-            <SettingsPage />
-          </Suspense>
-        );
-
-      case 'developer_options':
-        return (
-          <Suspense fallback={<LoadingFallback />}>
-            <DevPage />
-          </Suspense>
-        );
-
-      case 'router_settings':
-        return (
-          <Suspense fallback={<LoadingFallback />}>
-            <RouterSettingsPage />
-          </Suspense>
-        );
-
-      default:
-        return null;
-    }
-  }, [activeScreen]);
-
-  return (
-    <div className="flex-1 overflow-y-hidden">
-      {activeScreen && (
-        <div className="animate-fade-in h-full overflow-y-auto" key={`${activeScreen}-${lang}`}>
-          {lazyComponent}
-        </div>
-      )}
-    </div>
-  );
-}
 
 
 
@@ -106,8 +38,7 @@ function App() {
   const [isSettingsHovered, setIsSettingsHovered] = useState(false);
   const [dockLang, setDockLang] = useState({
     home: t("home"),
-    configuration: t("configuration"),
-    settings: t("settings"),
+        settings: t("settings"),
   })
   useSWR('swr-purgeLegacyTemplateCache-key', async () => {
     await purgeLegacyTemplateCache();
@@ -210,25 +141,25 @@ function App() {
   }, []);
 
 
+  const isDevRef = React.useRef(false);
   useEffect(() => {
-    let isDeveloperMode = false;
-
-    // 初始化时获取一次
     getStoreValue(DEVELOPER_TOGGLE_STORE_KEY, false).then((val) => {
-      isDeveloperMode = val;
+      isDevRef.current = val;
     });
-
     const handler = (e: MouseEvent) => {
-      if (!isDeveloperMode) {
-        e.preventDefault();
+      if (!isDevRef.current) e.preventDefault();
+    };
+    document.addEventListener('contextmenu', handler);
+    // Also handle Ctrl+Shift+I keyboard shortcut
+    const keyHandler = (e: KeyboardEvent) => {
+      if (e.ctrlKey && e.shiftKey && e.key === 'I') {
+        invoke('open_devtools').catch(()=>{});
       }
     };
-
-    document.addEventListener('contextmenu', handler);
-
-    // 清理事件
+    document.addEventListener('keydown', keyHandler);
     return () => {
       document.removeEventListener('contextmenu', handler);
+      document.removeEventListener('keydown', keyHandler);
     };
   }, []);
 
@@ -236,8 +167,7 @@ function App() {
     const handleLanguageChange = () => {
       setDockLang({
         home: t("home"),
-        configuration: t("configuration"),
-        settings: t("settings"),
+                settings: t("settings"),
       })
     };
     handleLanguageChange();
@@ -252,8 +182,7 @@ function App() {
     initLanguage().then(() => {
       setDockLang({
         home: t("home"),
-        configuration: t("configuration"),
-        settings: t("settings"),
+                settings: t("settings"),
       })
     })
   }, []);
@@ -265,15 +194,17 @@ function App() {
     <NavContext.Provider value={{ activeScreen, setActiveScreen, handleLanguageChange, deepLinkUrl, setDeepLinkUrl, deepLinkApplyUrl, setDeepLinkApplyUrl, deepLinkApplyAutoStart, setDeepLinkApplyAutoStart }}>
       <EngineStateContext.Provider value={engineState}>
       <UpdateProvider>
-        <Toaster position="top-center" toastOptions={{ duration: 2000 }} />
-        <AppShell
-          activeScreen={activeScreen}
-          setActiveScreen={setActiveScreen}
-          language={language}
-          dockLang={dockLang}
-          isSettingsHovered={isSettingsHovered}
-          setIsSettingsHovered={setIsSettingsHovered}
-        />
+        <LayoutProvider>
+          <Toaster position="top-center" toastOptions={{ duration: 2000 }} />
+          <AppShell
+            activeScreen={activeScreen}
+            setActiveScreen={setActiveScreen}
+            language={language}
+            dockLang={dockLang}
+            isSettingsHovered={isSettingsHovered}
+            setIsSettingsHovered={setIsSettingsHovered}
+          />
+        </LayoutProvider>
       </UpdateProvider>
       </EngineStateContext.Provider>
     </NavContext.Provider>
@@ -295,12 +226,30 @@ function AppShell({
   activeScreen: ActiveScreenType;
   setActiveScreen: (s: ActiveScreenType) => void;
   language: string;
-  dockLang: { home: string; configuration: string; settings: string };
+  dockLang: { home: string; settings: string };
   isSettingsHovered: boolean;
   setIsSettingsHovered: (v: boolean) => void;
 }) {
+  const { isCompact } = useLayout();
   const { applyPhase, applyErrorMessage, closeApplyModal, stepLabels } = useApplyPipelineRoot();
 
+  // Desktop layout: sidebar + content area
+  if (!isCompact) {
+    return (
+      <>
+        <DesktopShell activeScreen={activeScreen} language={language} />
+        <DeepLinkApplyProgressModal
+          visible={applyPhase !== null}
+          phase={applyPhase ?? "init"}
+          errorMessage={applyErrorMessage}
+          onClose={closeApplyModal}
+          stepLabels={stepLabels}
+        />
+      </>
+    );
+  }
+
+  // Compact layout: iOS-style with bottom dock
   return (
     <>
       <main className="aurorabox-surface relative flex flex-col h-screen">
@@ -320,14 +269,6 @@ function AppShell({
           >
             <House size={18} />
             <span className='text-[11px] capitalize'>{dockLang.home}</span>
-          </button>
-
-          <button
-            onClick={() => setActiveScreen('configuration')}
-            data-active={activeScreen === 'configuration'}
-          >
-            <Layers size={18} />
-            <span className='text-[11px] capitalize'>{dockLang.configuration}</span>
           </button>
 
           <button
