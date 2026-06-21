@@ -88,7 +88,10 @@ pub async fn run_singbox_tests(
             }
         });
 
-        let config_path = format!("/tmp/aurorabox-test-{}.json", test_port);
+        let config_path = std::env::temp_dir()
+            .join(format!("aurorabox-test-{}.json", test_port))
+            .display()
+            .to_string();
         std::fs::write(&config_path, test_config.to_string())
             .map_err(|e| format!("write cfg: {}", e))?;
 
@@ -129,14 +132,20 @@ pub async fn run_singbox_tests(
         // ── Layer 2: Real HTTP latency via curl ────────────────────
         let real_ms = {
             let proxy = format!("http://127.0.0.1:{}", test_port);
-            let out = Command::new("curl")
-                .args([
-                    "-x", &proxy,
-                    "-s", "-o", "/dev/null", "-w", "%{time_total}",
-                    "--connect-timeout", "5", "--max-time", "8",
-                    "http://www.gstatic.com/generate_204",
-                ])
-                .output();
+            let null = if cfg!(windows) { "nul" } else { "/dev/null" };
+            let mut cmd = Command::new("curl");
+            cmd.args([
+                "-x", &proxy,
+                "-s", "-o", null, "-w", "%{time_total}",
+                "--connect-timeout", "5", "--max-time", "8",
+                "http://www.gstatic.com/generate_204",
+            ]);
+            #[cfg(windows)]
+            {
+                use std::os::windows::process::CommandExt;
+                cmd.creation_flags(0x08000000); // CREATE_NO_WINDOW
+            }
+            let out = cmd.output();
             match out {
                 Ok(o) if o.status.success() => {
                     let secs: f64 = String::from_utf8_lossy(&o.stdout).trim().parse().unwrap_or(0.0);
@@ -152,6 +161,7 @@ pub async fn run_singbox_tests(
         // measures average throughput. Does NOT download the whole file.
         let speed_kbps = {
             let proxy = format!("http://127.0.0.1:{}", test_port);
+            let null = if cfg!(windows) { "nul" } else { "/dev/null" };
             let urls = [
                 "http://cachefly.cachefly.net/10mb.test",
                 "http://speedtest.tele2.net/10MB.zip",
@@ -159,14 +169,19 @@ pub async fn run_singbox_tests(
             ];
             let mut result = None;
             for url in &urls {
-                let out = Command::new("curl")
-                    .args([
-                        "-x", &proxy,
-                        "-s", "-o", "/dev/null", "-w", "%{speed_download}",
-                        "--connect-timeout", "5", "--max-time", "10",
-                        url,
-                    ])
-                    .output();
+                let mut cmd = Command::new("curl");
+                cmd.args([
+                    "-x", &proxy,
+                    "-s", "-o", null, "-w", "%{speed_download}",
+                    "--connect-timeout", "5", "--max-time", "10",
+                    url,
+                ]);
+                #[cfg(windows)]
+                {
+                    use std::os::windows::process::CommandExt;
+                    cmd.creation_flags(0x08000000); // CREATE_NO_WINDOW
+                }
+                let out = cmd.output();
                 if let Ok(o) = out {
                     if o.status.success() {
                         let bps: f64 = String::from_utf8_lossy(&o.stdout).trim().parse().unwrap_or(0.0);

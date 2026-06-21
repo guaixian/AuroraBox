@@ -143,16 +143,19 @@ function App() {
 
   const isDevRef = React.useRef(false);
   useEffect(() => {
-    getStoreValue(DEVELOPER_TOGGLE_STORE_KEY, false).then((val) => {
-      isDevRef.current = val;
-    });
+    const applyDevMode = (val: boolean) => { isDevRef.current = val; };
+    getStoreValue(DEVELOPER_TOGGLE_STORE_KEY, false).then(applyDevMode);
+    // Listen for dev mode changes from settings page
+    const devModeListener = (e: Event) => { applyDevMode((e as CustomEvent).detail); };
+    window.addEventListener('dev-mode-changed', devModeListener);
     const handler = (e: MouseEvent) => {
       if (!isDevRef.current) e.preventDefault();
     };
     document.addEventListener('contextmenu', handler);
-    // Also handle Ctrl+Shift+I keyboard shortcut
+    // Also handle Ctrl+Shift+I keyboard shortcut (gated by developer toggle)
     const keyHandler = (e: KeyboardEvent) => {
       if (e.ctrlKey && e.shiftKey && e.key === 'I') {
+        if (!isDevRef.current) return;
         invoke('open_devtools').catch(()=>{});
       }
     };

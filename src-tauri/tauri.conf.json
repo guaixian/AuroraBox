@@ -1,6 +1,6 @@
 {
   "productName": "AuroraBox",
-  "version": "1.0.3",
+  "version": "1.0.4",
   "identifier": "com.guaixian.aurorabox",
   "build": {
     "beforeDevCommand": "deno task dev",

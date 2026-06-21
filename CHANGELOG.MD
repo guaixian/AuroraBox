@@ -42,3 +42,30 @@ All significant changes in this version are documented here.
 > 请确保您了解潜在风险后再使用开发版和测试版。
 >
 > Use development and beta versions only if you are aware of the potential risks.
+
+## v1.0.4
+
+### Fixed
+- Fixed power/connection icon not rendering on Windows (replaced Unicode glyph with SVG)
+- Fixed latency and speed testing on Windows — temp path now uses Windows-compatible directory,
+  curl commands suppress console window, and `/dev/null` replaced with `nul`
+- Fixed incomplete Chinese/English language switching — all settings page labels now translated
+- Fixed DevTools (F12) not respecting developer mode toggle — keyboard shortcut now gated
+- Fixed switching from Global proxy to TUN mode while proxy running causing errors —
+  TUN↔SystemProxy mode changes now perform full stop+restart cycle
+- Fixed tray menu mode switching to use stop+start when TUN state changes
+
+### Improved
+- Settings page fully internationalized with proper translation keys
+- Developer mode changes now apply immediately without requiring app restart
+- Linux RPM packages now uploaded alongside DEB in CI releases
+
+**修复和新增功能：**
+- 修复 Windows 主页连接图标丢失问题（Unicode → SVG）
+- 修复 Windows 延迟/速度测试失败（临时路径、控制台窗口、设备路径适配）
+- 修复中英文切换不完整，设置界面全部使用翻译 key
+- 修复 F12 开发者工具未受设置开关控制
+- 修复全局代理切换 TUN 模式报错（TUN↔SystemProxy 切换改为完整停止+启动）
+- 修复托盘菜单模式切换 TUN 状态变更时的同样问题
+- 设置界面完整国际化，开发者模式即时生效
+- CI Release 增加 Linux RPM 包上传

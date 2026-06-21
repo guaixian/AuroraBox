@@ -41,23 +41,23 @@ export default function SettingsPage() {
   return (
     <div className="page-body">
       <div className="settings-group">
-        <div className="settings-group-title">Network</div>
+        <div className="settings-group-title">{t("settings_network")}</div>
         <div className="grouped-list" style={{borderRadius:"var(--r-lg)",overflow:"hidden"}}>
-          <Row icon="⇄" iconBg="rgba(255,154,3,0.12)" label="Proxy Port" desc="HTTP/SOCKS mixed inbound"
-            right={<><div className="setting-value">{port}</div><div className="setting-arrow" style={{cursor:"pointer"}} onClick={()=>{const p=prompt("Port",String(port));if(p&&!isNaN(+p)&&+p>0&&+p<65536){setPort(+p);setStoreValue("proxy_port",+p)}}}>›</div></>} />
-          <Row icon="⇅" iconBg="rgba(52,120,246,0.12)" label="Allow LAN" desc="Other devices can connect"
+          <Row icon="⇄" iconBg="rgba(255,154,3,0.12)" label={t("settings_proxy_port")} desc={t("proxy_port_desc")}
+            right={<><div className="setting-value">{port}</div><div className="setting-arrow" style={{cursor:"pointer"}} onClick={()=>{const p=prompt(t("proxy_port"),String(port));if(p&&!isNaN(+p)&&+p>0&&+p<65536){setPort(+p);setStoreValue("proxy_port",+p)}}}>›</div></>} />
+          <Row icon="⇅" iconBg="rgba(52,120,246,0.12)" label={t("allow_lan")} desc={t("settings_allow_lan_desc")}
             right={<div className={`toggle ${lan?"on":""}`} onClick={()=>tog(setLan,"allow_lan")(!lan)} />} />
-          <Row icon="◆" iconBg="rgba(48,177,88,0.12)" label="TUN Mode" desc="Virtual NIC, system-wide proxy"
+          <Row icon="◆" iconBg="rgba(48,177,88,0.12)" label={t("tun_mode")} desc={t("settings_tun_mode_desc")}
             right={<div className={`toggle ${tun?"on":""}`} onClick={()=>tog(setTun,ENABLE_TUN_STORE_KEY)(!tun)} />} />
         </div>
       </div>
 
       <div className="settings-group">
-        <div className="settings-group-title">General</div>
+        <div className="settings-group-title">{t("settings_general")}</div>
         <div className="grouped-list" style={{borderRadius:"var(--r-lg)",overflow:"hidden"}}>
-          <Row icon="🌐" iconBg="rgba(168,85,247,0.1)" label="Language"
-            right={<><div className="setting-value">{lang==="zh"?"中文":"English"}</div><div className="setting-arrow" style={{cursor:"pointer"}} onClick={async()=>{const n=lang==="zh"?"en":"zh";setLang(n);await setStoreValue("language",n);toast.success(n==="zh"?"已切换为中文":"Switched to English")}}>›</div></>} />
-          <Row icon="⚡" iconBg="rgba(255,59,48,0.1)" label="Auto Start" desc="Launch on system login"
+          <Row icon="🌐" iconBg="rgba(168,85,247,0.1)" label={t("language")}
+            right={<><div className="setting-value">{lang==="zh"?t("chinese"):t("english")}</div><div className="setting-arrow" style={{cursor:"pointer"}} onClick={async()=>{const n=lang==="zh"?"en":"zh";setLang(n);await setStoreValue("language",n);toast.success(n==="zh"?t("switched_zh"):t("switched_en"))}}>›</div></>} />
+          <Row icon="⚡" iconBg="rgba(255,59,48,0.1)" label={t("auto_start")} desc={t("settings_auto_start_desc")}
             right={<div className={`toggle ${autoStart?"on":""}`} onClick={()=>tog(setAutoStart,"auto_start")(!autoStart)} />} />
           <Row icon="☰" iconBg="rgba(52,120,246,0.12)" label={t("router_settings")} desc={t("custom_router_rules")}
             right={<div className="setting-arrow" style={{cursor:"pointer"}} onClick={()=>setActiveScreen("router_settings")}>›</div>} />
@@ -65,10 +65,10 @@ export default function SettingsPage() {
       </div>
 
       <div className="settings-group">
-        <div className="settings-group-title">Developer</div>
+        <div className="settings-group-title">{t("settings_developer")}</div>
         <div className="grouped-list" style={{borderRadius:"var(--r-lg)",overflow:"hidden"}}>
-          <Row icon="🔧" iconBg="rgba(142,142,147,0.15)" label="Developer Mode" desc="Enable advanced options"
-            right={<div className={`toggle ${devMode?"on":""}`} onClick={()=>tog(setDevMode,"developer_toggle")(!devMode)} />} />
+          <Row icon="🔧" iconBg="rgba(142,142,147,0.15)" label={t("settings_developer_mode")} desc={t("settings_developer_mode_desc")}
+            right={<div className={`toggle ${devMode?"on":""}`} onClick={async()=>{const v=!devMode;setDevMode(v);await setStoreValue("developer_toggle",v);window.dispatchEvent(new CustomEvent('dev-mode-changed',{detail:v}));}} />} />
         </div>
       </div>
 

@@ -30,15 +30,29 @@ export default function Body({ isRunning, isLoading, onUpdate, onToggle }: { isR
   }, []);
 
   const handleModeChange = async (mode: string) => {
+    const wasTun = tunMode;
+    const newTun = mode === "tun";
     setCurMode(mode);
-    if (mode === "tun") {
+    if (newTun) {
       await setStoreValue(ENABLE_TUN_STORE_KEY, true);
       setTunMode(true);
     } else {
       if (tunMode) { await setStoreValue(ENABLE_TUN_STORE_KEY, false); setTunMode(false); }
       await setStoreValue(RULE_MODE_STORE_KEY, mode);
     }
-    try { await vpnServiceManager.syncConfig({}); if (isRunning) onUpdate(); } catch(e){}
+    try {
+      await vpnServiceManager.syncConfig({});
+      if (isRunning) {
+        // TUN ↔ SystemProxy switch requires a full restart (different launch paths)
+        if (wasTun !== newTun) {
+          await vpnServiceManager.stop();
+          await new Promise(r => setTimeout(r, 800));
+          await vpnServiceManager.start();
+        } else {
+          onUpdate();
+        }
+      }
+    } catch(e){ console.error(e); }
   };
 
   // Load all servers on every groups change AND on mount
@@ -142,7 +156,11 @@ export default function Body({ isRunning, isLoading, onUpdate, onToggle }: { isR
     <div>
       {/* Power + Mode */}
       <div className="power-section">
-        <div className={`power-btn ${isRunning ? "on" : ""}`} onClick={onToggle} style={isLoading ? {opacity:0.6,pointerEvents:"none"} : {}}>⏻</div>
+        <div className={`power-btn ${isRunning ? "on" : ""}`} onClick={onToggle} style={isLoading ? {opacity:0.6,pointerEvents:"none"} : {}}>
+          <svg viewBox="0 0 24 24" width="28" height="28" fill="currentColor" aria-hidden="true">
+            <path d="M12 3a1 1 0 0 1 1 1v8a1 1 0 1 1-2 0V4a1 1 0 0 1 1-1zM7.05 5.64a1 1 0 0 1 .27 1.38 7 7 0 1 0 9.36 0 1 1 0 1 1 1.64-1.14 9 9 0 1 1-12.64 0 1 1 0 0 1 1.37-.24z"/>
+          </svg>
+        </div>
         <div className="power-label">{isLoading ? "Switching..." : isRunning ? "Connected" : "Disconnected"}</div>
         <div className="power-sub">{selectedId ? allServers.find(s => s.identifier === selectedId)?.server_address + " · " + getTypeLabel(allServers.find(s => s.identifier === selectedId)?.proxy_type || "ss") : "—"}</div>
 

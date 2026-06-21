@@ -78,6 +78,7 @@ async function createModeMenuItems(): Promise<NonNullable<MenuOptions['items']>>
     const mode = await getStoreValue(RULE_MODE_STORE_KEY) || 'rules';
     const tunMode = await getEnableTun();
 
+    const wasTun = tunMode;
     return [
         {
             id: 'mode_label',
@@ -92,7 +93,13 @@ async function createModeMenuItems(): Promise<NonNullable<MenuOptions['items']>>
                 await setStoreValue(RULE_MODE_STORE_KEY, 'rules');
                 await setStoreValue(ENABLE_TUN_STORE_KEY, false);
                 await vpnServiceManager.syncConfig({});
-                await vpnServiceManager.reload(1000);
+                if (wasTun) {
+                    await vpnServiceManager.stop();
+                    await new Promise(r => setTimeout(r, 800));
+                    await vpnServiceManager.start();
+                } else {
+                    await vpnServiceManager.reload(1000);
+                }
                 await updateTrayMenu();
             },
         },
@@ -104,7 +111,13 @@ async function createModeMenuItems(): Promise<NonNullable<MenuOptions['items']>>
                 await setStoreValue(RULE_MODE_STORE_KEY, 'global');
                 await setStoreValue(ENABLE_TUN_STORE_KEY, false);
                 await vpnServiceManager.syncConfig({});
-                await vpnServiceManager.reload(1000);
+                if (wasTun) {
+                    await vpnServiceManager.stop();
+                    await new Promise(r => setTimeout(r, 800));
+                    await vpnServiceManager.start();
+                } else {
+                    await vpnServiceManager.reload(1000);
+                }
                 await updateTrayMenu();
             },
         },
@@ -115,7 +128,13 @@ async function createModeMenuItems(): Promise<NonNullable<MenuOptions['items']>>
             action: async () => {
                 await setStoreValue(ENABLE_TUN_STORE_KEY, true);
                 await vpnServiceManager.syncConfig({});
-                await vpnServiceManager.reload(1000);
+                if (!wasTun) {
+                    await vpnServiceManager.stop();
+                    await new Promise(r => setTimeout(r, 800));
+                    await vpnServiceManager.start();
+                } else {
+                    await vpnServiceManager.reload(1000);
+                }
                 await updateTrayMenu();
             },
         },
