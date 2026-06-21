@@ -87,7 +87,7 @@ CI builds all platforms on every release tag:
 
 | Home | Servers | Groups | Settings |
 | :---: | :---: | :---: | :---: |
-| <img src="./.github/assets/en/Home.png" alt="Home" width="180"> | <img src="./.github/assets/en/Config.png" alt="Servers" width="180"> | Groups | <img src="./.github/assets/en/Settings.png" alt="Settings" width="180"> |
+| <img src="./screenshot/home.png" alt="Home" width="180"> | <img src="./screenshot/server_node.png" alt="Servers" width="180"> | <img src="./screenshot/group.png" alt="Groups" width="180"> | <img src="./screenshot/settings.png" alt="Settings" width="180"> |
 
 ## Download
 
