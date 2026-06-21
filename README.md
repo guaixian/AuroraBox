@@ -1,5 +1,7 @@
 <div align="center">
-  <img src="./.github/assets/brand/readme-hero.png" alt="AuroraBox banner" width="100%">
+  <img src="./AuroraBox.png" alt="AuroraBox" width="128" height="128">
+
+  <h1>AuroraBox</h1>
 
   <p>
     <a href="./README_CN.md">简体中文</a>
