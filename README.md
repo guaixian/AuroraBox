@@ -1,5 +1,5 @@
 <div align="center">
-  <img src="./AuroraBox.png" alt="AuroraBox" width="128" height="128">
+  <img src="./app-icon.png" alt="AuroraBox" width="128" height="128">
 
   <h1>AuroraBox</h1>
 
